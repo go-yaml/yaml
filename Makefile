@@ -1,5 +1,8 @@
 include $(GOROOT)/src/Make.inc
 
+YAML=yaml-0.1.3
+LIBYAML=$(PWD)/$(YAML)/src/.libs/libyaml.a
+
 TARG=goyaml
 
 GOFILES=\
@@ -8,15 +11,18 @@ GOFILES=\
 CGOFILES=\
 	parser.go\
 
-LIBYAML=/usr/lib/libyaml.a
-LIBYAML_OFILES=$(shell ar t $(LIBYAML))
-
 CGO_LDFLAGS+=-lm -lpthread
-CGO_OFILES+=$(LIBYAML_OFILES:%=_lib/%)
+CGO_OFILES+=_lib/*.o
+
+
+all: package
 
 $(CGO_OFILES): $(LIBYAML)
-	@mkdir _lib
+	@mkdir -p _lib
 	cd _lib && ar x $(LIBYAML)
+
+$(LIBYAML):
+	cd $(YAML) && CFLAGS=-fpic ./configure && make
 
 CLEANFILES=_lib
 

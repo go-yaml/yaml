@@ -1,0 +1,4 @@
+package goyaml
+
+/* */
+import "C"

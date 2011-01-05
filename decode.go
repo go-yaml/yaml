@@ -65,6 +65,12 @@ func (d *decoder) skip(_type C.yaml_event_type_t) {
     d.next()
 }
 
+var blackHole = reflect.NewValue(true)
+
+func (d *decoder) drop() {
+    d.unmarshal(blackHole)
+}
+
 func (d *decoder) unmarshal(out reflect.Value) bool {
     switch d.event._type {
     case C.YAML_SCALAR_EVENT:
@@ -111,7 +117,19 @@ func (d *decoder) scalar(out reflect.Value) (ok bool) {
             ok = true
         case int64:
             out.Set(resolved)
-            // ok = true // XXX TEST ME
+            ok = true
+        }
+    case *reflect.BoolValue:
+        switch resolved := resolved.(type) {
+        case bool:
+            out.Set(resolved)
+            ok = true
+        }
+    case *reflect.FloatValue:
+        switch resolved := resolved.(type) {
+        case float:
+            out.Set(float64(resolved))
+            ok = true
         }
     default:
         panic("Can't handle scalar type yet: " + out.Type().String())
@@ -121,6 +139,12 @@ func (d *decoder) scalar(out reflect.Value) (ok bool) {
 }
 
 func (d *decoder) sequence(out reflect.Value) bool {
+    if iface, ok := out.(*reflect.InterfaceValue); ok {
+        // No type hints. Will have to use a generic sequence.
+        out = reflect.NewValue(make([]interface{}, 0))
+        iface.SetValue(out)
+    }
+
     sv, ok := out.(*reflect.SliceValue)
     if !ok {
         d.skip(C.YAML_SEQUENCE_END_EVENT)
@@ -140,10 +164,36 @@ func (d *decoder) sequence(out reflect.Value) bool {
     return true
 }
 
-func (d *decoder) mapping(out reflect.Value) bool {
-    //if iface, ok := out.(*reflect.InterfaceValue); ok {
+func indirect(out reflect.Value) reflect.Value {
+    for {
+        switch v := out.(type) {
+        case *reflect.PtrValue:
+            if v.IsNil() {
+                out = reflect.MakeZero(v.Type().(*reflect.PtrType).Elem())
+                v.PointTo(out)
+            } else {
+                out = v.Elem()
+            }
+        default:
+            return out
+        }
+    }
+    panic("Unreachable")
+}
 
-    // XXX What if it's an interface{}?
+func (d *decoder) mapping(out reflect.Value) bool {
+    out = indirect(out)
+
+    if s, ok := out.(*reflect.StructValue); ok {
+        return d.mappingStruct(s)
+    }
+
+    if iface, ok := out.(*reflect.InterfaceValue); ok {
+        // No type hints. Will have to use a generic map.
+        out = reflect.NewValue(make(map[interface{}]interface{}))
+        iface.SetValue(out)
+    }
+
     mv, ok := out.(*reflect.MapValue)
     if !ok {
         d.skip(C.YAML_MAPPING_END_EVENT)
@@ -164,7 +214,29 @@ func (d *decoder) mapping(out reflect.Value) bool {
         }
     }
     d.next()
-    return false
+    return true
+}
+
+func (d *decoder) mappingStruct(out *reflect.StructValue) bool {
+    fields, err := getStructFields(out.Type().(*reflect.StructType))
+    if err != nil {
+        panic(err)
+    }
+    name := reflect.NewValue("").(*reflect.StringValue)
+    fieldsMap := fields.Map
+    d.next()
+    for d.event._type != C.YAML_MAPPING_END_EVENT {
+        if d.unmarshal(name) {
+            if info, ok := fieldsMap[name.Get()]; ok {
+                d.unmarshal(out.Field(info.Num))
+                continue
+            }
+        }
+        // Can't unmarshal name, or it's not present in struct.
+        d.drop()
+    }
+    d.next()
+    return true
 }
 
 func GoYString(s *C.yaml_char_t) string {

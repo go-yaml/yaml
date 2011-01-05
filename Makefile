@@ -7,11 +7,13 @@ TARG=goyaml
 
 GOFILES=\
 	goyaml.go\
+	resolve.go\
 
 CGOFILES=\
-	parser.go\
+	decode.go\
 
 CGO_LDFLAGS+=-lm -lpthread
+CGO_CFLAGS+=-I$(YAML)/include
 CGO_OFILES+=_lib/*.o
 
 
@@ -28,4 +30,4 @@ CLEANFILES=_lib
 
 include $(GOROOT)/src/Make.pkg
 
-#_cgo_defun.c: helpers.c
+_cgo_defun.c: helpers.c

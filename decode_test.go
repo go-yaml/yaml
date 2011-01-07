@@ -3,17 +3,11 @@ package goyaml_test
 
 import (
     . "gocheck"
-    "testing"
     "goyaml"
     "reflect"
     "math"
 )
 
-func Test(t *testing.T) { TestingT(t) }
-
-type S struct{}
-
-var _ = Suite(&S{})
 
 var unmarshalTests = []struct{data string; value interface{}}{
     // It will encode either value as a string if asked for.

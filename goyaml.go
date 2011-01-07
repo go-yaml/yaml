@@ -2,17 +2,41 @@ package goyaml
 
 import (
     "reflect"
+    "runtime"
     "strings"
     "sync"
     "os"
 )
 
+func handleErr(err *os.Error) {
+    if r := recover(); r != nil {
+        if _, ok := r.(runtime.Error); ok {
+            panic(r)
+        } else if s, ok := r.(string); ok {
+            *err = os.ErrorString(s)
+        } else if e, ok := r.(os.Error); ok {
+            *err = e
+        } else {
+            panic(r)
+        }
+    }
+}
 
-func Unmarshal(in []byte, out interface{}) os.Error {
+
+func Unmarshal(in []byte, out interface{}) (err os.Error) {
+    defer handleErr(&err)
     d := newDecoder(in)
     defer d.destroy()
     d.unmarshal(reflect.NewValue(out))
     return nil
+}
+
+type Setter interface {
+    SetYAML(tag string, value interface{}) bool
+}
+
+type Getter interface {
+    GetYAML() (tag string, value interface{})
 }
 
 

@@ -15,13 +15,7 @@ type S struct{}
 
 var _ = Suite(&S{})
 
-type testItem struct {
-    data string
-    value interface{}
-}
-
-
-var unmarshalTests = []testItem{
+var unmarshalTests = []struct{data string; value interface{}}{
     // It will encode either value as a string if asked for.
     {"hello: world", map[string]string{"hello": "world"}},
     {"hello: true", map[string]string{"hello": "true"}},
@@ -63,8 +57,16 @@ var unmarshalTests = []testItem{
     {"octal: 02472256", map[string]interface{}{"octal": 685230}},
     {"hexa: 0x_0A_74_AE", map[string]interface{}{"hexa": 685230}},
     {"bin: 0b1010_0111_0100_1010_1110", map[string]interface{}{"bin": 685230}},
+    {"bin: -0b101010", map[string]interface{}{"bin": -42}},
     //{"sexa: 190:20:30", map[string]interface{}{"sexa": 0}}, // Unsupported
     {"decimal: +685_230", map[string]int{"decimal": 685230}},
+
+    // Nulls from spec
+    {"empty:", map[string]interface{}{"empty": nil}},
+    {"canonical: ~", map[string]interface{}{"canonical": nil}},
+    {"english: null", map[string]interface{}{"english": nil}},
+    {"~: null key", map[interface{}]string{nil: "null key"}},
+    {"empty:", map[string]*bool{"empty": nil}},
 
     // Sequence
     {"seq: [A,B]", map[string]interface{}{"seq": []interface{}{"A", "B"}}},
@@ -86,6 +88,25 @@ var unmarshalTests = []testItem{
     {"a: 1", &struct{B int}{0}},
     {"a: 1", &struct{B int "a"}{1}},
     {"a: y", &struct{A bool}{true}},
+
+    // Some cross type conversions
+    {"v: 42", map[string]uint{"v": 42}},
+    {"v: -42", map[string]uint{}},
+    {"v: 4294967296", map[string]uint64{"v": 4294967296}},
+    {"v: -4294967296", map[string]uint64{}},
+
+    // Overflow cases.
+    {"v: 4294967297", map[string]int32{}},
+    {"v: 128", map[string]int8{}},
+
+    // Quoted values.
+    {"'1': '2'", map[interface{}]interface{}{"1": "2"}},
+
+    // Explicit tags.
+    {"v: !!float '1.1'", map[string]interface{}{"v": 1.1}},
+    {"v: !!null ''", map[string]interface{}{"v": nil}},
+    {"%TAG !y! tag:yaml.org,2002:\n---\nv: !y!int '1'",
+     map[string]interface{}{"v": 1}},
 }
 
 
@@ -105,4 +126,89 @@ func (s *S) TestUnmarshal(c *C) {
         c.Assert(err, IsNil)
         c.Assert(value, Equals, item.value)
     }
+}
+
+var unmarshalErrorTests = []struct{data, error string}{
+    {"v: !!float 'error'", "Can't decode !!str 'error' as a !!float"},
+}
+
+func (s *S) TestUnmarshalErrors(c *C) {
+    for _, item := range unmarshalErrorTests {
+        var value interface{}
+        err := goyaml.Unmarshal([]byte(item.data), &value)
+        c.Assert(err, Matches, item.error)
+    }
+}
+
+var setterTests = []struct{data, tag string; value interface{}}{
+    {"_: {hi: there}", "!!map", map[interface{}]interface{}{"hi": "there"}},
+    {"_: [1,A]", "!!seq", []interface{}{1, "A"}},
+    {"_: 10", "!!int", 10},
+    {"_: null", "!!null", nil},
+    {"_: !!foo 'BAR!'", "!!foo", "BAR!"},
+}
+
+var setterResult = map[int]bool{}
+
+type typeWithSetter struct {
+    tag string
+    value interface{}
+}
+
+func (o *typeWithSetter) SetYAML(tag string, value interface{}) (ok bool) {
+    o.tag = tag
+    o.value = value
+    if i, ok := value.(int); ok {
+        if result, ok := setterResult[i]; ok {
+            return result
+        }
+    }
+    return true
+}
+
+type typeWithSetterField struct {
+    Field *typeWithSetter "_"
+}
+
+func (s *S) TestUnmarshalWithSetter(c *C) {
+    for _, item := range setterTests {
+        obj := &typeWithSetterField{}
+        err := goyaml.Unmarshal([]byte(item.data), obj)
+        c.Assert(err, IsNil)
+        c.Assert(obj.Field, NotNil,
+                 Bug("Pointer not initialized (%#v)", item.value))
+        c.Assert(obj.Field.tag, Equals, item.tag)
+        c.Assert(obj.Field.value, Equals, item.value)
+    }
+}
+
+func (s *S) TestUnmarshalWholeDocumentWithSetter(c *C) {
+    obj := &typeWithSetter{}
+    err := goyaml.Unmarshal([]byte(setterTests[0].data), obj)
+    c.Assert(err, IsNil)
+    c.Assert(obj.tag, Equals, setterTests[0].tag)
+    value, ok := obj.value.(map[interface{}]interface{})
+    c.Assert(ok, Equals, true)
+    c.Assert(value["_"], Equals, setterTests[0].value)
+}
+
+func (s *S) TestUnmarshalWithFalseSetterIgnoresValue(c *C) {
+    setterResult[2] = false
+    setterResult[4] = false
+    defer func() {
+        setterResult[2] = false, false
+        setterResult[4] = false, false
+    }()
+
+    m := map[string]*typeWithSetter{}
+    data := "{abc: 1, def: 2, ghi: 3, jkl: 4}"
+    err := goyaml.Unmarshal([]byte(data), m)
+    c.Assert(err, IsNil)
+    c.Assert(m["abc"], NotNil)
+    c.Assert(m["def"], IsNil)
+    c.Assert(m["ghi"], NotNil)
+    c.Assert(m["jkl"], IsNil)
+
+    c.Assert(m["abc"].value, Equals, 1)
+    c.Assert(m["ghi"].value, Equals, 3)
 }

@@ -71,21 +71,65 @@ func (d *decoder) drop() {
     d.unmarshal(blackHole)
 }
 
-func (d *decoder) unmarshal(out reflect.Value) bool {
+// d.setter deals with setters and pointer dereferencing and initialization.
+//
+// It's a slightly convoluted case to handle properly:
+//
+// - Nil pointers should be zeroed out, unless being set to nil
+// - We don't know at this point yet what's the value to SetYAML() with.
+// - We can't separate pointer deref/init and setter checking, because
+//   a setter may be found while going down a pointer chain.
+//
+// Thus, here is how it takes care of it:
+//
+// - out is provided as a pointer, so that it can be replaced.
+// - when looking at a non-setter ptr, *out=ptr.Elem(), unless tag=!!null
+// - when a setter is found, *out=interface{}, and a set() function is
+//   returned to call SetYAML() with the value of *out once it's defined.
+//
+func (d *decoder) setter(tag string, out *reflect.Value, good *bool) (set func()) {
+    again := true
+    for again {
+        again = false
+        setter, _ := (*out).Interface().(Setter)
+        if tag != "!!null" || setter != nil {
+            if pv, ok := (*out).(*reflect.PtrValue); ok {
+                if pv.IsNil() {
+                    *out = reflect.MakeZero(pv.Type().(*reflect.PtrType).Elem())
+                    pv.PointTo(*out)
+                } else {
+                    *out = pv.Elem()
+                }
+                setter, _ = pv.Interface().(Setter)
+                again = true
+            }
+        }
+        if setter != nil {
+            var arg interface{}
+            *out = reflect.NewValue(&arg).(*reflect.PtrValue).Elem()
+            return func() {
+                *good = setter.SetYAML(tag, arg)
+            }
+        }
+    }
+    return nil
+}
+
+func (d *decoder) unmarshal(out reflect.Value) (good bool) {
     switch d.event._type {
     case C.YAML_SCALAR_EVENT:
-        return d.scalar(out)
+        good = d.scalar(out)
     case C.YAML_MAPPING_START_EVENT:
-        return d.mapping(out)
+        good = d.mapping(out)
     case C.YAML_SEQUENCE_START_EVENT:
-        return d.sequence(out)
+        good = d.sequence(out)
     case C.YAML_DOCUMENT_START_EVENT:
-        return d.document(out)
+        good = d.document(out)
     default:
         panic("Attempted to unmarshal unexpected event: " +
               strconv.Itoa(int(d.event._type)))
     }
-    return true
+    return
 }
 
 func (d *decoder) document(out reflect.Value) bool {
@@ -99,46 +143,81 @@ func (d *decoder) document(out reflect.Value) bool {
     return result
 }
 
-func (d *decoder) scalar(out reflect.Value) (ok bool) {
+func (d *decoder) scalar(out reflect.Value) (good bool) {
     scalar := C.event_scalar(d.event)
     str := GoYString(scalar.value)
-    resolved, _ := resolve(str)
+    tag := GoYString(scalar.tag)
+    var resolved interface{}
+    if tag == "" && scalar.plain_implicit == 0 {
+        resolved = str
+    } else {
+        tag, resolved = resolve(tag, str)
+        if set := d.setter(tag, &out, &good); set != nil {
+            defer set()
+        }
+    }
     switch out := out.(type) {
     case *reflect.StringValue:
         out.Set(str)
-        ok = true
+        good = true
     case *reflect.InterfaceValue:
         out.Set(reflect.NewValue(resolved))
-        ok = true
+        good = true
     case *reflect.IntValue:
         switch resolved := resolved.(type) {
         case int:
-            out.Set(int64(resolved))
-            ok = true
+            if !out.Overflow(int64(resolved)) {
+                out.Set(int64(resolved))
+                good = true
+            }
         case int64:
-            out.Set(resolved)
-            ok = true
+            if !out.Overflow(resolved) {
+                out.Set(resolved)
+                good = true
+            }
+        }
+    case *reflect.UintValue:
+        switch resolved := resolved.(type) {
+        case int:
+            if resolved >= 0 {
+                out.Set(uint64(resolved))
+                good = true
+            }
+        case int64:
+            if resolved >= 0 {
+                out.Set(uint64(resolved))
+                good = true
+            }
         }
     case *reflect.BoolValue:
         switch resolved := resolved.(type) {
         case bool:
             out.Set(resolved)
-            ok = true
+            good = true
         }
     case *reflect.FloatValue:
         switch resolved := resolved.(type) {
         case float:
             out.Set(float64(resolved))
-            ok = true
+            good = true
+        }
+    case *reflect.PtrValue:
+        switch resolved := resolved.(type) {
+        case nil:
+            out.PointTo(nil)
+            good = true
         }
     default:
         panic("Can't handle scalar type yet: " + out.Type().String())
     }
     d.next()
-    return ok
+    return good
 }
 
-func (d *decoder) sequence(out reflect.Value) bool {
+func (d *decoder) sequence(out reflect.Value) (good bool) {
+    if set := d.setter("!!seq", &out, &good); set != nil {
+        defer set()
+    }
     if iface, ok := out.(*reflect.InterfaceValue); ok {
         // No type hints. Will have to use a generic sequence.
         out = reflect.NewValue(make([]interface{}, 0))
@@ -164,26 +243,10 @@ func (d *decoder) sequence(out reflect.Value) bool {
     return true
 }
 
-func indirect(out reflect.Value) reflect.Value {
-    for {
-        switch v := out.(type) {
-        case *reflect.PtrValue:
-            if v.IsNil() {
-                out = reflect.MakeZero(v.Type().(*reflect.PtrType).Elem())
-                v.PointTo(out)
-            } else {
-                out = v.Elem()
-            }
-        default:
-            return out
-        }
+func (d *decoder) mapping(out reflect.Value) (good bool) {
+    if set := d.setter("!!map", &out, &good); set != nil {
+        defer set()
     }
-    panic("Unreachable")
-}
-
-func (d *decoder) mapping(out reflect.Value) bool {
-    out = indirect(out)
-
     if s, ok := out.(*reflect.StructValue); ok {
         return d.mappingStruct(s)
     }

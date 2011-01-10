@@ -9,25 +9,30 @@ import (
 )
 
 
-var unmarshalTests = []struct{data string; value interface{}}{
-    // It will encode either value as a string if asked for.
-    {"hello: world", map[string]string{"hello": "world"}},
-    {"hello: true", map[string]string{"hello": "true"}},
+var unmarshalIntTest = 123
 
-    // And when given the option, will preserve the YAML type.
-    {"hello: world", map[string]interface{}{"hello": "world"}},
-    {"hello: true", map[string]interface{}{"hello": true}},
-    {"hello: 10", map[string]interface{}{"hello": 10}},
-    {"hello: 0b10", map[string]interface{}{"hello": 2}},
-    {"hello: 0xA", map[string]interface{}{"hello": 10}},
-    {"hello: 4294967296", map[string]interface{}{"hello": int64(4294967296)}},
-    {"hello: 4294967296", map[string]int64{"hello": int64(4294967296)}},
-    {"hello: 0.1", map[string]interface{}{"hello": 0.1}},
-    {"hello: .1", map[string]interface{}{"hello": 0.1}},
-    {"hello: .Inf", map[string]interface{}{"hello": math.Inf(+1)}},
-    {"hello: -.Inf", map[string]interface{}{"hello": math.Inf(-1)}},
-    {"hello: -10", map[string]interface{}{"hello": -10}},
-    {"hello: -.1", map[string]interface{}{"hello": -0.1}},
+var unmarshalTests = []struct{data string; value interface{}}{
+    {"", &struct{}{}},
+    {"{}", &struct{}{}},
+
+    {"v: hi", map[string]string{"v": "hi"}},
+    {"v: hi", map[string]interface{}{"v": "hi"}},
+    {"v: true", map[string]string{"v": "true"}},
+    {"v: true", map[string]interface{}{"v": true}},
+    {"v: 10", map[string]interface{}{"v": 10}},
+    {"v: 0b10", map[string]interface{}{"v": 2}},
+    {"v: 0xA", map[string]interface{}{"v": 10}},
+    {"v: 4294967296", map[string]interface{}{"v": int64(4294967296)}},
+    {"v: 4294967296", map[string]int64{"v": int64(4294967296)}},
+    {"v: 0.1", map[string]interface{}{"v": 0.1}},
+    {"v: .1", map[string]interface{}{"v": 0.1}},
+    {"v: .Inf", map[string]interface{}{"v": math.Inf(+1)}},
+    {"v: -.Inf", map[string]interface{}{"v": math.Inf(-1)}},
+    {"v: -10", map[string]interface{}{"v": -10}},
+    {"v: -.1", map[string]interface{}{"v": -0.1}},
+
+    // Simple values.
+    {"123", &unmarshalIntTest},
 
     // Floats from spec
     {"canonical: 6.8523e+5", map[string]interface{}{"canonical": 6.8523e+5}},
@@ -35,7 +40,7 @@ var unmarshalTests = []struct{data string; value interface{}}{
     {"fixed: 685_230.15", map[string]interface{}{"fixed": 685230.15}},
     //{"sexa: 190:20:30.15", map[string]interface{}{"sexa": 0}}, // Unsupported
     {"neginf: -.inf", map[string]interface{}{"neginf": math.Inf(-1)}},
-    {"notanum: .NaN", map[string]interface{}{"notanum": math.NaN}},
+    {"notanum: .NaN", map[string]interface{}{"notanum": math.NaN()}},
     {"fixed: 685_230.15", map[string]float{"fixed": 685230.15}},
 
     // Bools from spec
@@ -94,7 +99,7 @@ var unmarshalTests = []struct{data string; value interface{}}{
     {"v: 128", map[string]int8{}},
 
     // Quoted values.
-    {"'1': '2'", map[interface{}]interface{}{"1": "2"}},
+    {"'1': '\"2\"'", map[interface{}]interface{}{"1": "\"2\""}},
 
     // Explicit tags.
     {"v: !!float '1.1'", map[string]interface{}{"v": 1.1}},
@@ -123,7 +128,10 @@ func (s *S) TestUnmarshal(c *C) {
 }
 
 var unmarshalErrorTests = []struct{data, error string}{
-    {"v: !!float 'error'", "Can't decode !!str 'error' as a !!float"},
+    {"v: !!float 'error'",
+     "YAML error: Can't decode !!str 'error' as a !!float"},
+    {"v: [A,", "YAML error: line 1: did not find expected node content"},
+    {"v:\n- [A,", "YAML error: line 2: did not find expected node content"},
 }
 
 func (s *S) TestUnmarshalErrors(c *C) {

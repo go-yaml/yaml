@@ -11,15 +11,24 @@ GOFILES=\
 
 CGOFILES=\
 	decode.go\
+	encode.go\
 
 CGO_LDFLAGS+=-lm -lpthread
 CGO_CFLAGS+=-I$(YAML)/include
-CGO_OFILES+=_lib/*.o
+#CGO_OFILES+=_lib/*.o
+CGO_OFILES+=\
+	helpers.o\
+	_lib/api.o\
+	_lib/scanner.o\
+	_lib/reader.o\
+	_lib/parser.o\
+	_lib/writer.o\
+	_lib/emitter.o\
 
 
 all: package
 
-$(CGO_OFILES): $(LIBYAML)
+_lib/api.o: $(LIBYAML)
 	@mkdir -p _lib
 	cd _lib && ar x $(LIBYAML)
 
@@ -29,5 +38,3 @@ $(LIBYAML):
 CLEANFILES=_lib
 
 include $(GOROOT)/src/Make.pkg
-
-_cgo_defun.c: helpers.c

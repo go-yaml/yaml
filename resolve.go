@@ -7,7 +7,7 @@ import (
 )
 
 
-// TODO: Support merge, timestamps, and base 60 floats.
+// TODO: merge, timestamps, base 60 floats, omap.
 
 
 type resolveMapItem struct {
@@ -40,7 +40,7 @@ func init() {
         {false, "!!bool", []string{"false", "False", "FALSE"}},
         {false, "!!bool", []string{"off", "Off", "OFF"}},
         {nil, "!!null", []string{"~", "null", "Null", "NULL"}},
-        {math.NaN, "!!float", []string{".nan", ".NaN", ".NAN"}},
+        {math.NaN(), "!!float", []string{".nan", ".NaN", ".NAN"}},
         {math.Inf(+1), "!!float", []string{".inf", ".Inf", ".INF"}},
         {math.Inf(+1), "!!float", []string{"+.inf", "+.Inf", "+.INF"}},
         {math.Inf(-1), "!!float", []string{"-.inf", "-.Inf", "-.INF"}},

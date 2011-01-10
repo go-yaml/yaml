@@ -13,7 +13,7 @@ func handleErr(err *os.Error) {
         if _, ok := r.(runtime.Error); ok {
             panic(r)
         } else if s, ok := r.(string); ok {
-            *err = os.ErrorString(s)
+            *err = os.ErrorString("YAML error: " + s)
         } else if e, ok := r.(os.Error); ok {
             *err = e
         } else {
@@ -22,6 +22,13 @@ func handleErr(err *os.Error) {
     }
 }
 
+type Setter interface {
+    SetYAML(tag string, value interface{}) bool
+}
+
+type Getter interface {
+    GetYAML() (tag string, value interface{})
+}
 
 func Unmarshal(in []byte, out interface{}) (err os.Error) {
     defer handleErr(&err)
@@ -31,12 +38,14 @@ func Unmarshal(in []byte, out interface{}) (err os.Error) {
     return nil
 }
 
-type Setter interface {
-    SetYAML(tag string, value interface{}) bool
-}
-
-type Getter interface {
-    GetYAML() (tag string, value interface{})
+func Marshal(in interface{}) (out []byte, err os.Error) {
+    defer handleErr(&err)
+    e := newEncoder()
+    defer e.destroy()
+    e.marshal("", reflect.NewValue(in))
+    e.finish()
+    out = e.out
+    return
 }
 
 

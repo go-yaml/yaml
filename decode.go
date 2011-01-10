@@ -1,6 +1,6 @@
 package goyaml
 
-/* #include "helpers.c" */
+// #include "helpers.h"
 import "C"
 
 import (
@@ -11,24 +11,24 @@ import (
 
 
 type decoder struct {
-    parser *C.yaml_parser_t
-    event *C.yaml_event_t
+    parser C.yaml_parser_t
+    event C.yaml_event_t
 }
 
 func newDecoder(b []byte) *decoder {
-    if len(b) == 0 {
-        panic("Can't handle empty buffers yet") // XXX Fix this.
+    d := decoder{}
+    if C.yaml_parser_initialize(&d.parser) == 0 {
+        panic("Failed to initialize YAML emitter")
     }
 
-    d := decoder{}
-    d.event = &C.yaml_event_t{}
-    d.parser = &C.yaml_parser_t{}
-    C.yaml_parser_initialize(d.parser)
+    if len(b) == 0 {
+        b = []byte{'\n'}
+    }
 
     // How unsafe is this really?  Will this break if the GC becomes compacting?
     // Probably not, otherwise that would likely break &parse below as well.
     input := (*C.uchar)(unsafe.Pointer(&b[0]))
-    C.yaml_parser_set_input_string(d.parser, input, (C.size_t)(len(b)))
+    C.yaml_parser_set_input_string(&d.parser, input, (C.size_t)(len(b)))
 
     d.next()
     if d.event._type != C.YAML_STREAM_START_EVENT {
@@ -41,9 +41,9 @@ func newDecoder(b []byte) *decoder {
 
 func (d *decoder) destroy() {
     if d.event._type != C.YAML_NO_EVENT {
-        C.yaml_event_delete(d.event)
+        C.yaml_event_delete(&d.event)
     }
-    C.yaml_parser_delete(d.parser)
+    C.yaml_parser_delete(&d.parser)
 }
 
 func (d *decoder) next() {
@@ -51,11 +51,32 @@ func (d *decoder) next() {
         if d.event._type == C.YAML_STREAM_END_EVENT {
             panic("Attempted to go past the end of stream. Corrupted value?")
         }
-        C.yaml_event_delete(d.event)
+        C.yaml_event_delete(&d.event)
     }
-    if C.yaml_parser_parse(d.parser, d.event) == 0 {
-        panic("Parsing failed.") // XXX Need better error handling here.
+    if C.yaml_parser_parse(&d.parser, &d.event) == 0 {
+        d.fail("")
     }
+}
+
+func (d *decoder) fail(msg string) {
+    var where string
+    var line int
+    if d.parser.problem_mark.line != 0 {
+        line = int(C.int(d.parser.problem_mark.line))
+    } else if d.parser.context_mark.line != 0 {
+        line = int(C.int(d.parser.context_mark.line))
+    }
+    if line != 0 {
+        where = "line " + strconv.Itoa(line) + ": "
+    }
+    if msg == "" {
+        if d.parser.problem != nil {
+            msg = C.GoString(d.parser.problem)
+        } else {
+            msg = "Unknown problem parsing YAML content"
+        }
+    }
+    panic(where + msg)
 }
 
 func (d *decoder) skip(_type C.yaml_event_type_t) {
@@ -125,6 +146,8 @@ func (d *decoder) unmarshal(out reflect.Value) (good bool) {
         good = d.sequence(out)
     case C.YAML_DOCUMENT_START_EVENT:
         good = d.document(out)
+    case C.YAML_STREAM_END_EVENT:
+        // Happens when attempting to decode an empty buffer.
     default:
         panic("Attempted to unmarshal unexpected event: " +
               strconv.Itoa(int(d.event._type)))
@@ -144,7 +167,7 @@ func (d *decoder) document(out reflect.Value) bool {
 }
 
 func (d *decoder) scalar(out reflect.Value) (good bool) {
-    scalar := C.event_scalar(d.event)
+    scalar := C.event_scalar(&d.event)
     str := GoYString(scalar.value)
     tag := GoYString(scalar.tag)
     var resolved interface{}

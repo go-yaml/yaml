@@ -32,9 +32,13 @@ type Getter interface {
 
 func Unmarshal(in []byte, out interface{}) (err os.Error) {
     defer handleErr(&err)
-    d := newDecoder(in)
-    defer d.destroy()
-    d.unmarshal(reflect.NewValue(out))
+    d := newDecoder()
+    p := newParser(in)
+    defer p.destroy()
+    node := p.parse()
+    if node != nil {
+        d.unmarshal(node, reflect.NewValue(out))
+    }
     return nil
 }
 

@@ -9,15 +9,41 @@ import (
     "strconv"
 )
 
+const (
+    documentNode = 1 << iota
+    mappingNode
+    sequenceNode
+    scalarNode
+    aliasNode
+)
 
-type decoder struct {
-    parser C.yaml_parser_t
-    event C.yaml_event_t
+type node struct {
+    kind int
+    line, column int
+    tag string
+    value string
+    implicit bool
+    children []*node
+    anchors map[string]*node
 }
 
-func newDecoder(b []byte) *decoder {
-    d := decoder{}
-    if C.yaml_parser_initialize(&d.parser) == 0 {
+func GoYString(s *C.yaml_char_t) string {
+    return C.GoString((*C.char)(unsafe.Pointer(s)))
+}
+
+
+// ----------------------------------------------------------------------------
+// Parser, produces a node tree out of a libyaml event stream.
+
+type parser struct {
+    parser C.yaml_parser_t
+    event C.yaml_event_t
+    doc *node
+}
+
+func newParser(b []byte) *parser {
+    p := parser{}
+    if C.yaml_parser_initialize(&p.parser) == 0 {
         panic("Failed to initialize YAML emitter")
     }
 
@@ -28,68 +54,158 @@ func newDecoder(b []byte) *decoder {
     // How unsafe is this really?  Will this break if the GC becomes compacting?
     // Probably not, otherwise that would likely break &parse below as well.
     input := (*C.uchar)(unsafe.Pointer(&b[0]))
-    C.yaml_parser_set_input_string(&d.parser, input, (C.size_t)(len(b)))
+    C.yaml_parser_set_input_string(&p.parser, input, (C.size_t)(len(b)))
 
-    d.next()
-    if d.event._type != C.YAML_STREAM_START_EVENT {
+    p.skip()
+    if p.event._type != C.YAML_STREAM_START_EVENT {
         panic("Expected stream start event, got " +
-              strconv.Itoa(int(d.event._type)))
+              strconv.Itoa(int(p.event._type)))
     }
-    d.next()
-    return &d
+    p.skip()
+    return &p
 }
 
-func (d *decoder) destroy() {
-    if d.event._type != C.YAML_NO_EVENT {
-        C.yaml_event_delete(&d.event)
+func (p *parser) destroy() {
+    if p.event._type != C.YAML_NO_EVENT {
+        C.yaml_event_delete(&p.event)
     }
-    C.yaml_parser_delete(&d.parser)
+    C.yaml_parser_delete(&p.parser)
 }
 
-func (d *decoder) next() {
-    if d.event._type != C.YAML_NO_EVENT {
-        if d.event._type == C.YAML_STREAM_END_EVENT {
+func (p *parser) skip() {
+    if p.event._type != C.YAML_NO_EVENT {
+        if p.event._type == C.YAML_STREAM_END_EVENT {
             panic("Attempted to go past the end of stream. Corrupted value?")
         }
-        C.yaml_event_delete(&d.event)
+        C.yaml_event_delete(&p.event)
     }
-    if C.yaml_parser_parse(&d.parser, &d.event) == 0 {
-        d.fail("")
+    if C.yaml_parser_parse(&p.parser, &p.event) == 0 {
+        p.fail()
     }
 }
 
-func (d *decoder) fail(msg string) {
+func (p *parser) fail() {
     var where string
     var line int
-    if d.parser.problem_mark.line != 0 {
-        line = int(C.int(d.parser.problem_mark.line))
-    } else if d.parser.context_mark.line != 0 {
-        line = int(C.int(d.parser.context_mark.line))
+    if p.parser.problem_mark.line != 0 {
+        line = int(C.int(p.parser.problem_mark.line))
+    } else if p.parser.context_mark.line != 0 {
+        line = int(C.int(p.parser.context_mark.line))
     }
     if line != 0 {
         where = "line " + strconv.Itoa(line) + ": "
     }
-    if msg == "" {
-        if d.parser.problem != nil {
-            msg = C.GoString(d.parser.problem)
-        } else {
-            msg = "Unknown problem parsing YAML content"
-        }
+    var msg string
+    if p.parser.problem != nil {
+        msg = C.GoString(p.parser.problem)
+    } else {
+        msg = "Unknown problem parsing YAML content"
     }
     panic(where + msg)
 }
 
-func (d *decoder) skip(_type C.yaml_event_type_t) {
-    for d.event._type != _type {
-        d.next()
+func (p *parser) anchor(n *node, anchor *C.yaml_char_t) {
+    if anchor != nil {
+        p.doc.anchors[GoYString(anchor)] = n
     }
-    d.next()
 }
 
-var blackHole = reflect.NewValue(true)
+func (p *parser) parse() *node {
+    switch p.event._type {
+    case C.YAML_SCALAR_EVENT:
+        return p.scalar()
+    case C.YAML_ALIAS_EVENT:
+        return p.alias()
+    case C.YAML_MAPPING_START_EVENT:
+        return p.mapping()
+    case C.YAML_SEQUENCE_START_EVENT:
+        return p.sequence()
+    case C.YAML_DOCUMENT_START_EVENT:
+        return p.document()
+    case C.YAML_STREAM_END_EVENT:
+        // Happens when attempting to decode an empty buffer.
+        return nil
+    default:
+        panic("Attempted to parse unknown event: " +
+              strconv.Itoa(int(p.event._type)))
+    }
+    panic("Unreachable")
+}
 
-func (d *decoder) drop() {
-    d.unmarshal(blackHole)
+func (p *parser) node(kind int) *node {
+    return &node{kind: kind,
+                 line: int(C.int(p.event.start_mark.line)),
+                 column: int(C.int(p.event.start_mark.column))}
+}
+
+func (p *parser) document() *node {
+    n := p.node(documentNode)
+    n.anchors = make(map[string]*node)
+    p.doc = n
+    p.skip()
+    n.children = append(n.children, p.parse())
+    if p.event._type != C.YAML_DOCUMENT_END_EVENT {
+        panic("Expected end of document event but got " +
+              strconv.Itoa(int(p.event._type)))
+    }
+    p.skip()
+    return n
+}
+
+func (p *parser) alias() *node {
+    alias := C.event_alias(&p.event)
+    n := p.node(aliasNode)
+    n.value = GoYString(alias.anchor)
+    p.skip()
+    return n
+}
+
+func (p *parser) scalar() *node {
+    scalar := C.event_scalar(&p.event)
+    n := p.node(scalarNode)
+    n.value = GoYString(scalar.value)
+    n.tag = GoYString(scalar.tag)
+    n.implicit = (scalar.plain_implicit != 0)
+    p.anchor(n, scalar.anchor)
+    p.skip()
+    return n
+}
+
+func (p *parser) sequence() *node {
+    n := p.node(sequenceNode)
+    p.anchor(n, C.event_sequence_start(&p.event).anchor)
+    p.skip()
+    for p.event._type != C.YAML_SEQUENCE_END_EVENT {
+        n.children = append(n.children, p.parse())
+    }
+    p.skip()
+    return n
+}
+
+func (p *parser) mapping() *node {
+    n := p.node(mappingNode)
+    p.anchor(n, C.event_mapping_start(&p.event).anchor)
+    p.skip()
+    for p.event._type != C.YAML_MAPPING_END_EVENT {
+        n.children = append(n.children, p.parse(), p.parse())
+    }
+    p.skip()
+    return n
+}
+
+
+// ----------------------------------------------------------------------------
+// Decoder, unmarshals a node into a provided value.
+
+type decoder struct {
+    doc *node
+    aliases map[string]bool
+}
+
+func newDecoder() *decoder {
+    d := &decoder{}
+    d.aliases = make(map[string]bool)
+    return d
 }
 
 // d.setter deals with setters and pointer dereferencing and initialization.
@@ -136,52 +252,61 @@ func (d *decoder) setter(tag string, out *reflect.Value, good *bool) (set func()
     return nil
 }
 
-func (d *decoder) unmarshal(out reflect.Value) (good bool) {
-    switch d.event._type {
-    case C.YAML_SCALAR_EVENT:
-        good = d.scalar(out)
-    case C.YAML_MAPPING_START_EVENT:
-        good = d.mapping(out)
-    case C.YAML_SEQUENCE_START_EVENT:
-        good = d.sequence(out)
-    case C.YAML_DOCUMENT_START_EVENT:
-        good = d.document(out)
-    case C.YAML_STREAM_END_EVENT:
-        // Happens when attempting to decode an empty buffer.
+func (d *decoder) unmarshal(n *node, out reflect.Value) (good bool) {
+    switch n.kind {
+    case documentNode:
+        good = d.document(n, out)
+    case scalarNode:
+        good = d.scalar(n, out)
+    case aliasNode:
+        good = d.alias(n, out)
+    case mappingNode:
+        good = d.mapping(n, out)
+    case sequenceNode:
+        good = d.sequence(n, out)
     default:
-        panic("Attempted to unmarshal unexpected event: " +
-              strconv.Itoa(int(d.event._type)))
+        panic("Internal error: unknown node kind: " + strconv.Itoa(n.kind))
     }
     return
 }
 
-func (d *decoder) document(out reflect.Value) bool {
-    d.next()
-    result := d.unmarshal(out)
-    if d.event._type != C.YAML_DOCUMENT_END_EVENT {
-        panic("Expected end of document event but got " +
-              strconv.Itoa(int(d.event._type)))
+func (d *decoder) document(n *node, out reflect.Value) (good bool) {
+    if len(n.children) == 1 {
+        d.doc = n
+        d.unmarshal(n.children[0], out)
+        return true
     }
-    d.next()
-    return result
+    return false
 }
 
-func (d *decoder) scalar(out reflect.Value) (good bool) {
-    scalar := C.event_scalar(&d.event)
-    str := GoYString(scalar.value)
-    tag := GoYString(scalar.tag)
+func (d *decoder) alias(n *node, out reflect.Value) (good bool) {
+    an, ok := d.doc.anchors[n.value]
+    if !ok {
+        panic("Unknown anchor '" + n.value + "' referenced")
+    }
+    if d.aliases[n.value] {
+        panic("Anchor '" + n.value + "' value contains itself")
+    }
+    d.aliases[n.value] = true
+    good = d.unmarshal(an, out)
+    d.aliases[n.value] = false, false
+    return good
+}
+
+func (d *decoder) scalar(n *node, out reflect.Value) (good bool) {
+    var tag string
     var resolved interface{}
-    if tag == "" && scalar.plain_implicit == 0 {
-        resolved = str
+    if n.tag == "" && !n.implicit {
+        resolved = n.value
     } else {
-        tag, resolved = resolve(tag, str)
+        tag, resolved = resolve(n.tag, n.value)
         if set := d.setter(tag, &out, &good); set != nil {
             defer set()
         }
     }
     switch out := out.(type) {
     case *reflect.StringValue:
-        out.Set(str)
+        out.Set(n.value)
         good = true
     case *reflect.InterfaceValue:
         out.Set(reflect.NewValue(resolved))
@@ -231,13 +356,12 @@ func (d *decoder) scalar(out reflect.Value) (good bool) {
             good = true
         }
     default:
-        panic("Can't handle scalar type yet: " + out.Type().String())
+        panic("Can't handle type yet: " + out.Type().String())
     }
-    d.next()
     return good
 }
 
-func (d *decoder) sequence(out reflect.Value) (good bool) {
+func (d *decoder) sequence(n *node, out reflect.Value) (good bool) {
     if set := d.setter("!!seq", &out, &good); set != nil {
         defer set()
     }
@@ -249,29 +373,27 @@ func (d *decoder) sequence(out reflect.Value) (good bool) {
 
     sv, ok := out.(*reflect.SliceValue)
     if !ok {
-        d.skip(C.YAML_SEQUENCE_END_EVENT)
         return false
     }
     st := sv.Type().(*reflect.SliceType)
     et := st.Elem()
 
-    d.next()
-    for d.event._type != C.YAML_SEQUENCE_END_EVENT {
+    l := len(n.children)
+    for i := 0; i < l; i++ {
         e := reflect.MakeZero(et)
-        if ok := d.unmarshal(e); ok {
+        if ok := d.unmarshal(n.children[i], e); ok {
             sv.SetValue(reflect.Append(sv, e))
         }
     }
-    d.next()
     return true
 }
 
-func (d *decoder) mapping(out reflect.Value) (good bool) {
+func (d *decoder) mapping(n *node, out reflect.Value) (good bool) {
     if set := d.setter("!!map", &out, &good); set != nil {
         defer set()
     }
     if s, ok := out.(*reflect.StructValue); ok {
-        return d.mappingStruct(s)
+        return d.mappingStruct(n, s)
     }
 
     if iface, ok := out.(*reflect.InterfaceValue); ok {
@@ -282,49 +404,40 @@ func (d *decoder) mapping(out reflect.Value) (good bool) {
 
     mv, ok := out.(*reflect.MapValue)
     if !ok {
-        d.skip(C.YAML_MAPPING_END_EVENT)
         return false
     }
     mt := mv.Type().(*reflect.MapType)
     kt := mt.Key()
     et := mt.Elem()
 
-    d.next()
-    for d.event._type != C.YAML_MAPPING_END_EVENT {
+    l := len(n.children)
+    for i := 0; i < l; i += 2 {
         k := reflect.MakeZero(kt)
-        kok := d.unmarshal(k)
-        e := reflect.MakeZero(et)
-        eok := d.unmarshal(e)
-        if kok && eok {
-            mv.SetElem(k, e)
+        if d.unmarshal(n.children[i], k) {
+            e := reflect.MakeZero(et)
+            if d.unmarshal(n.children[i+1], e) {
+                mv.SetElem(k, e)
+            }
         }
     }
-    d.next()
     return true
 }
 
-func (d *decoder) mappingStruct(out *reflect.StructValue) bool {
+func (d *decoder) mappingStruct(n *node, out *reflect.StructValue) (good bool) {
     fields, err := getStructFields(out.Type().(*reflect.StructType))
     if err != nil {
         panic(err)
     }
     name := reflect.NewValue("").(*reflect.StringValue)
     fieldsMap := fields.Map
-    d.next()
-    for d.event._type != C.YAML_MAPPING_END_EVENT {
-        if d.unmarshal(name) {
-            if info, ok := fieldsMap[name.Get()]; ok {
-                d.unmarshal(out.Field(info.Num))
-                continue
-            }
+    l := len(n.children)
+    for i := 0; i < l; i += 2 {
+        if !d.unmarshal(n.children[i], name) {
+            continue
         }
-        // Can't unmarshal name, or it's not present in struct.
-        d.drop()
+        if info, ok := fieldsMap[name.Get()]; ok {
+            d.unmarshal(n.children[i+1], out.Field(info.Num))
+        }
     }
-    d.next()
     return true
-}
-
-func GoYString(s *C.yaml_char_t) string {
-    return C.GoString((*C.char)(unsafe.Pointer(s)))
 }

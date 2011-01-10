@@ -106,6 +106,12 @@ var unmarshalTests = []struct{data string; value interface{}}{
     {"v: !!null ''", map[string]interface{}{"v": nil}},
     {"%TAG !y! tag:yaml.org,2002:\n---\nv: !y!int '1'",
      map[string]interface{}{"v": 1}},
+
+    // Anchors and aliases.
+    {"a: &x 1\nb: &y 2\nc: *x\nd: *y\n", &struct{A, B, C, D int}{1, 2, 1, 2}},
+    {"a: &a {c: 1}\nb: *a",
+     &struct{A, B struct{C int}}{struct{C int}{1}, struct{C int}{1}}},
+    {"a: &a [1, 2]\nb: *a", &struct{B []int}{[]int{1, 2}}},
 }
 
 
@@ -132,13 +138,15 @@ var unmarshalErrorTests = []struct{data, error string}{
      "YAML error: Can't decode !!str 'error' as a !!float"},
     {"v: [A,", "YAML error: line 1: did not find expected node content"},
     {"v:\n- [A,", "YAML error: line 2: did not find expected node content"},
+    {"a: *b\n", "YAML error: Unknown anchor 'b' referenced"},
+    {"a: &a\n  b: *a\n", "YAML error: Anchor 'a' value contains itself"},
 }
 
 func (s *S) TestUnmarshalErrors(c *C) {
     for _, item := range unmarshalErrorTests {
         var value interface{}
         err := goyaml.Unmarshal([]byte(item.data), &value)
-        c.Assert(err, Matches, item.error)
+        c.Assert(err, Matches, item.error, Bug("Partial unmarshal: %#v", value))
     }
 }
 

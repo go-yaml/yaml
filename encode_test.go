@@ -54,6 +54,13 @@ var marshalTests = []struct{data string; value interface{}}{
     // Conditional flag
     {"a: 1\n", &struct{A int "a/c"; B int "b/c"}{1, 0}},
     {"{}\n", &struct{A int "a/c"; B int "b/c"}{0, 0}},
+
+    // Flow flag
+    {"a: [1, 2]\n", &struct{A []int "a/f"}{[]int{1, 2}}},
+    {"a: {b: c}\n",
+     &struct{A map[string]string "a/f"}{map[string]string{"b": "c"}}},
+    {"a: {b: c}\n",
+     &struct{A struct{B string} "a/f"}{struct{B string}{"c"}}},
 }
 
 

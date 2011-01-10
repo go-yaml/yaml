@@ -16,6 +16,7 @@ type encoder struct {
     out []byte
     tmp []byte
     tmph *reflect.SliceHeader
+    flow bool
 }
 
 
@@ -126,28 +127,33 @@ func (e *encoder) marshal(tag string, in reflect.Value) {
 }
 
 func (e *encoder) mapv(tag string, in *reflect.MapValue) {
-    var ctag *C.yaml_char_t
-    var free func()
-    var cimplicit C.int
-    if tag != "" {
-        ctag, free = ystr(tag)
-        defer free()
-        cimplicit = 0
-    } else {
-        cimplicit = 1
-    }
-    C.yaml_mapping_start_event_initialize(&e.event, nil, ctag, cimplicit,
-                                          C.YAML_BLOCK_MAPPING_STYLE)
-    e.emit()
-    for _, k := range in.Keys() {
-        e.marshal("", k)
-        e.marshal("", in.Elem(k))
-    }
-    C.yaml_mapping_end_event_initialize(&e.event)
-    e.emit()
+    e.mappingv(tag, func() {
+        for _, k := range in.Keys() {
+            e.marshal("", k)
+            e.marshal("", in.Elem(k))
+        }
+    })
 }
 
 func (e *encoder) structv(tag string, in *reflect.StructValue) {
+    fields, err := getStructFields(in.Type().(*reflect.StructType))
+    if err != nil {
+        panic(err)
+    }
+    e.mappingv(tag, func() {
+        for i, info := range fields.List {
+            value := in.Field(i)
+            if info.Conditional && isZero(value) {
+                continue
+            }
+            e.marshal("", reflect.NewValue(info.Key))
+            e.flow = info.Flow
+            e.marshal("", value)
+        }
+    })
+}
+
+func (e *encoder) mappingv(tag string, f func()) {
     var ctag *C.yaml_char_t
     var free func()
     cimplicit := C.int(1)
@@ -156,21 +162,15 @@ func (e *encoder) structv(tag string, in *reflect.StructValue) {
         defer free()
         cimplicit = 0
     }
+    cstyle := C.yaml_mapping_style_t(C.YAML_BLOCK_MAPPING_STYLE)
+    if e.flow {
+        e.flow = false
+        cstyle = C.YAML_FLOW_MAPPING_STYLE
+    }
     C.yaml_mapping_start_event_initialize(&e.event, nil, ctag, cimplicit,
-                                          C.YAML_BLOCK_MAPPING_STYLE)
+                                          cstyle)
     e.emit()
-    fields, err := getStructFields(in.Type().(*reflect.StructType))
-    if err != nil {
-        panic(err)
-    }
-    for i, info := range fields.List {
-        value := in.Field(i)
-        if info.Conditional && isZero(value) {
-            continue
-        }
-        e.marshal("", reflect.NewValue(info.Key))
-        e.marshal("", value)
-    }
+    f()
     C.yaml_mapping_end_event_initialize(&e.event)
     e.emit()
 }
@@ -186,8 +186,14 @@ func (e *encoder) slicev(tag string, in *reflect.SliceValue) {
     } else {
         cimplicit = 1
     }
+
+    cstyle := C.yaml_sequence_style_t(C.YAML_BLOCK_SEQUENCE_STYLE)
+    if e.flow {
+        e.flow = false
+        cstyle = C.YAML_FLOW_SEQUENCE_STYLE
+    }
     C.yaml_sequence_start_event_initialize(&e.event, nil, ctag, cimplicit,
-                                           C.YAML_BLOCK_SEQUENCE_STYLE)
+                                           cstyle)
     e.emit()
     n := in.Len()
     for i := 0; i < n; i++ {

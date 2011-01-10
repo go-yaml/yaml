@@ -63,6 +63,7 @@ type fieldInfo struct {
     Key string
     Num int
     Conditional bool
+    Flow bool
 }
 
 var fieldMap = make(map[string]*structFields)
@@ -96,6 +97,8 @@ func getStructFields(st *reflect.StructType) (*structFields, os.Error) {
                 switch c {
                 case int('c'):
                     info.Conditional = true
+                case int('f'):
+                    info.Flow = true
                 default:
                     panic("Unsupported field flag: " + string([]int{c}))
                 }

@@ -14,5 +14,5 @@ DEFINE_YUNION_FUNC(sequence_start)
 
 void set_output_handler(yaml_emitter_t *e)
 {
-    yaml_emitter_set_output(e, outputHandler, (void *)e);
+    yaml_emitter_set_output(e, (yaml_write_handler_t*)outputHandler, (void *)e);
 }

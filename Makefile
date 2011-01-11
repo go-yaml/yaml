@@ -13,28 +13,21 @@ CGOFILES=\
 	decode.go\
 	encode.go\
 
-CGO_LDFLAGS+=-lm -lpthread
-CGO_CFLAGS+=-I$(YAML)/include
-#CGO_OFILES+=_lib/*.o
 CGO_OFILES+=\
 	helpers.o\
-	_lib/api.o\
-	_lib/scanner.o\
-	_lib/reader.o\
-	_lib/parser.o\
-	_lib/writer.o\
-	_lib/emitter.o\
+	api.o\
+	scanner.o\
+	reader.o\
+	parser.o\
+	writer.o\
+	emitter.o\
 
-
-all: package
-
-_lib/api.o: $(LIBYAML)
-	@mkdir -p _lib
-	cd _lib && ar x $(LIBYAML)
-
-$(LIBYAML):
-	cd $(YAML) && CFLAGS=-fpic ./configure && make
-
-CLEANFILES=_lib
+CGO_LDFLAGS+=-lm -lpthread
+CGO_CFLAGS+=\
+	-I$(PWD) \
+	-DYAML_VERSION_STRING='"0.1.3"' \
+	-DYAML_VERSION_MAJOR=0 \
+	-DYAML_VERSION_MINOR=1 \
+	-DYAML_VERSION_PATCH=3 \
 
 include $(GOROOT)/src/Make.pkg

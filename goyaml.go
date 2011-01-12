@@ -31,14 +31,54 @@ func handleErr(err *os.Error) {
     }
 }
 
+// Objects implementing the goyaml.Setter interface will receive the YAML
+// tag and value via the SetYAML method during unmarshaling, rather than
+// being implicitly assigned by the gobson machinery.  If setting the value
+// works, the method should return true.  If it returns false, the given
+// value will be omitted from maps and slices.
 type Setter interface {
     SetYAML(tag string, value interface{}) bool
 }
 
+// Objects implementing the goyaml.Getter interface will get the GetYAML()
+// method called when gobson is requested to marshal the given value, and
+// the result of this method will be marshaled in place of the actual object.
 type Getter interface {
     GetYAML() (tag string, value interface{})
 }
 
+// Unmarshal decodes the first document found within the in byte slice
+// and assigns decoded values into the object pointed by out.
+//
+// Maps, pointers to structs and ints, etc, may all be used as out values.
+// If an internal pointer within a struct is not initialized, goyaml
+// will initialize it if necessary for unmarshalling the provided data,
+// but the struct provided as out must not be a nil pointer.
+// 
+// The type of the decoded values and the type of out will be considered,
+// and Unmarshal() will do the best possible job to unmarshal values
+// appropriately.  It is NOT considered an error, though, to skip values
+// because they are not available in the decoded YAML, or if they are not
+// compatible with the out value. To ensure something was properly
+// unmarshaled use a map or compare against the previous value for the
+// field (usually the zero value).
+//
+// Struct fields are only unmarshalled if they are exported (have an
+// upper case first letter), and will be unmarshalled using the field
+// name lowercased by default. When custom field names are desired, the
+// tag value may be used to tweak the name. Everything before the last
+// slash in the field tag will be used as the name. The value following
+// the slash is used to tweak the marshalling process (see Marshal).
+//
+// For example:
+//
+//     type T struct {
+//         F int "a/c"
+//         B int
+//     }
+//     var T t
+//     goyaml.Unmarshal([]byte("a: 1\nb: 2"), &t)
+// 
 func Unmarshal(in []byte, out interface{}) (err os.Error) {
     defer handleErr(&err)
     d := newDecoder()
@@ -51,6 +91,28 @@ func Unmarshal(in []byte, out interface{}) (err os.Error) {
     return nil
 }
 
+// Marshal writes the object provided into a YAML document. The structure
+// of the generated document will reflect the structure of the value itself.
+// Maps, pointers to structs and ints, etc, may all be used as the in value.
+//
+// Struct fields are only marshalled if they are exported (have an
+// upper case first letter), and will be marshalled using the field
+// name lowercased by default. When custom field names are desired, the
+// tag value may be used to tweak the name. Everything before the last
+// slash in the field tag will be used as the name. The characters
+// following the slash are used as flags for the marshalling process,
+// with 'c' meaning conditional (only marshal if non-zero), and 'f'
+// meaning use flow style (useful for structs, sequences and maps).
+//
+// For example:
+//
+//     type T struct {
+//         F int "a/c"
+//         B int
+//     }
+//     goyaml.Marshal(&T{B: 2}) // Returns "b: 2\n"
+//     goyaml.Marshal(&T{F: 1}} // Returns "a: 1\nb: 0\n"
+//
 func Marshal(in interface{}) (out []byte, err os.Error) {
     defer handleErr(&err)
     e := newEncoder()

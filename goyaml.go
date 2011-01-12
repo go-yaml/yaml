@@ -3,7 +3,7 @@
 //
 //   https://wiki.ubuntu.com/goyaml
 //
-// Copyright (c) 2010-2011 Canonical Ltd.
+// Copyright (c) 2011 Canonical Ltd.
 //
 // Written by Gustavo Niemeyer <gustavo.niemeyer@canonical.com>
 //

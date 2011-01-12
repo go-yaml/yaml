@@ -23,6 +23,6 @@ CGO_OFILES+=\
 	emitter.o\
 
 CGO_LDFLAGS+=-lm -lpthread
-CGO_CFLAGS+=-I$(PWD) -DHAVE_CONFIG_H=1
+CGO_CFLAGS+=-I. -DHAVE_CONFIG_H=1
 
 include $(GOROOT)/src/Make.pkg

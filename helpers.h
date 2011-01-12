@@ -3,6 +3,9 @@
 
 #include <yaml.h>
 
+#define CGO_LDFLAGS "-lm -lpthread"
+#define CGO_CFLAGS "-I. -DHAVE_CONFIG=1"
+
 #define DECLARE_YUNION_FUNC(name) \
     __typeof__(((yaml_event_t *)0)->data.name) *\
     event_##name(yaml_event_t *event);

@@ -1,10 +1,10 @@
 #ifndef helpers_h
 #define helpers_h
 
-#include <yaml.h>
-
 #define CGO_LDFLAGS "-lm -lpthread"
-#define CGO_CFLAGS "-I. -DHAVE_CONFIG=1"
+#define CGO_CFLAGS "-I. -DHAVE_CONFIG_H=1"
+
+#include <yaml.h>
 
 #define DECLARE_YUNION_FUNC(name) \
     __typeof__(((yaml_event_t *)0)->data.name) *\

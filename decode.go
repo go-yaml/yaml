@@ -27,7 +27,7 @@ type node struct {
     anchors map[string]*node
 }
 
-func GoYString(s *C.yaml_char_t) string {
+func stry(s *C.yaml_char_t) string {
     return C.GoString((*C.char)(unsafe.Pointer(s)))
 }
 
@@ -106,7 +106,7 @@ func (p *parser) fail() {
 
 func (p *parser) anchor(n *node, anchor *C.yaml_char_t) {
     if anchor != nil {
-        p.doc.anchors[GoYString(anchor)] = n
+        p.doc.anchors[stry(anchor)] = n
     }
 }
 
@@ -155,7 +155,7 @@ func (p *parser) document() *node {
 func (p *parser) alias() *node {
     alias := C.event_alias(&p.event)
     n := p.node(aliasNode)
-    n.value = GoYString(alias.anchor)
+    n.value = stry(alias.anchor)
     p.skip()
     return n
 }
@@ -163,8 +163,8 @@ func (p *parser) alias() *node {
 func (p *parser) scalar() *node {
     scalar := C.event_scalar(&p.event)
     n := p.node(scalarNode)
-    n.value = GoYString(scalar.value)
-    n.tag = GoYString(scalar.tag)
+    n.value = stry(scalar.value)
+    n.tag = stry(scalar.tag)
     n.implicit = (scalar.plain_implicit != 0)
     p.anchor(n, scalar.anchor)
     p.skip()

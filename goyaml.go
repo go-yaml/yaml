@@ -1,3 +1,12 @@
+//
+// goyaml - YAML support for the Go language
+//
+//   https://wiki.ubuntu.com/goyaml
+//
+// Copyright (c) 2010-2011 Canonical Ltd.
+//
+// Written by Gustavo Niemeyer <gustavo.niemeyer@canonical.com>
+//
 package goyaml
 
 import (

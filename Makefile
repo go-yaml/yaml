@@ -23,11 +23,6 @@ CGO_OFILES+=\
 	emitter.o\
 
 CGO_LDFLAGS+=-lm -lpthread
-CGO_CFLAGS+=\
-	-I$(PWD) \
-	-DYAML_VERSION_STRING='"0.1.3"' \
-	-DYAML_VERSION_MAJOR=0 \
-	-DYAML_VERSION_MINOR=1 \
-	-DYAML_VERSION_PATCH=3 \
+CGO_CFLAGS+=-I$(PWD) -DHAVE_CONFIG_H=1
 
 include $(GOROOT)/src/Make.pkg

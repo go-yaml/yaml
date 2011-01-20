@@ -12,11 +12,11 @@ import (
 
 type encoder struct {
     emitter C.yaml_emitter_t
-    event C.yaml_event_t
-    out []byte
-    tmp []byte
-    tmph *reflect.SliceHeader
-    flow bool
+    event   C.yaml_event_t
+    out     []byte
+    tmp     []byte
+    tmph    *reflect.SliceHeader
+    flow    bool
 }
 
 
@@ -59,8 +59,8 @@ func (e *encoder) destroy() {
 func (e *encoder) emit() {
     // This will internally delete the e.event value.
     if C.yaml_emitter_emit(&e.emitter, &e.event) == 0 &&
-       e.event._type != C.YAML_DOCUMENT_END_EVENT &&
-       e.event._type != C.YAML_STREAM_END_EVENT {
+        e.event._type != C.YAML_DOCUMENT_END_EVENT &&
+        e.event._type != C.YAML_STREAM_END_EVENT {
         if e.emitter.error == C.YAML_EMITTER_ERROR {
             // XXX TESTME
             panic("YAML emitter error: " + C.GoString(e.emitter.problem))
@@ -168,7 +168,7 @@ func (e *encoder) mappingv(tag string, f func()) {
         cstyle = C.YAML_FLOW_MAPPING_STYLE
     }
     C.yaml_mapping_start_event_initialize(&e.event, nil, ctag, cimplicit,
-                                          cstyle)
+        cstyle)
     e.emit()
     f()
     C.yaml_mapping_end_event_initialize(&e.event)
@@ -193,7 +193,7 @@ func (e *encoder) slicev(tag string, in *reflect.SliceValue) {
         cstyle = C.YAML_FLOW_SEQUENCE_STYLE
     }
     C.yaml_sequence_start_event_initialize(&e.event, nil, ctag, cimplicit,
-                                           cstyle)
+        cstyle)
     e.emit()
     n := in.Len()
     for i := 0; i < n; i++ {
@@ -238,9 +238,12 @@ func (e *encoder) floatv(tag string, in *reflect.FloatValue) {
     // FIXME: Handle 64 bits here.
     s := strconv.Ftoa32(float32(in.Get()), 'g', -1)
     switch s {
-    case "+Inf": s = ".inf"
-    case "-Inf": s = "-.inf"
-    case "NaN": s = ".nan"
+    case "+Inf":
+        s = ".inf"
+    case "-Inf":
+        s = "-.inf"
+    case "NaN":
+        s = ".nan"
     }
     e.emitScalar(s, "", tag, C.YAML_PLAIN_SCALAR_STYLE)
 }
@@ -250,7 +253,7 @@ func (e *encoder) nilv() {
 }
 
 func (e *encoder) emitScalar(value, anchor, tag string,
-                             style C.yaml_scalar_style_t) {
+style C.yaml_scalar_style_t) {
     var canchor, ctag, cvalue *C.yaml_char_t
     var cimplicit C.int
     var free func()
@@ -270,7 +273,7 @@ func (e *encoder) emitScalar(value, anchor, tag string,
     defer free()
     size := C.int(len(value))
     if C.yaml_scalar_event_initialize(&e.event, canchor, ctag, cvalue, size,
-                                      cimplicit, cimplicit, style) == 0 {
+        cimplicit, cimplicit, style) == 0 {
         e.fail("")
     }
     e.emit()

@@ -12,7 +12,7 @@ import (
 
 type resolveMapItem struct {
     value interface{}
-    tag string
+    tag   string
 }
 
 var resolveTable = make([]byte, 256)
@@ -32,7 +32,11 @@ func init() {
     t[int('.')] = '.' // Float (potentially in map)
     t[int('<')] = '<' // Merge
 
-    var resolveMapList = []struct{v interface{}; tag string; l []string} {
+    var resolveMapList = []struct {
+        v   interface{}
+        tag string
+        l   []string
+    }{
         {true, "!!bool", []string{"y", "Y", "yes", "Yes", "YES"}},
         {true, "!!bool", []string{"true", "True", "TRUE"}},
         {true, "!!bool", []string{"on", "On", "ON"}},
@@ -104,7 +108,7 @@ func resolve(tag string, in string) (rtag string, out interface{}) {
 
     case '.':
         // Not in the map, so maybe a normal float.
-        floatv, err := strconv.Atof(in)
+        floatv, err := strconv.Atof64(in)
         if err == nil {
             return "!!float", floatv
         }
@@ -126,7 +130,7 @@ func resolve(tag string, in string) (rtag string, out interface{}) {
                 return "!!int", intv
             }
         }
-        floatv, err := strconv.Atof(in)
+        floatv, err := strconv.Atof64(in)
         if err == nil {
             return "!!float", floatv
         }
@@ -148,7 +152,7 @@ func resolve(tag string, in string) (rtag string, out interface{}) {
 
     default:
         panic("resolveTable item not yet handled: " +
-              string([]byte{c}) + " (with " + in +")")
+            string([]byte{c}) + " (with " + in + ")")
     }
     return "!!str", in
 }

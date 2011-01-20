@@ -2,7 +2,7 @@ package goyaml_test
 
 
 import (
-    . "gocheck"
+    .   "gocheck"
     "testing"
 )
 

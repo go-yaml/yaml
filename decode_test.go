@@ -2,7 +2,7 @@ package goyaml_test
 
 
 import (
-    . "gocheck"
+    .   "gocheck"
     "goyaml"
     "reflect"
     "math"
@@ -11,7 +11,10 @@ import (
 
 var unmarshalIntTest = 123
 
-var unmarshalTests = []struct{data string; value interface{}}{
+var unmarshalTests = []struct {
+    data  string
+    value interface{}
+}{
     {"", &struct{}{}},
     {"{}", &struct{}{}},
 
@@ -41,7 +44,7 @@ var unmarshalTests = []struct{data string; value interface{}}{
     //{"sexa: 190:20:30.15", map[string]interface{}{"sexa": 0}}, // Unsupported
     {"neginf: -.inf", map[string]interface{}{"neginf": math.Inf(-1)}},
     {"notanum: .NaN", map[string]interface{}{"notanum": math.NaN()}},
-    {"fixed: 685_230.15", map[string]float{"fixed": 685230.15}},
+    {"fixed: 685_230.15", map[string]float64{"fixed": 685230.15}},
 
     // Bools from spec
     {"canonical: y", map[string]interface{}{"canonical": true}},
@@ -76,17 +79,27 @@ var unmarshalTests = []struct{data string; value interface{}}{
 
     // Map inside interface with no type hints.
     {"a: {b: c}",
-     map[string]interface{}{"a": map[interface{}]interface{}{"b": "c"}}},
+        map[string]interface{}{"a": map[interface{}]interface{}{"b": "c"}}},
 
     // Structs and type conversions.
-    {"hello: world", &struct{Hello string}{"world"}},
-    {"a: {b: c}", &struct{A struct{B string}}{struct{B string}{"c"}}},
-    {"a: {b: c}", &struct{A *struct{B string}}{&struct{B string}{"c"}}},
-    {"a: 1", &struct{A int}{1}},
-    {"a: [1, 2]", &struct{A []int}{[]int{1, 2}}},
-    {"a: 1", &struct{B int}{0}},
-    {"a: 1", &struct{B int "a"}{1}},
-    {"a: y", &struct{A bool}{true}},
+    {"hello: world", &struct{ Hello string }{"world"}},
+    {"a: {b: c}", &struct {
+        A struct {
+            B string
+        }
+    }{struct{ B string }{"c"}}},
+    {"a: {b: c}", &struct {
+        A *struct {
+            B string
+        }
+    }{&struct{ B string }{"c"}}},
+    {"a: 1", &struct{ A int }{1}},
+    {"a: [1, 2]", &struct{ A []int }{[]int{1, 2}}},
+    {"a: 1", &struct{ B int }{0}},
+    {"a: 1", &struct {
+        B int "a"
+    }{1}},
+    {"a: y", &struct{ A bool }{true}},
 
     // Some cross type conversions
     {"v: 42", map[string]uint{"v": 42}},
@@ -105,13 +118,17 @@ var unmarshalTests = []struct{data string; value interface{}}{
     {"v: !!float '1.1'", map[string]interface{}{"v": 1.1}},
     {"v: !!null ''", map[string]interface{}{"v": nil}},
     {"%TAG !y! tag:yaml.org,2002:\n---\nv: !y!int '1'",
-     map[string]interface{}{"v": 1}},
+        map[string]interface{}{"v": 1}},
 
     // Anchors and aliases.
-    {"a: &x 1\nb: &y 2\nc: *x\nd: *y\n", &struct{A, B, C, D int}{1, 2, 1, 2}},
+    {"a: &x 1\nb: &y 2\nc: *x\nd: *y\n", &struct{ A, B, C, D int }{1, 2, 1, 2}},
     {"a: &a {c: 1}\nb: *a",
-     &struct{A, B struct{C int}}{struct{C int}{1}, struct{C int}{1}}},
-    {"a: &a [1, 2]\nb: *a", &struct{B []int}{[]int{1, 2}}},
+        &struct {
+            A, B struct {
+                C int
+            }
+        }{struct{ C int }{1}, struct{ C int }{1}}},
+    {"a: &a [1, 2]\nb: *a", &struct{ B []int }{[]int{1, 2}}},
 }
 
 
@@ -133,9 +150,11 @@ func (s *S) TestUnmarshal(c *C) {
     }
 }
 
-var unmarshalErrorTests = []struct{data, error string}{
+var unmarshalErrorTests = []struct {
+    data, error string
+}{
     {"v: !!float 'error'",
-     "YAML error: Can't decode !!str 'error' as a !!float"},
+        "YAML error: Can't decode !!str 'error' as a !!float"},
     {"v: [A,", "YAML error: line 1: did not find expected node content"},
     {"v:\n- [A,", "YAML error: line 2: did not find expected node content"},
     {"a: *b\n", "YAML error: Unknown anchor 'b' referenced"},
@@ -150,7 +169,10 @@ func (s *S) TestUnmarshalErrors(c *C) {
     }
 }
 
-var setterTests = []struct{data, tag string; value interface{}}{
+var setterTests = []struct {
+    data, tag string
+    value     interface{}
+}{
     {"_: {hi: there}", "!!map", map[interface{}]interface{}{"hi": "there"}},
     {"_: [1,A]", "!!seq", []interface{}{1, "A"}},
     {"_: 10", "!!int", 10},
@@ -161,7 +183,7 @@ var setterTests = []struct{data, tag string; value interface{}}{
 var setterResult = map[int]bool{}
 
 type typeWithSetter struct {
-    tag string
+    tag   string
     value interface{}
 }
 
@@ -186,7 +208,7 @@ func (s *S) TestUnmarshalWithSetter(c *C) {
         err := goyaml.Unmarshal([]byte(item.data), obj)
         c.Assert(err, IsNil)
         c.Assert(obj.Field, NotNil,
-                 Bug("Pointer not initialized (%#v)", item.value))
+            Bug("Pointer not initialized (%#v)", item.value))
         c.Assert(obj.Field.tag, Equals, item.tag)
         c.Assert(obj.Field.value, Equals, item.value)
     }

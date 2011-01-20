@@ -18,13 +18,13 @@ const (
 )
 
 type node struct {
-    kind int
+    kind         int
     line, column int
-    tag string
-    value string
-    implicit bool
-    children []*node
-    anchors map[string]*node
+    tag          string
+    value        string
+    implicit     bool
+    children     []*node
+    anchors      map[string]*node
 }
 
 func stry(s *C.yaml_char_t) string {
@@ -37,8 +37,8 @@ func stry(s *C.yaml_char_t) string {
 
 type parser struct {
     parser C.yaml_parser_t
-    event C.yaml_event_t
-    doc *node
+    event  C.yaml_event_t
+    doc    *node
 }
 
 func newParser(b []byte) *parser {
@@ -59,7 +59,7 @@ func newParser(b []byte) *parser {
     p.skip()
     if p.event._type != C.YAML_STREAM_START_EVENT {
         panic("Expected stream start event, got " +
-              strconv.Itoa(int(p.event._type)))
+            strconv.Itoa(int(p.event._type)))
     }
     p.skip()
     return &p
@@ -127,15 +127,15 @@ func (p *parser) parse() *node {
         return nil
     default:
         panic("Attempted to parse unknown event: " +
-              strconv.Itoa(int(p.event._type)))
+            strconv.Itoa(int(p.event._type)))
     }
     panic("Unreachable")
 }
 
 func (p *parser) node(kind int) *node {
     return &node{kind: kind,
-                 line: int(C.int(p.event.start_mark.line)),
-                 column: int(C.int(p.event.start_mark.column))}
+        line:   int(C.int(p.event.start_mark.line)),
+        column: int(C.int(p.event.start_mark.column))}
 }
 
 func (p *parser) document() *node {
@@ -146,7 +146,7 @@ func (p *parser) document() *node {
     n.children = append(n.children, p.parse())
     if p.event._type != C.YAML_DOCUMENT_END_EVENT {
         panic("Expected end of document event but got " +
-              strconv.Itoa(int(p.event._type)))
+            strconv.Itoa(int(p.event._type)))
     }
     p.skip()
     return n
@@ -198,7 +198,7 @@ func (p *parser) mapping() *node {
 // Decoder, unmarshals a node into a provided value.
 
 type decoder struct {
-    doc *node
+    doc     *node
     aliases map[string]bool
 }
 
@@ -345,8 +345,8 @@ func (d *decoder) scalar(n *node, out reflect.Value) (good bool) {
         }
     case *reflect.FloatValue:
         switch resolved := resolved.(type) {
-        case float:
-            out.Set(float64(resolved))
+        case float64:
+            out.Set(resolved)
             good = true
         }
     case *reflect.PtrValue:

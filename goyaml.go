@@ -130,15 +130,15 @@ func Marshal(in interface{}) (out []byte, err os.Error) {
 // The code in this section was copied from gobson.
 
 type structFields struct {
-    Map map[string]fieldInfo
+    Map  map[string]fieldInfo
     List []fieldInfo
 }
 
 type fieldInfo struct {
-    Key string
-    Num int
+    Key         string
+    Num         int
     Conditional bool
-    Flow bool
+    Flow        bool
 }
 
 var fieldMap = make(map[string]*structFields)

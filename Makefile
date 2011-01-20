@@ -25,4 +25,18 @@ CGO_OFILES+=\
 CGO_LDFLAGS+=-lm -lpthread
 CGO_CFLAGS+=-I. -DHAVE_CONFIG_H=1
 
+GOFMT=gofmt -spaces=true -tabwidth=4 -tabindent=false
+
+BADFMT:=$(shell $(GOFMT) -l $(GOFILES) $(CGOFILES) $(wildcard *_test.go))
+
+all: package
+gofmt: $(BADFMT)
+	@for F in $(BADFMT); do $(GOFMT) -w $$F && echo $$F; done
+
 include $(GOROOT)/src/Make.pkg
+
+ifneq ($(BADFMT),)
+ifneq ($(MAKECMDGOALS),gofmt)
+$(warning WARNING: make gofmt: $(BADFMT))
+endif
+endif

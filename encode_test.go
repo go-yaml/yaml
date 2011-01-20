@@ -2,7 +2,7 @@ package goyaml_test
 
 
 import (
-    . "gocheck"
+    .   "gocheck"
     "goyaml"
     "math"
     //"reflect"
@@ -10,7 +10,10 @@ import (
 
 var marshalIntTest = 123
 
-var marshalTests = []struct{data string; value interface{}}{
+var marshalTests = []struct {
+    data  string
+    value interface{}
+}{
     {"{}\n", &struct{}{}},
     {"v: hi\n", map[string]string{"v": "hi"}},
     {"v: hi\n", map[string]interface{}{"v": "hi"}},
@@ -36,31 +39,59 @@ var marshalTests = []struct{data string; value interface{}}{
     {"v:\n- A\n- B\n", map[string][]string{"v": []string{"A", "B"}}},
     {"v:\n- A\n- 1\n", map[string][]interface{}{"v": []interface{}{"A", 1}}},
     {"a:\n  b: c\n",
-     map[string]interface{}{"a": map[interface{}]interface{}{"b": "c"}}},
+        map[string]interface{}{"a": map[interface{}]interface{}{"b": "c"}}},
 
     // Simple values.
     {"123\n", &marshalIntTest},
 
     // Structures
-    {"hello: world\n", &struct{Hello string}{"world"}},
-    {"a:\n  b: c\n", &struct{A struct{B string}}{struct{B string}{"c"}}},
-    {"a:\n  b: c\n", &struct{A *struct{B string}}{&struct{B string}{"c"}}},
-    {"a: null\n", &struct{A *struct{B string}}{}},
-    {"a: 1\n", &struct{A int}{1}},
-    {"a:\n- 1\n- 2\n", &struct{A []int}{[]int{1, 2}}},
-    {"a: 1\n", &struct{B int "a"}{1}},
-    {"a: true\n", &struct{A bool}{true}},
+    {"hello: world\n", &struct{ Hello string }{"world"}},
+    {"a:\n  b: c\n", &struct {
+        A struct {
+            B string
+        }
+    }{struct{ B string }{"c"}}},
+    {"a:\n  b: c\n", &struct {
+        A *struct {
+            B string
+        }
+    }{&struct{ B string }{"c"}}},
+    {"a: null\n", &struct {
+        A *struct {
+            B string
+        }
+    }{}},
+    {"a: 1\n", &struct{ A int }{1}},
+    {"a:\n- 1\n- 2\n", &struct{ A []int }{[]int{1, 2}}},
+    {"a: 1\n", &struct {
+        B int "a"
+    }{1}},
+    {"a: true\n", &struct{ A bool }{true}},
 
     // Conditional flag
-    {"a: 1\n", &struct{A int "a/c"; B int "b/c"}{1, 0}},
-    {"{}\n", &struct{A int "a/c"; B int "b/c"}{0, 0}},
+    {"a: 1\n", &struct {
+        A   int "a/c"
+        B   int "b/c"
+    }{1, 0}},
+    {"{}\n", &struct {
+        A   int "a/c"
+        B   int "b/c"
+    }{0, 0}},
 
     // Flow flag
-    {"a: [1, 2]\n", &struct{A []int "a/f"}{[]int{1, 2}}},
+    {"a: [1, 2]\n", &struct {
+        A []int "a/f"
+    }{[]int{1, 2}}},
     {"a: {b: c}\n",
-     &struct{A map[string]string "a/f"}{map[string]string{"b": "c"}}},
+        &struct {
+            A map[string]string "a/f"
+        }{map[string]string{"b": "c"}}},
     {"a: {b: c}\n",
-     &struct{A struct{B string} "a/f"}{struct{B string}{"c"}}},
+        &struct {
+            A struct {
+                B string
+            } "a/f"
+        }{struct{ B string }{"c"}}},
 }
 
 
@@ -84,9 +115,12 @@ func (s *S) TestMarshal(c *C) {
 //    }
 //}
 
-var marshalTaggedIfaceTest interface{} = &struct{A string}{"B"}
+var marshalTaggedIfaceTest interface{} = &struct{ A string }{"B"}
 
-var getterTests = []struct{data, tag string; value interface{}}{
+var getterTests = []struct {
+    data, tag string
+    value     interface{}
+}{
     {"_:\n  hi: there\n", "", map[interface{}]interface{}{"hi": "there"}},
     {"_:\n- 1\n- A\n", "", []interface{}{1, "A"}},
     {"_: 10\n", "", 10},
@@ -104,7 +138,7 @@ var getterTests = []struct{data, tag string; value interface{}}{
 }
 
 type typeWithGetter struct {
-    tag string
+    tag   string
     value interface{}
 }
 

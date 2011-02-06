@@ -22,9 +22,6 @@ CGO_OFILES+=\
 	writer.o\
 	emitter.o\
 
-CGO_LDFLAGS+=-lm -lpthread
-CGO_CFLAGS+=-I. -DHAVE_CONFIG_H=1
-
 GOFMT=gofmt -spaces=true -tabwidth=4 -tabindent=false
 
 BADFMT:=$(shell $(GOFMT) -l $(GOFILES) $(CGOFILES) $(wildcard *_test.go))

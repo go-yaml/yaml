@@ -1,5 +1,8 @@
 package goyaml
 
+// #cgo LDFLAGS: -lm -lpthread
+// #cgo CFLAGS: -I. -DHAVE_CONFIG_H=1
+//
 // #include "helpers.h"
 import "C"
 

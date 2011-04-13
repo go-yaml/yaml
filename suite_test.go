@@ -2,8 +2,8 @@ package goyaml_test
 
 
 import (
-    .   "gocheck"
-    "testing"
+	. "launchpad.net/gocheck"
+	"testing"
 )
 
 func Test(t *testing.T) { TestingT(t) }

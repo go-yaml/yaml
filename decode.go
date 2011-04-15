@@ -233,10 +233,10 @@ func (d *decoder) setter(tag string, out *reflect.Value, good *bool) (set func()
 		again = false
 		setter, _ := (*out).Interface().(Setter)
 		if tag != "!!null" || setter != nil {
-			if pv, ok := (*out).(*reflect.PtrValue); ok {
+			if pv := (*out); pv.Kind() == reflect.Ptr {
 				if pv.IsNil() {
-					*out = reflect.MakeZero(pv.Type().(*reflect.PtrType).Elem())
-					pv.PointTo(*out)
+					*out = reflect.Zero(pv.Type().Elem())
+					pv.Set((*out).Addr())
 				} else {
 					*out = pv.Elem()
 				}
@@ -246,7 +246,7 @@ func (d *decoder) setter(tag string, out *reflect.Value, good *bool) (set func()
 		}
 		if setter != nil {
 			var arg interface{}
-			*out = reflect.NewValue(&arg).(*reflect.PtrValue).Elem()
+			*out = reflect.NewValue(&arg).Elem()
 			return func() {
 				*good = setter.SetYAML(tag, arg)
 			}
@@ -307,55 +307,59 @@ func (d *decoder) scalar(n *node, out reflect.Value) (good bool) {
 			defer set()
 		}
 	}
-	switch out := out.(type) {
-	case *reflect.StringValue:
-		out.Set(n.value)
+	switch out.Kind() {
+	case reflect.String:
+		out.SetString(n.value)
 		good = true
-	case *reflect.InterfaceValue:
-		out.Set(reflect.NewValue(resolved))
+	case reflect.Interface:
+		if resolved == nil {
+			out.Set(reflect.Zero(out.Type()))
+		} else {
+			out.Set(reflect.NewValue(resolved))
+		}
 		good = true
-	case *reflect.IntValue:
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		switch resolved := resolved.(type) {
 		case int:
-			if !out.Overflow(int64(resolved)) {
-				out.Set(int64(resolved))
+			if !out.OverflowInt(int64(resolved)) {
+				out.SetInt(int64(resolved))
 				good = true
 			}
 		case int64:
-			if !out.Overflow(resolved) {
-				out.Set(resolved)
+			if !out.OverflowInt(resolved) {
+				out.SetInt(resolved)
 				good = true
 			}
 		}
-	case *reflect.UintValue:
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
 		switch resolved := resolved.(type) {
 		case int:
 			if resolved >= 0 {
-				out.Set(uint64(resolved))
+				out.SetUint(uint64(resolved))
 				good = true
 			}
 		case int64:
 			if resolved >= 0 {
-				out.Set(uint64(resolved))
+				out.SetUint(uint64(resolved))
 				good = true
 			}
 		}
-	case *reflect.BoolValue:
+	case reflect.Bool:
 		switch resolved := resolved.(type) {
 		case bool:
-			out.Set(resolved)
+			out.SetBool(resolved)
 			good = true
 		}
-	case *reflect.FloatValue:
+	case reflect.Float32, reflect.Float64:
 		switch resolved := resolved.(type) {
 		case float64:
-			out.Set(resolved)
+			out.SetFloat(resolved)
 			good = true
 		}
-	case *reflect.PtrValue:
+	case reflect.Ptr:
 		switch resolved := resolved.(type) {
 		case nil:
-			out.PointTo(nil)
+			out.Set(reflect.Zero(out.Type()))
 			good = true
 		}
 	default:
@@ -368,24 +372,23 @@ func (d *decoder) sequence(n *node, out reflect.Value) (good bool) {
 	if set := d.setter("!!seq", &out, &good); set != nil {
 		defer set()
 	}
-	if iface, ok := out.(*reflect.InterfaceValue); ok {
+	if out.Kind() == reflect.Interface {
 		// No type hints. Will have to use a generic sequence.
+		iface := out
 		out = reflect.NewValue(make([]interface{}, 0))
-		iface.SetValue(out)
+		iface.Set(out)
 	}
 
-	sv, ok := out.(*reflect.SliceValue)
-	if !ok {
+	if out.Kind() != reflect.Slice {
 		return false
 	}
-	st := sv.Type().(*reflect.SliceType)
-	et := st.Elem()
+	et := out.Type().Elem()
 
 	l := len(n.children)
 	for i := 0; i < l; i++ {
-		e := reflect.MakeZero(et)
+		e := reflect.Zero(et)
 		if ok := d.unmarshal(n.children[i], e); ok {
-			sv.SetValue(reflect.Append(sv, e))
+			out.Set(reflect.Append(out, e))
 		}
 	}
 	return true
@@ -395,50 +398,50 @@ func (d *decoder) mapping(n *node, out reflect.Value) (good bool) {
 	if set := d.setter("!!map", &out, &good); set != nil {
 		defer set()
 	}
-	if s, ok := out.(*reflect.StructValue); ok {
-		return d.mappingStruct(n, s)
+	if out.Kind() == reflect.Struct {
+		return d.mappingStruct(n, out)
 	}
 
-	if iface, ok := out.(*reflect.InterfaceValue); ok {
+	if out.Kind() == reflect.Interface {
 		// No type hints. Will have to use a generic map.
+		iface := out
 		out = reflect.NewValue(make(map[interface{}]interface{}))
-		iface.SetValue(out)
+		iface.Set(out)
 	}
 
-	mv, ok := out.(*reflect.MapValue)
-	if !ok {
+	if out.Kind() != reflect.Map {
 		return false
 	}
-	mt := mv.Type().(*reflect.MapType)
-	kt := mt.Key()
-	et := mt.Elem()
+	outt := out.Type()
+	kt := outt.Key()
+	et := outt.Elem()
 
 	l := len(n.children)
 	for i := 0; i < l; i += 2 {
-		k := reflect.MakeZero(kt)
+		k := reflect.Zero(kt)
 		if d.unmarshal(n.children[i], k) {
-			e := reflect.MakeZero(et)
+			e := reflect.Zero(et)
 			if d.unmarshal(n.children[i+1], e) {
-				mv.SetElem(k, e)
+				out.SetMapIndex(k, e)
 			}
 		}
 	}
 	return true
 }
 
-func (d *decoder) mappingStruct(n *node, out *reflect.StructValue) (good bool) {
-	fields, err := getStructFields(out.Type().(*reflect.StructType))
+func (d *decoder) mappingStruct(n *node, out reflect.Value) (good bool) {
+	fields, err := getStructFields(out.Type())
 	if err != nil {
 		panic(err)
 	}
-	name := reflect.NewValue("").(*reflect.StringValue)
+	name := reflect.NewValue("")
 	fieldsMap := fields.Map
 	l := len(n.children)
 	for i := 0; i < l; i += 2 {
 		if !d.unmarshal(n.children[i], name) {
 			continue
 		}
-		if info, ok := fieldsMap[name.Get()]; ok {
+		if info, ok := fieldsMap[name.String()]; ok {
 			d.unmarshal(n.children[i+1], out.Field(info.Num))
 		}
 	}

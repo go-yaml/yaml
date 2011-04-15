@@ -21,6 +21,8 @@ func handleErr(err *os.Error) {
 	if r := recover(); r != nil {
 		if _, ok := r.(runtime.Error); ok {
 			panic(r)
+		} else if _, ok := r.(*reflect.ValueError); ok {
+			panic(r)
 		} else if s, ok := r.(string); ok {
 			*err = os.ErrorString("YAML error: " + s)
 		} else if e, ok := r.(os.Error); ok {
@@ -144,7 +146,7 @@ type fieldInfo struct {
 var fieldMap = make(map[string]*structFields)
 var fieldMapMutex sync.RWMutex
 
-func getStructFields(st *reflect.StructType) (*structFields, os.Error) {
+func getStructFields(st reflect.Type) (*structFields, os.Error) {
 	path := st.PkgPath()
 	name := st.Name()
 
@@ -208,21 +210,21 @@ func getStructFields(st *reflect.StructType) (*structFields, os.Error) {
 }
 
 func isZero(v reflect.Value) bool {
-	switch v := v.(type) {
-	case *reflect.StringValue:
-		return len(v.Get()) == 0
-	case *reflect.InterfaceValue:
+	switch v.Kind() {
+	case reflect.String:
+		return len(v.String()) == 0
+	case reflect.Interface:
 		return v.IsNil()
-	case *reflect.SliceValue:
+	case reflect.Slice:
 		return v.Len() == 0
-	case *reflect.MapValue:
+	case reflect.Map:
 		return v.Len() == 0
-	case *reflect.IntValue:
-		return v.Get() == 0
-	case *reflect.UintValue:
-		return v.Get() == 0
-	case *reflect.BoolValue:
-		return !v.Get()
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		return v.Int() == 0
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
+		return v.Uint() == 0
+	case reflect.Bool:
+		return !v.Bool()
 	}
 	return false
 }

@@ -92,51 +92,51 @@ func (e *encoder) marshal(tag string, in reflect.Value) {
 		}
 		in = reflect.NewValue(value)
 	}
-	switch in := in.(type) {
-	case *reflect.InterfaceValue:
+	switch in.Kind() {
+	case reflect.Interface:
 		if in.IsNil() {
 			e.nilv()
 		} else {
 			e.marshal(tag, in.Elem())
 		}
-	case *reflect.MapValue:
+	case reflect.Map:
 		e.mapv(tag, in)
-	case *reflect.PtrValue:
+	case reflect.Ptr:
 		if in.IsNil() {
 			e.nilv()
 		} else {
 			e.marshal(tag, in.Elem())
 		}
-	case *reflect.StructValue:
+	case reflect.Struct:
 		e.structv(tag, in)
-	case *reflect.SliceValue:
+	case reflect.Slice:
 		e.slicev(tag, in)
-	case *reflect.StringValue:
+	case reflect.String:
 		e.stringv(tag, in)
-	case *reflect.IntValue:
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		e.intv(tag, in)
-	case *reflect.UintValue:
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
 		e.uintv(tag, in)
-	case *reflect.FloatValue:
+	case reflect.Float32, reflect.Float64:
 		e.floatv(tag, in)
-	case *reflect.BoolValue:
+	case reflect.Bool:
 		e.boolv(tag, in)
 	default:
 		panic("Can't marshal type yet: " + in.Type().String())
 	}
 }
 
-func (e *encoder) mapv(tag string, in *reflect.MapValue) {
+func (e *encoder) mapv(tag string, in reflect.Value) {
 	e.mappingv(tag, func() {
-		for _, k := range in.Keys() {
+		for _, k := range in.MapKeys() {
 			e.marshal("", k)
-			e.marshal("", in.Elem(k))
+			e.marshal("", in.MapIndex(k))
 		}
 	})
 }
 
-func (e *encoder) structv(tag string, in *reflect.StructValue) {
-	fields, err := getStructFields(in.Type().(*reflect.StructType))
+func (e *encoder) structv(tag string, in reflect.Value) {
+	fields, err := getStructFields(in.Type())
 	if err != nil {
 		panic(err)
 	}
@@ -175,7 +175,7 @@ func (e *encoder) mappingv(tag string, f func()) {
 	e.emit()
 }
 
-func (e *encoder) slicev(tag string, in *reflect.SliceValue) {
+func (e *encoder) slicev(tag string, in reflect.Value) {
 	var ctag *C.yaml_char_t
 	var free func()
 	var cimplicit C.int
@@ -197,15 +197,15 @@ func (e *encoder) slicev(tag string, in *reflect.SliceValue) {
 	e.emit()
 	n := in.Len()
 	for i := 0; i < n; i++ {
-		e.marshal("", in.Elem(i))
+		e.marshal("", in.Index(i))
 	}
 	C.yaml_sequence_end_event_initialize(&e.event)
 	e.emit()
 }
 
-func (e *encoder) stringv(tag string, in *reflect.StringValue) {
+func (e *encoder) stringv(tag string, in reflect.Value) {
 	var style C.yaml_scalar_style_t
-	s := in.Get()
+	s := in.String()
 	if rtag, _ := resolve("", s); rtag != "!!str" {
 		style = C.YAML_DOUBLE_QUOTED_SCALAR_STYLE
 	} else {
@@ -214,9 +214,9 @@ func (e *encoder) stringv(tag string, in *reflect.StringValue) {
 	e.emitScalar(s, "", tag, style)
 }
 
-func (e *encoder) boolv(tag string, in *reflect.BoolValue) {
+func (e *encoder) boolv(tag string, in reflect.Value) {
 	var s string
-	if in.Get() {
+	if in.Bool() {
 		s = "true"
 	} else {
 		s = "false"
@@ -224,19 +224,19 @@ func (e *encoder) boolv(tag string, in *reflect.BoolValue) {
 	e.emitScalar(s, "", tag, C.YAML_PLAIN_SCALAR_STYLE)
 }
 
-func (e *encoder) intv(tag string, in *reflect.IntValue) {
-	s := strconv.Itoa64(in.Get())
+func (e *encoder) intv(tag string, in reflect.Value) {
+	s := strconv.Itoa64(in.Int())
 	e.emitScalar(s, "", tag, C.YAML_PLAIN_SCALAR_STYLE)
 }
 
-func (e *encoder) uintv(tag string, in *reflect.UintValue) {
-	s := strconv.Uitoa64(in.Get())
+func (e *encoder) uintv(tag string, in reflect.Value) {
+	s := strconv.Uitoa64(in.Uint())
 	e.emitScalar(s, "", tag, C.YAML_PLAIN_SCALAR_STYLE)
 }
 
-func (e *encoder) floatv(tag string, in *reflect.FloatValue) {
+func (e *encoder) floatv(tag string, in reflect.Value) {
 	// FIXME: Handle 64 bits here.
-	s := strconv.Ftoa32(float32(in.Get()), 'g', -1)
+	s := strconv.Ftoa32(float32(in.Float()), 'g', -1)
 	switch s {
 	case "+Inf":
 		s = ".inf"

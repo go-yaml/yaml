@@ -133,19 +133,19 @@ var unmarshalTests = []struct {
 
 
 func (s *S) TestUnmarshal(c *C) {
-	for _, item := range unmarshalTests {
+	for i, item := range unmarshalTests {
 		t := reflect.NewValue(item.value).Type()
 		var value interface{}
-		if t, ok := t.(*reflect.MapType); ok {
+		if t.Kind() == reflect.Map {
 			value = reflect.MakeMap(t).Interface()
 		} else {
-			pt := reflect.NewValue(item.value).Type().(*reflect.PtrType)
-			pv := reflect.MakeZero(pt).(*reflect.PtrValue)
-			pv.PointTo(reflect.MakeZero(pt.Elem()))
+			pt := reflect.NewValue(item.value).Type()
+			pv := reflect.Zero(pt)
+			pv.Set(reflect.Zero(pt.Elem()).Addr())
 			value = pv.Interface()
 		}
 		err := goyaml.Unmarshal([]byte(item.data), value)
-		c.Assert(err, IsNil)
+		c.Assert(err, IsNil, Bug("Item #%d", i))
 		c.Assert(value, Equals, item.value)
 	}
 }

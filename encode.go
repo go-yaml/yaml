@@ -90,7 +90,7 @@ func (e *encoder) marshal(tag string, in reflect.Value) {
 			e.nilv()
 			return
 		}
-		in = reflect.NewValue(value)
+		in = reflect.ValueOf(value)
 	}
 	switch in.Kind() {
 	case reflect.Interface:
@@ -146,7 +146,7 @@ func (e *encoder) structv(tag string, in reflect.Value) {
 			if info.Conditional && isZero(value) {
 				continue
 			}
-			e.marshal("", reflect.NewValue(info.Key))
+			e.marshal("", reflect.ValueOf(info.Key))
 			e.flow = info.Flow
 			e.marshal("", value)
 		}

@@ -88,7 +88,7 @@ func Unmarshal(in []byte, out interface{}) (err os.Error) {
 	defer p.destroy()
 	node := p.parse()
 	if node != nil {
-		d.unmarshal(node, reflect.NewValue(out))
+		d.unmarshal(node, reflect.ValueOf(out))
 	}
 	return nil
 }
@@ -119,7 +119,7 @@ func Marshal(in interface{}) (out []byte, err os.Error) {
 	defer handleErr(&err)
 	e := newEncoder()
 	defer e.destroy()
-	e.marshal("", reflect.NewValue(in))
+	e.marshal("", reflect.ValueOf(in))
 	e.finish()
 	out = e.out
 	return

@@ -235,7 +235,7 @@ func (d *decoder) setter(tag string, out *reflect.Value, good *bool) (set func()
 		if tag != "!!null" || setter != nil {
 			if pv := (*out); pv.Kind() == reflect.Ptr {
 				if pv.IsNil() {
-					*out = reflect.Zero(pv.Type().Elem())
+					*out = reflect.New(pv.Type().Elem()).Elem()
 					pv.Set((*out).Addr())
 				} else {
 					*out = pv.Elem()
@@ -246,7 +246,7 @@ func (d *decoder) setter(tag string, out *reflect.Value, good *bool) (set func()
 		}
 		if setter != nil {
 			var arg interface{}
-			*out = reflect.NewValue(&arg).Elem()
+			*out = reflect.ValueOf(&arg).Elem()
 			return func() {
 				*good = setter.SetYAML(tag, arg)
 			}
@@ -315,7 +315,7 @@ func (d *decoder) scalar(n *node, out reflect.Value) (good bool) {
 		if resolved == nil {
 			out.Set(reflect.Zero(out.Type()))
 		} else {
-			out.Set(reflect.NewValue(resolved))
+			out.Set(reflect.ValueOf(resolved))
 		}
 		good = true
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
@@ -368,6 +368,13 @@ func (d *decoder) scalar(n *node, out reflect.Value) (good bool) {
 	return good
 }
 
+func settableValueOf(i interface{}) reflect.Value {
+	v := reflect.ValueOf(i)
+	sv := reflect.New(v.Type()).Elem()
+	sv.Set(v)
+	return sv
+}
+
 func (d *decoder) sequence(n *node, out reflect.Value) (good bool) {
 	if set := d.setter("!!seq", &out, &good); set != nil {
 		defer set()
@@ -375,7 +382,7 @@ func (d *decoder) sequence(n *node, out reflect.Value) (good bool) {
 	if out.Kind() == reflect.Interface {
 		// No type hints. Will have to use a generic sequence.
 		iface := out
-		out = reflect.NewValue(make([]interface{}, 0))
+		out = settableValueOf(make([]interface{}, 0))
 		iface.Set(out)
 	}
 
@@ -386,7 +393,7 @@ func (d *decoder) sequence(n *node, out reflect.Value) (good bool) {
 
 	l := len(n.children)
 	for i := 0; i < l; i++ {
-		e := reflect.Zero(et)
+		e := reflect.New(et).Elem()
 		if ok := d.unmarshal(n.children[i], e); ok {
 			out.Set(reflect.Append(out, e))
 		}
@@ -405,7 +412,7 @@ func (d *decoder) mapping(n *node, out reflect.Value) (good bool) {
 	if out.Kind() == reflect.Interface {
 		// No type hints. Will have to use a generic map.
 		iface := out
-		out = reflect.NewValue(make(map[interface{}]interface{}))
+		out = settableValueOf(make(map[interface{}]interface{}))
 		iface.Set(out)
 	}
 
@@ -418,9 +425,9 @@ func (d *decoder) mapping(n *node, out reflect.Value) (good bool) {
 
 	l := len(n.children)
 	for i := 0; i < l; i += 2 {
-		k := reflect.Zero(kt)
+		k := reflect.New(kt).Elem()
 		if d.unmarshal(n.children[i], k) {
-			e := reflect.Zero(et)
+			e := reflect.New(et).Elem()
 			if d.unmarshal(n.children[i+1], e) {
 				out.SetMapIndex(k, e)
 			}
@@ -434,7 +441,7 @@ func (d *decoder) mappingStruct(n *node, out reflect.Value) (good bool) {
 	if err != nil {
 		panic(err)
 	}
-	name := reflect.NewValue("")
+	name := settableValueOf("")
 	fieldsMap := fields.Map
 	l := len(n.children)
 	for i := 0; i < l; i += 2 {

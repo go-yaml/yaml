@@ -134,14 +134,13 @@ var unmarshalTests = []struct {
 
 func (s *S) TestUnmarshal(c *C) {
 	for i, item := range unmarshalTests {
-		t := reflect.NewValue(item.value).Type()
+		t := reflect.ValueOf(item.value).Type()
 		var value interface{}
 		if t.Kind() == reflect.Map {
 			value = reflect.MakeMap(t).Interface()
 		} else {
-			pt := reflect.NewValue(item.value).Type()
-			pv := reflect.Zero(pt)
-			pv.Set(reflect.Zero(pt.Elem()).Addr())
+			pt := reflect.ValueOf(item.value).Type()
+			pv := reflect.New(pt.Elem())
 			value = pv.Interface()
 		}
 		err := goyaml.Unmarshal([]byte(item.data), value)
@@ -153,8 +152,7 @@ func (s *S) TestUnmarshal(c *C) {
 var unmarshalErrorTests = []struct {
 	data, error string
 }{
-	{"v: !!float 'error'",
-		"YAML error: Can't decode !!str 'error' as a !!float"},
+	{"v: !!float 'error'", "YAML error: Can't decode !!str 'error' as a !!float"},
 	{"v: [A,", "YAML error: line 1: did not find expected node content"},
 	{"v:\n- [A,", "YAML error: line 2: did not find expected node content"},
 	{"a: *b\n", "YAML error: Unknown anchor 'b' referenced"},

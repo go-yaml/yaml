@@ -3,7 +3,7 @@ include $(GOROOT)/src/Make.inc
 YAML=yaml-0.1.3
 LIBYAML=$(PWD)/$(YAML)/src/.libs/libyaml.a
 
-TARG=goyaml
+TARG=launchpad.net/goyaml
 
 GOFILES=\
 	goyaml.go\

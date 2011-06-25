@@ -3,7 +3,7 @@ package goyaml_test
 
 import (
 	. "launchpad.net/gocheck"
-	"goyaml"
+	"launchpad.net/goyaml"
 	"reflect"
 	"math"
 )

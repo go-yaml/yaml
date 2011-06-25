@@ -24,7 +24,7 @@ func handleErr(err *os.Error) {
 		} else if _, ok := r.(*reflect.ValueError); ok {
 			panic(r)
 		} else if s, ok := r.(string); ok {
-			*err = os.ErrorString("YAML error: " + s)
+			*err = os.NewError("YAML error: " + s)
 		} else if e, ok := r.(os.Error); ok {
 			*err = e
 		} else {

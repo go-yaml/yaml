@@ -143,7 +143,7 @@ func (e *encoder) structv(tag string, in reflect.Value) {
 	e.mappingv(tag, func() {
 		for i, info := range fields.List {
 			value := in.Field(i)
-			if info.Conditional && isZero(value) {
+			if info.OmitEmpty && isZero(value) {
 				continue
 			}
 			e.marshal("", reflect.ValueOf(info.Key))

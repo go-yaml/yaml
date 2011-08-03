@@ -70,27 +70,27 @@ var marshalTests = []struct {
 
 	// Conditional flag
 	{"a: 1\n", &struct {
-		A int "a/c"
-		B int "b/c"
+		A int "a,omitempty"
+		B int "b,omitempty"
 	}{1, 0}},
 	{"{}\n", &struct {
-		A int "a/c"
-		B int "b/c"
+		A int "a,omitempty"
+		B int "b,omitempty"
 	}{0, 0}},
 
 	// Flow flag
 	{"a: [1, 2]\n", &struct {
-		A []int "a/f"
+		A []int "a,flow"
 	}{[]int{1, 2}}},
 	{"a: {b: c}\n",
 		&struct {
-			A map[string]string "a/f"
+			A map[string]string "a,flow"
 		}{map[string]string{"b": "c"}}},
 	{"a: {b: c}\n",
 		&struct {
 			A struct {
 				B string
-			} "a/f"
+			} "a,flow"
 		}{struct{ B string }{"c"}}},
 }
 

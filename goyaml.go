@@ -10,6 +10,7 @@
 package goyaml
 
 import (
+	"fmt"
 	"reflect"
 	"runtime"
 	"strings"
@@ -22,6 +23,8 @@ func handleErr(err *os.Error) {
 		if _, ok := r.(runtime.Error); ok {
 			panic(r)
 		} else if _, ok := r.(*reflect.ValueError); ok {
+			panic(r)
+		} else if _, ok := r.(externalPanic); ok {
 			panic(r)
 		} else if s, ok := r.(string); ok {
 			*err = os.NewError("YAML error: " + s)
@@ -68,14 +71,14 @@ type Getter interface {
 // Struct fields are only unmarshalled if they are exported (have an
 // upper case first letter), and will be unmarshalled using the field
 // name lowercased by default. When custom field names are desired, the
-// tag value may be used to tweak the name. Everything before the last
-// slash in the field tag will be used as the name. The value following
-// the slash is used to tweak the marshalling process (see Marshal).
+// tag value may be used to tweak the name. Everything before the first
+// comma in the field tag will be used as the name. The values following
+// the comma are used to tweak the marshalling process (see Marshal).
 //
 // For example:
 //
 //     type T struct {
-//         F int "a/c"
+//         F int "a,omitempty"
 //         B int
 //     }
 //     var T t
@@ -93,23 +96,33 @@ func Unmarshal(in []byte, out interface{}) (err os.Error) {
 	return nil
 }
 
-// Marshal writes the object provided into a YAML document. The structure
+// Marshal serializes the value provided into a YAML document. The structure
 // of the generated document will reflect the structure of the value itself.
 // Maps, pointers to structs and ints, etc, may all be used as the in value.
 //
-// Struct fields are only marshalled if they are exported (have an
-// upper case first letter), and will be marshalled using the field
-// name lowercased by default. When custom field names are desired, the
-// tag value may be used to tweak the name. Everything before the last
-// slash in the field tag will be used as the name. The characters
-// following the slash are used as flags for the marshalling process,
-// with 'c' meaning conditional (only marshal if non-zero), and 'f'
-// meaning use flow style (useful for structs, sequences and maps).
+// In the case of struct values, only exported fields will be serialized.
+// The lowercased field name is used as the key for each exported field,
+// but this behavior may be changed using the respective field tag.
+// The tag may also contain flags to tweak the marshalling behavior for
+// the field. The tag formats accepted are:
+//
+//     "[<key>][,<flag1>[,<flag2>]]"
+//
+//     `(...) yaml:"[<key>][,<flag1>[,<flag2>]]" (...)`
+//
+// The following flags are currently supported:
+//
+//     omitempty    Only include the field if it's not set to the zero
+//                  value for the type or to empty slices or maps.
+//                  Does not apply to zero valued structs.
+//
+//     flow         Marshal using a flow style (useful for structs,
+//                  sequences and maps.
 //
 // For example:
 //
 //     type T struct {
-//         F int "a/c"
+//         F int "a,omitempty"
 //         B int
 //     }
 //     goyaml.Marshal(&T{B: 2}) // Returns "b: 2\n"
@@ -137,14 +150,20 @@ type structFields struct {
 }
 
 type fieldInfo struct {
-	Key         string
-	Num         int
-	Conditional bool
-	Flow        bool
+	Key       string
+	Num       int
+	OmitEmpty bool
+	Flow      bool
 }
 
 var fieldMap = make(map[string]*structFields)
 var fieldMapMutex sync.RWMutex
+
+type externalPanic string
+
+func (e externalPanic) String() string {
+	return string(e)
+}
 
 func getStructFields(st reflect.Type) (*structFields, os.Error) {
 	path := st.PkgPath()
@@ -169,22 +188,47 @@ func getStructFields(st reflect.Type) (*structFields, os.Error) {
 
 		info := fieldInfo{Num: i}
 
-		if s := strings.LastIndex(field.Tag, "/"); s != -1 {
-			for _, c := range field.Tag[s+1:] {
-				switch c {
-				case int('c'):
-					info.Conditional = true
-				case int('f'):
-					info.Flow = true
-				default:
-					panic("Unsupported field flag: " + string([]int{c}))
-				}
-			}
-			field.Tag = field.Tag[:s]
+		tag := field.Tag.Get("yaml")
+		if tag == "" && strings.Index(string(field.Tag), ":") < 0 {
+			tag = string(field.Tag)
 		}
 
-		if field.Tag != "" {
-			info.Key = field.Tag
+		// XXX Drop this after a few releases.
+		if s := strings.Index(tag, "/"); s >= 0 {
+			recommend := tag[:s]
+			for _, c := range tag[s+1:] {
+				switch c {
+				case int('c'):
+					recommend += ",omitempty"
+				case int('f'):
+					recommend += ",flow"
+				default:
+					msg := fmt.Sprintf("Unsupported flag %q in tag %q of type %s", string([]byte{uint8(c)}), tag, st)
+					panic(externalPanic(msg))
+				}
+			}
+			msg := fmt.Sprintf("Replace tag %q in field %s of type %s by %q", tag, field.Name, st, recommend)
+			panic(externalPanic(msg))
+		}
+
+		fields := strings.Split(tag, ",")
+		if len(fields) > 1 {
+			for _, flag := range fields[1:] {
+				switch flag {
+				case "omitempty":
+					info.OmitEmpty = true
+				case "flow":
+					info.Flow = true
+				default:
+					msg := fmt.Sprintf("Unsupported flag %q in tag %q of type %s", flag, tag, st)
+					panic(externalPanic(msg))
+				}
+			}
+			tag = fields[0]
+		}
+
+		if tag != "" {
+			info.Key = tag
 		} else {
 			info.Key = strings.ToLower(field.Name)
 		}

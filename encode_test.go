@@ -76,6 +76,10 @@ var marshalTests = []struct {
 		A int "a,omitempty"
 		B int "b,omitempty"
 	}{0, 0}},
+	{"{}\n", &struct {
+		A *struct{ X int } "a,omitempty"
+		B int              "b,omitempty"
+	}{nil, 0}},
 
 	// Flow flag
 	{"a: [1, 2]\n", &struct {

@@ -262,6 +262,8 @@ func isZero(v reflect.Value) bool {
 		return v.Len() == 0
 	case reflect.Map:
 		return v.Len() == 0
+	case reflect.Ptr:
+		return v.IsNil()
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		return v.Int() == 0
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:

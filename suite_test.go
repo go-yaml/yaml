@@ -1,6 +1,5 @@
 package goyaml_test
 
-
 import (
 	. "launchpad.net/gocheck"
 	"testing"

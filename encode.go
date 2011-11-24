@@ -5,10 +5,9 @@ import "C"
 
 import (
 	"reflect"
-	"unsafe"
 	"strconv"
+	"unsafe"
 )
-
 
 type encoder struct {
 	emitter C.yaml_emitter_t
@@ -18,7 +17,6 @@ type encoder struct {
 	tmph    *reflect.SliceHeader
 	flow    bool
 }
-
 
 //export outputHandler
 func outputHandler(data unsafe.Pointer, buffer *C.uchar, size C.size_t) C.int {
@@ -253,7 +251,7 @@ func (e *encoder) nilv() {
 }
 
 func (e *encoder) emitScalar(value, anchor, tag string,
-style C.yaml_scalar_style_t) {
+	style C.yaml_scalar_style_t) {
 	var canchor, ctag, cvalue *C.yaml_char_t
 	var cimplicit C.int
 	var free func()

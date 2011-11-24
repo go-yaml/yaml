@@ -1,6 +1,5 @@
 package goyaml_test
 
-
 import (
 	. "launchpad.net/gocheck"
 	"launchpad.net/goyaml"
@@ -93,7 +92,6 @@ var marshalTests = []struct {
 			} "a,flow"
 		}{struct{ B string }{"c"}}},
 }
-
 
 func (s *S) TestMarshal(c *C) {
 	for _, item := range marshalTests {

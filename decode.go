@@ -7,9 +7,9 @@ package goyaml
 import "C"
 
 import (
-	"unsafe"
 	"reflect"
 	"strconv"
+	"unsafe"
 )
 
 const (
@@ -33,7 +33,6 @@ type node struct {
 func stry(s *C.yaml_char_t) string {
 	return C.GoString((*C.char)(unsafe.Pointer(s)))
 }
-
 
 // ----------------------------------------------------------------------------
 // Parser, produces a node tree out of a libyaml event stream.
@@ -196,7 +195,6 @@ func (p *parser) mapping() *node {
 	return n
 }
 
-
 // ----------------------------------------------------------------------------
 // Decoder, unmarshals a node into a provided value.
 
@@ -292,7 +290,7 @@ func (d *decoder) alias(n *node, out reflect.Value) (good bool) {
 	}
 	d.aliases[n.value] = true
 	good = d.unmarshal(an, out)
-	d.aliases[n.value] = false, false
+	delete(d.aliases, n.value)
 	return good
 }
 
@@ -357,7 +355,7 @@ func (d *decoder) scalar(n *node, out reflect.Value) (good bool) {
 			good = true
 		}
 	case reflect.Ptr:
-		switch resolved := resolved.(type) {
+		switch resolved.(type) {
 		case nil:
 			out.Set(reflect.Zero(out.Type()))
 			good = true

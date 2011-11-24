@@ -1,11 +1,10 @@
 package goyaml
 
 import (
+	"math"
 	"strconv"
 	"strings"
-	"math"
 )
-
 
 // TODO: merge, timestamps, base 60 floats, omap.
 
@@ -17,7 +16,6 @@ type resolveMapItem struct {
 
 var resolveTable = make([]byte, 256)
 var resolveMap = make(map[string]resolveMapItem)
-
 
 func init() {
 	t := resolveTable

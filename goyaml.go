@@ -10,15 +10,15 @@
 package goyaml
 
 import (
+	"errors"
 	"fmt"
 	"reflect"
 	"runtime"
 	"strings"
 	"sync"
-	"os"
 )
 
-func handleErr(err *os.Error) {
+func handleErr(err *error) {
 	if r := recover(); r != nil {
 		if _, ok := r.(runtime.Error); ok {
 			panic(r)
@@ -27,8 +27,8 @@ func handleErr(err *os.Error) {
 		} else if _, ok := r.(externalPanic); ok {
 			panic(r)
 		} else if s, ok := r.(string); ok {
-			*err = os.NewError("YAML error: " + s)
-		} else if e, ok := r.(os.Error); ok {
+			*err = errors.New("YAML error: " + s)
+		} else if e, ok := r.(error); ok {
 			*err = e
 		} else {
 			panic(r)
@@ -84,7 +84,7 @@ type Getter interface {
 //     var T t
 //     goyaml.Unmarshal([]byte("a: 1\nb: 2"), &t)
 // 
-func Unmarshal(in []byte, out interface{}) (err os.Error) {
+func Unmarshal(in []byte, out interface{}) (err error) {
 	defer handleErr(&err)
 	d := newDecoder()
 	p := newParser(in)
@@ -128,7 +128,7 @@ func Unmarshal(in []byte, out interface{}) (err os.Error) {
 //     goyaml.Marshal(&T{B: 2}) // Returns "b: 2\n"
 //     goyaml.Marshal(&T{F: 1}} // Returns "a: 1\nb: 0\n"
 //
-func Marshal(in interface{}) (out []byte, err os.Error) {
+func Marshal(in interface{}) (out []byte, err error) {
 	defer handleErr(&err)
 	e := newEncoder()
 	defer e.destroy()
@@ -137,7 +137,6 @@ func Marshal(in interface{}) (out []byte, err os.Error) {
 	out = e.out
 	return
 }
-
 
 // --------------------------------------------------------------------------
 // Maintain a mapping of keys to structure field indexes
@@ -165,7 +164,7 @@ func (e externalPanic) String() string {
 	return string(e)
 }
 
-func getStructFields(st reflect.Type) (*structFields, os.Error) {
+func getStructFields(st reflect.Type) (*structFields, error) {
 	path := st.PkgPath()
 	name := st.Name()
 
@@ -235,7 +234,7 @@ func getStructFields(st reflect.Type) (*structFields, os.Error) {
 
 		if _, found = fieldsMap[info.Key]; found {
 			msg := "Duplicated key '" + info.Key + "' in struct " + st.String()
-			return nil, os.NewError(msg)
+			return nil, errors.New(msg)
 		}
 
 		fieldsList[len(fieldsMap)] = info

@@ -1,13 +1,11 @@
 package goyaml_test
 
-
 import (
 	. "launchpad.net/gocheck"
 	"launchpad.net/goyaml"
-	"reflect"
 	"math"
+	"reflect"
 )
-
 
 var unmarshalIntTest = 123
 
@@ -131,7 +129,6 @@ var unmarshalTests = []struct {
 	{"a: &a [1, 2]\nb: *a", &struct{ B []int }{[]int{1, 2}}},
 }
 
-
 func (s *S) TestUnmarshal(c *C) {
 	for i, item := range unmarshalTests {
 		t := reflect.ValueOf(item.value).Type()
@@ -163,7 +160,7 @@ func (s *S) TestUnmarshalErrors(c *C) {
 	for _, item := range unmarshalErrorTests {
 		var value interface{}
 		err := goyaml.Unmarshal([]byte(item.data), &value)
-		c.Assert(err, Matches, item.error, Bug("Partial unmarshal: %#v", value))
+		c.Assert(err, ErrorMatches, item.error, Bug("Partial unmarshal: %#v", value))
 	}
 }
 
@@ -226,8 +223,8 @@ func (s *S) TestUnmarshalWithFalseSetterIgnoresValue(c *C) {
 	setterResult[2] = false
 	setterResult[4] = false
 	defer func() {
-		setterResult[2] = false, false
-		setterResult[4] = false, false
+		delete(setterResult, 2)
+		delete(setterResult, 4)
 	}()
 
 	m := map[string]*typeWithSetter{}

@@ -256,7 +256,7 @@ func isZero(v reflect.Value) bool {
 	switch v.Kind() {
 	case reflect.String:
 		return len(v.String()) == 0
-	case reflect.Interface:
+	case reflect.Interface, reflect.Ptr:
 		return v.IsNil()
 	case reflect.Slice:
 		return v.Len() == 0

@@ -250,8 +250,7 @@ func (e *encoder) nilv() {
 	e.emitScalar("null", "", "", C.YAML_PLAIN_SCALAR_STYLE)
 }
 
-func (e *encoder) emitScalar(value, anchor, tag string,
-	style C.yaml_scalar_style_t) {
+func (e *encoder) emitScalar(value, anchor, tag string, style C.yaml_scalar_style_t) {
 	var canchor, ctag, cvalue *C.yaml_char_t
 	var cimplicit C.int
 	var free func()

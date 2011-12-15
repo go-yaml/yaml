@@ -223,18 +223,18 @@ func (e *encoder) boolv(tag string, in reflect.Value) {
 }
 
 func (e *encoder) intv(tag string, in reflect.Value) {
-	s := strconv.Itoa64(in.Int())
+	s := strconv.FormatInt(in.Int(), 10)
 	e.emitScalar(s, "", tag, C.YAML_PLAIN_SCALAR_STYLE)
 }
 
 func (e *encoder) uintv(tag string, in reflect.Value) {
-	s := strconv.Uitoa64(in.Uint())
+	s := strconv.FormatUint(in.Uint(), 10)
 	e.emitScalar(s, "", tag, C.YAML_PLAIN_SCALAR_STYLE)
 }
 
 func (e *encoder) floatv(tag string, in reflect.Value) {
 	// FIXME: Handle 64 bits here.
-	s := strconv.Ftoa32(float32(in.Float()), 'g', -1)
+	s := strconv.FormatFloat(float64(in.Float()), 'g', -1, 32)
 	switch s {
 	case "+Inf":
 		s = ".inf"

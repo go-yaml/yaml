@@ -106,11 +106,11 @@ func resolve(tag string, in string) (rtag string, out interface{}) {
 
 	case '.':
 		// Not in the map, so maybe a normal float.
-		floatv, err := strconv.Atof64(in)
+		floatv, err := strconv.ParseFloat(in, 64)
 		if err == nil {
 			return "!!float", floatv
 		}
-		// XXX Handle base 60 floats here (WTF!)
+	// XXX Handle base 60 floats here (WTF!)
 
 	case 'D', 'S':
 		// Int, float, or timestamp.
@@ -120,7 +120,7 @@ func resolve(tag string, in string) (rtag string, out interface{}) {
 				break
 			}
 		}
-		intv, err := strconv.Btoi64(in, 0)
+		intv, err := strconv.ParseInt(in, 0, 64)
 		if err == nil {
 			if intv == int64(int(intv)) {
 				return "!!int", int(intv)
@@ -128,22 +128,22 @@ func resolve(tag string, in string) (rtag string, out interface{}) {
 				return "!!int", intv
 			}
 		}
-		floatv, err := strconv.Atof64(in)
+		floatv, err := strconv.ParseFloat(in, 64)
 		if err == nil {
 			return "!!float", floatv
 		}
 		if strings.HasPrefix(in, "0b") {
-			intv, err := strconv.Btoi64(in[2:], 2)
+			intv, err := strconv.ParseInt(in[2:], 2, 64)
 			if err == nil {
 				return "!!int", int(intv)
 			}
 		} else if strings.HasPrefix(in, "-0b") {
-			intv, err := strconv.Btoi64(in[3:], 2)
+			intv, err := strconv.ParseInt(in[3:], 2, 64)
 			if err == nil {
 				return "!!int", -int(intv)
 			}
 		}
-		// XXX Handle timestamps here.
+	// XXX Handle timestamps here.
 
 	case '<':
 		// XXX Handle merge (<<) here.

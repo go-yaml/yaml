@@ -197,9 +197,9 @@ func getStructFields(st reflect.Type) (*structFields, error) {
 			recommend := tag[:s]
 			for _, c := range tag[s+1:] {
 				switch c {
-				case rune('c'):
+				case 'c':
 					recommend += ",omitempty"
-				case rune('f'):
+				case 'f':
 					recommend += ",flow"
 				default:
 					msg := fmt.Sprintf("Unsupported flag %q in tag %q of type %s", string([]byte{uint8(c)}), tag, st)

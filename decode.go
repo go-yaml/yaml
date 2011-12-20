@@ -417,14 +417,13 @@ func (d *decoder) mapping(n *node, out reflect.Value) (good bool) {
 	if out.Kind() != reflect.Map {
 		return false
 	}
-	if out.IsNil() {
-		out.Set(reflect.MakeMap(out.Type()))
-	}
-
 	outt := out.Type()
 	kt := outt.Key()
 	et := outt.Elem()
 
+	if out.IsNil() {
+		out.Set(reflect.MakeMap(outt))
+	}
 	l := len(n.children)
 	for i := 0; i < l; i += 2 {
 		k := reflect.New(kt).Elem()

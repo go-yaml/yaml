@@ -213,9 +213,9 @@ func newDecoder() *decoder {
 //
 // It's a slightly convoluted case to handle properly:
 //
-// - Nil pointers should be zeroed out, unless being set to nil
-// - We don't know at this point yet what's the value to SetYAML() with.
-// - We can't separate pointer deref/init and setter checking, because
+// - nil pointers should be initialized, unless being set to nil
+// - we don't know at this point yet what's the value to SetYAML() with.
+// - we can't separate pointer deref/init and setter checking, because
 //   a setter may be found while going down a pointer chain.
 //
 // Thus, here is how it takes care of it:
@@ -417,6 +417,10 @@ func (d *decoder) mapping(n *node, out reflect.Value) (good bool) {
 	if out.Kind() != reflect.Map {
 		return false
 	}
+	if out.IsNil() {
+		out.Set(reflect.MakeMap(out.Type()))
+	}
+
 	outt := out.Type()
 	kt := outt.Key()
 	et := outt.Elem()

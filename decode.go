@@ -360,8 +360,6 @@ func (d *decoder) scalar(n *node, out reflect.Value) (good bool) {
 			out.Set(reflect.Zero(out.Type()))
 			good = true
 		}
-	default:
-		panic("Can't handle type yet: " + out.Type().String())
 	}
 	return good
 }

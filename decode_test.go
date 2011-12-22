@@ -85,6 +85,7 @@ var unmarshalTests = []struct {
 	{"a: {b: c}", &struct{ A *struct{ B string } }{&struct{ B string }{"c"}}},
 	{"a: {b: c}", &struct{ A map[string]string }{map[string]string{"b": "c"}}},
 	{"a: {b: c}", &struct{ A *map[string]string }{&map[string]string{"b": "c"}}},
+	{"a:", &struct{ A map[string]string }{}},
 	{"a: 1", &struct{ A int }{1}},
 	{"a: [1, 2]", &struct{ A []int }{[]int{1, 2}}},
 	{"a: 1", &struct{ B int }{0}},

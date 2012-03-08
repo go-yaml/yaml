@@ -41,7 +41,7 @@ var unmarshalTests = []struct {
 	{"fixed: 685_230.15", map[string]interface{}{"fixed": 685230.15}},
 	//{"sexa: 190:20:30.15", map[string]interface{}{"sexa": 0}}, // Unsupported
 	{"neginf: -.inf", map[string]interface{}{"neginf": math.Inf(-1)}},
-	{"notanum: .NaN", map[string]interface{}{"notanum": math.NaN()}},
+	//{"notanum: .NaN", map[string]interface{}{"notanum": math.NaN()}}, // Equality of NaN fails.
 	{"fixed: 685_230.15", map[string]float64{"fixed": 685230.15}},
 
 	// Bools from spec
@@ -136,9 +136,16 @@ func (s *S) TestUnmarshal(c *C) {
 			value = pv.Interface()
 		}
 		err := goyaml.Unmarshal([]byte(item.data), value)
-		c.Assert(err, IsNil, Bug("Item #%d", i))
-		c.Assert(value, Equals, item.value)
+		c.Assert(err, IsNil, Commentf("Item #%d", i))
+		c.Assert(value, DeepEquals, item.value)
 	}
+}
+
+func (s *S) TestUnmarshalNaN(c *C) {
+	value := map[string]interface{}{}
+	err := goyaml.Unmarshal([]byte("notanum: .NaN"), &value)
+	c.Assert(err, IsNil)
+	c.Assert(math.IsNaN(value["notanum"].(float64)), Equals, true)
 }
 
 var unmarshalErrorTests = []struct {
@@ -155,7 +162,7 @@ func (s *S) TestUnmarshalErrors(c *C) {
 	for _, item := range unmarshalErrorTests {
 		var value interface{}
 		err := goyaml.Unmarshal([]byte(item.data), &value)
-		c.Assert(err, ErrorMatches, item.error, Bug("Partial unmarshal: %#v", value))
+		c.Assert(err, ErrorMatches, item.error, Commentf("Partial unmarshal: %#v", value))
 	}
 }
 
@@ -198,9 +205,9 @@ func (s *S) TestUnmarshalWithSetter(c *C) {
 		err := goyaml.Unmarshal([]byte(item.data), obj)
 		c.Assert(err, IsNil)
 		c.Assert(obj.Field, NotNil,
-			Bug("Pointer not initialized (%#v)", item.value))
+			Commentf("Pointer not initialized (%#v)", item.value))
 		c.Assert(obj.Field.tag, Equals, item.tag)
-		c.Assert(obj.Field.value, Equals, item.value)
+		c.Assert(obj.Field.value, DeepEquals, item.value)
 	}
 }
 
@@ -211,7 +218,7 @@ func (s *S) TestUnmarshalWholeDocumentWithSetter(c *C) {
 	c.Assert(obj.tag, Equals, setterTests[0].tag)
 	value, ok := obj.value.(map[interface{}]interface{})
 	c.Assert(ok, Equals, true)
-	c.Assert(value["_"], Equals, setterTests[0].value)
+	c.Assert(value["_"], DeepEquals, setterTests[0].value)
 }
 
 func (s *S) TestUnmarshalWithFalseSetterIgnoresValue(c *C) {

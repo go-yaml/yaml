@@ -375,11 +375,11 @@ func (d *decoder) sequence(n *node, out reflect.Value) (good bool) {
 	if set := d.setter("!!seq", &out, &good); set != nil {
 		defer set()
 	}
+	var iface reflect.Value
 	if out.Kind() == reflect.Interface {
 		// No type hints. Will have to use a generic sequence.
-		iface := out
+		iface = out
 		out = settableValueOf(make([]interface{}, 0))
-		iface.Set(out)
 	}
 
 	if out.Kind() != reflect.Slice {
@@ -393,6 +393,9 @@ func (d *decoder) sequence(n *node, out reflect.Value) (good bool) {
 		if ok := d.unmarshal(n.children[i], e); ok {
 			out.Set(reflect.Append(out, e))
 		}
+	}
+	if iface.IsValid() {
+		iface.Set(out)
 	}
 	return true
 }

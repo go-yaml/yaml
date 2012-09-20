@@ -1,10 +1,12 @@
 package goyaml_test
 
 import (
+	"fmt"
 	. "launchpad.net/gocheck"
 	"launchpad.net/goyaml"
 	"math"
-	//"reflect"
+	"strconv"
+	"strings"
 )
 
 var marshalIntTest = 123
@@ -170,4 +172,69 @@ func (s *S) TestUnmarshalWholeDocumentWithGetter(c *C) {
 	data, err := goyaml.Marshal(obj)
 	c.Assert(err, IsNil)
 	c.Assert(string(data), Equals, "hello: world!\n")
+}
+
+func (s *S) TestSortedOutput(c *C) {
+	order := []interface{}{
+		false,
+		true,
+		1,
+		uint(1),
+		1.0,
+		1.1,
+		1.2,
+		2,
+		uint(2),
+		2.0,
+		2.1,
+		"",
+		".1",
+		".2",
+		".a",
+		"1",
+		"2",
+		"a!10",
+		"a/2",
+		"a/10",
+		"a~10",
+		"ab/1",
+		"b/1",
+		"b/01",
+		"b/2",
+		"b/02",
+		"b/3",
+		"b/03",
+		"b1",
+		"b01",
+		"b3",
+		"c2.10",
+		"c10.2",
+		"d1",
+		"d12",
+		"d12a",
+	}
+	m := make(map[interface{}]int)
+	for _, k := range order {
+		m[k] = 1
+	}
+	data, err := goyaml.Marshal(m)
+	c.Assert(err, IsNil)
+	out := "\n" + string(data)
+	last := 0
+	for i, k := range order {
+		repr := fmt.Sprint(k)
+		if s, ok := k.(string); ok {
+			if _, err = strconv.ParseFloat(repr, 32); s == "" || err == nil {
+				repr = `"` + repr + `"`
+			}
+		}
+		index := strings.Index(out, "\n"+repr+":")
+		if index == -1 {
+			c.Fatalf("%#v is not in the output: %#v", k, out)
+		}
+		if index < last {
+			c.Fatalf("%#v was generated before %#v: %q", k, order[i-1], out)
+		}
+		last = index
+	}
 }

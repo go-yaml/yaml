@@ -5,6 +5,7 @@ import "C"
 
 import (
 	"reflect"
+	"sort"
 	"strconv"
 	"unsafe"
 )
@@ -126,7 +127,9 @@ func (e *encoder) marshal(tag string, in reflect.Value) {
 
 func (e *encoder) mapv(tag string, in reflect.Value) {
 	e.mappingv(tag, func() {
-		for _, k := range in.MapKeys() {
+		keys := keyList(in.MapKeys())
+		sort.Sort(keys)
+		for _, k := range keys {
 			e.marshal("", k)
 			e.marshal("", in.MapIndex(k))
 		}

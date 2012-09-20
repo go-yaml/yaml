@@ -5,6 +5,7 @@ import (
 	. "launchpad.net/gocheck"
 	"launchpad.net/goyaml"
 	"math"
+	"strconv"
 	"strings"
 )
 
@@ -175,13 +176,22 @@ func (s *S) TestUnmarshalWholeDocumentWithGetter(c *C) {
 
 func (s *S) TestSortedOutput(c *C) {
 	order := []interface{}{
+		false,
+		true,
 		1,
+		uint(1),
 		1.0,
 		1.1,
 		1.2,
 		2,
+		uint(2),
 		2.0,
 		2.1,
+		".1",
+		".2",
+		".a",
+		"1",
+		"2",
 		"a!10",
 		"a/2",
 		"a/10",
@@ -212,6 +222,11 @@ func (s *S) TestSortedOutput(c *C) {
 	last := 0
 	for i, k := range order {
 		repr := fmt.Sprint(k)
+		if _, ok := k.(string); ok {
+			if _, err = strconv.ParseFloat(repr, 32); err == nil {
+				repr = `"` + repr + `"`
+			}
+		}
 		index := strings.Index(out, "\n"+repr+":")
 		if index == -1 {
 			c.Fatalf("%#v is not in the output: %#v", k, out)

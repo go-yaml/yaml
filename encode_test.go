@@ -187,6 +187,7 @@ func (s *S) TestSortedOutput(c *C) {
 		uint(2),
 		2.0,
 		2.1,
+		"",
 		".1",
 		".2",
 		".a",
@@ -222,8 +223,8 @@ func (s *S) TestSortedOutput(c *C) {
 	last := 0
 	for i, k := range order {
 		repr := fmt.Sprint(k)
-		if _, ok := k.(string); ok {
-			if _, err = strconv.ParseFloat(repr, 32); err == nil {
+		if s, ok := k.(string); ok {
+			if _, err = strconv.ParseFloat(repr, 32); s == "" || err == nil {
 				repr = `"` + repr + `"`
 			}
 		}

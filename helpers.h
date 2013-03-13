@@ -1,8 +1,9 @@
 #ifndef helpers_h
 #define helpers_h
 
-#define CGO_LDFLAGS "-lm -lpthread"
-#define CGO_CFLAGS "-I. -DHAVE_CONFIG_H=1"
+#ifdef _WIN32
+#define strdup _strdup
+#endif
 
 #include <yaml.h>
 

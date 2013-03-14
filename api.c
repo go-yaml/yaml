@@ -1,6 +1,5 @@
 
 #include "yaml_private.h"
-#include "helpers.h"
 
 /*
  * Get the library version.

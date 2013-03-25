@@ -307,8 +307,10 @@ func (d *decoder) scalar(n *node, out reflect.Value) (good bool) {
 	}
 	switch out.Kind() {
 	case reflect.String:
-		out.SetString(n.value)
-		good = true
+		if resolved != nil {
+			out.SetString(n.value)
+			good = true
+		}
 	case reflect.Interface:
 		if resolved == nil {
 			out.Set(reflect.Zero(out.Type()))
@@ -359,6 +361,13 @@ func (d *decoder) scalar(n *node, out reflect.Value) (good bool) {
 		case nil:
 			out.Set(reflect.Zero(out.Type()))
 			good = true
+		default:
+			if out.Type().Elem() == reflect.TypeOf(resolved) {
+				elem := reflect.New(out.Type().Elem())
+				elem.Elem().Set(reflect.ValueOf(resolved))
+				out.Set(elem)
+				good = true
+			}
 		}
 	}
 	return good

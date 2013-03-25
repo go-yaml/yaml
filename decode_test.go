@@ -23,7 +23,6 @@ var unmarshalTests = []struct {
 	{"v: 10", map[string]interface{}{"v": 10}},
 	{"v: 0b10", map[string]interface{}{"v": 2}},
 	{"v: 0xA", map[string]interface{}{"v": 10}},
-	{"v: 4294967296", map[string]interface{}{"v": int(4294967296)}},
 	{"v: 4294967296", map[string]int64{"v": 4294967296}},
 	{"v: 0.1", map[string]interface{}{"v": 0.1}},
 	{"v: .1", map[string]interface{}{"v": 0.1}},

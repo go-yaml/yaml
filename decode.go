@@ -1,6 +1,7 @@
 package goyaml
 
 // #cgo LDFLAGS: -lm -lpthread
+// #cgo windows CFLAGS: -DYAML_DECLARE_STATIC=1 -Dstrdup=_strdup
 // #cgo CFLAGS: -I. -DHAVE_CONFIG_H=1
 //
 // #include "helpers.h"

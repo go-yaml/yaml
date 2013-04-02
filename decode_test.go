@@ -23,8 +23,7 @@ var unmarshalTests = []struct {
 	{"v: 10", map[string]interface{}{"v": 10}},
 	{"v: 0b10", map[string]interface{}{"v": 2}},
 	{"v: 0xA", map[string]interface{}{"v": 10}},
-	{"v: 4294967296", map[string]interface{}{"v": int64(4294967296)}},
-	{"v: 4294967296", map[string]int64{"v": int64(4294967296)}},
+	{"v: 4294967296", map[string]int64{"v": 4294967296}},
 	{"v: 0.1", map[string]interface{}{"v": 0.1}},
 	{"v: .1", map[string]interface{}{"v": 0.1}},
 	{"v: .Inf", map[string]interface{}{"v": math.Inf(+1)}},
@@ -122,6 +121,10 @@ var unmarshalTests = []struct {
 			}
 		}{struct{ C int }{1}, struct{ C int }{1}}},
 	{"a: &a [1, 2]\nb: *a", &struct{ B []int }{[]int{1, 2}}},
+
+	// BUG #1133337
+	{"foo: ''", map[string]*string{"foo": new(string)}},
+	{"foo: null", map[string]string{}},
 }
 
 func (s *S) TestUnmarshal(c *C) {

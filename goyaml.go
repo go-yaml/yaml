@@ -59,7 +59,7 @@ type Getter interface {
 // If an internal pointer within a struct is not initialized, goyaml
 // will initialize it if necessary for unmarshalling the provided data,
 // but the struct provided as out must not be a nil pointer.
-// 
+//
 // The type of the decoded values and the type of out will be considered,
 // and Unmarshal() will do the best possible job to unmarshal values
 // appropriately.  It is NOT considered an error, though, to skip values
@@ -83,7 +83,7 @@ type Getter interface {
 //     }
 //     var T t
 //     goyaml.Unmarshal([]byte("a: 1\nb: 2"), &t)
-// 
+//
 func Unmarshal(in []byte, out interface{}) (err error) {
 	defer handleErr(&err)
 	d := newDecoder()

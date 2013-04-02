@@ -7,7 +7,7 @@ import (
 
 type keyList []reflect.Value
 
-func (l keyList) Len() int { return len(l) }
+func (l keyList) Len() int      { return len(l) }
 func (l keyList) Swap(i, j int) { l[i], l[j] = l[j], l[i] }
 func (l keyList) Less(i, j int) bool {
 	a := l[i]

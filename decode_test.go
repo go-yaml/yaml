@@ -125,6 +125,13 @@ var unmarshalTests = []struct {
 	// BUG #1133337
 	{"foo: ''", map[string]*string{"foo": new(string)}},
 	{"foo: null", map[string]string{}},
+
+	// Ignored field
+	{"a: 1\nb: 2\n",
+		&struct {
+			A int
+			B int "-"
+		}{1, 0}},
 }
 
 func (s *S) TestUnmarshal(c *C) {

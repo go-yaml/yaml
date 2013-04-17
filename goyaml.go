@@ -187,6 +187,9 @@ func getStructFields(st reflect.Type) (*structFields, error) {
 		if tag == "" && strings.Index(string(field.Tag), ":") < 0 {
 			tag = string(field.Tag)
 		}
+		if tag == "-" {
+			continue
+		}
 
 		// XXX Drop this after a few releases.
 		if s := strings.Index(tag, "/"); s >= 0 {

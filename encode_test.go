@@ -104,6 +104,13 @@ var marshalTests = []struct {
 			u int
 			A int
 		}{0, 1}},
+
+	// Ignored field
+	{"a: 1\n",
+		&struct {
+			A int
+			B int "-"
+		}{1, 2}},
 }
 
 func (s *S) TestMarshal(c *C) {

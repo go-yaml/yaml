@@ -119,6 +119,8 @@ func Unmarshal(in []byte, out interface{}) (err error) {
 //     flow         Marshal using a flow style (useful for structs,
 //                  sequences and maps.
 //
+// In addition, if the key is "-", the field is ignored.
+//
 // For example:
 //
 //     type T struct {

@@ -1154,7 +1154,7 @@ yaml_emitter_check_simple_key(yaml_emitter_t *emitter)
             break;
 
         case YAML_MAPPING_START_EVENT:
-            if (!yaml_emitter_check_empty_sequence(emitter))
+            if (!yaml_emitter_check_empty_mapping(emitter))
                 return 0;
             length += emitter->anchor_data.anchor_length
                 + emitter->tag_data.handle_length

@@ -97,6 +97,13 @@ var marshalTests = []struct {
 				B string
 			} "a,flow"
 		}{struct{ B string }{"c"}}},
+
+	// Unexported field
+	{"a: 1\n",
+		&struct {
+			u int
+			A int
+		}{0, 1}},
 }
 
 func (s *S) TestMarshal(c *C) {
@@ -139,6 +146,22 @@ var getterTests = []struct {
 	{"_: !foo\n- A\n- B\n", "!foo", []string{"A", "B"}},
 	{"_: !foo\n  A: B\n", "!foo", map[string]string{"A": "B"}},
 	{"_: !foo\n  a: B\n", "!foo", &marshalTaggedIfaceTest},
+}
+
+func (s *S) TestMarshalTypeCache(c *C) {
+	var data []byte
+	var err error
+	func() {
+		type T struct{ A int }
+		data, err = goyaml.Marshal(&T{})
+		c.Assert(err, IsNil)
+	}()
+	func() {
+		type T struct{ B int }
+		data, err = goyaml.Marshal(&T{})
+		c.Assert(err, IsNil)
+	}()
+	c.Assert(string(data), Equals, "b: 0\n")
 }
 
 type typeWithGetter struct {

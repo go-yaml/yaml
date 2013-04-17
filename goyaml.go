@@ -129,7 +129,7 @@ func Unmarshal(in []byte, out interface{}) (err error) {
 //     goyaml.Marshal(&T{F: 1}} // Returns "a: 1\nb: 0\n"
 //
 func Marshal(in interface{}) (out []byte, err error) {
-	defer handleErr(&err)
+	//defer handleErr(&err)
 	e := newEncoder()
 	defer e.destroy()
 	e.marshal("", reflect.ValueOf(in))
@@ -155,7 +155,7 @@ type fieldInfo struct {
 	Flow      bool
 }
 
-var fieldMap = make(map[string]*structFields)
+var fieldMap = make(map[reflect.Type]*structFields)
 var fieldMapMutex sync.RWMutex
 
 type externalPanic string
@@ -165,12 +165,8 @@ func (e externalPanic) String() string {
 }
 
 func getStructFields(st reflect.Type) (*structFields, error) {
-	path := st.PkgPath()
-	name := st.Name()
-
-	fullName := path + "." + name
 	fieldMapMutex.RLock()
-	fields, found := fieldMap[fullName]
+	fields, found := fieldMap[st]
 	fieldMapMutex.RUnlock()
 	if found {
 		return fields, nil
@@ -243,12 +239,9 @@ func getStructFields(st reflect.Type) (*structFields, error) {
 
 	fields = &structFields{fieldsMap, fieldsList[:len(fieldsMap)]}
 
-	if fullName != "." {
-		fieldMapMutex.Lock()
-		fieldMap[fullName] = fields
-		fieldMapMutex.Unlock()
-	}
-
+	fieldMapMutex.Lock()
+	fieldMap[st] = fields
+	fieldMapMutex.Unlock()
 	return fields, nil
 }
 

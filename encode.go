@@ -142,8 +142,8 @@ func (e *encoder) structv(tag string, in reflect.Value) {
 		panic(err)
 	}
 	e.mappingv(tag, func() {
-		for i, info := range fields.List {
-			value := in.Field(i)
+		for _, info := range fields.List {
+			value := in.Field(info.Num)
 			if info.OmitEmpty && isZero(value) {
 				continue
 			}

@@ -98,6 +98,11 @@ func yaml_parser_initialize(parser *yaml_parser_t) bool {
 	return true
 }
 
+// Destroy a parser object.
+func yaml_parser_delete(parser *yaml_parser_t) {
+    *parser = yaml_parser_t{}
+}
+
 // String read handler.
 func yaml_string_read_handler(parser *yaml_parser_t, buffer []byte) (n int, err error) {
 	if parser.input_pos == len(parser.input) {
@@ -793,6 +798,11 @@ func yaml_parser_set_input_file(parser *yaml_parser_t, file *os.File) {
 //
 //    return 1;
 //}
+
+// Destroy an event object.
+func yaml_event_delete(event *yaml_event_t) {
+	*event = yaml_event_t{}
+}
 
 ///*
 // * Create a document object.

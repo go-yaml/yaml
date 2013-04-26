@@ -2,6 +2,7 @@ package goyaml
 
 import (
 	"bytes"
+	"fmt"
 )
 
 // Introduction
@@ -533,7 +534,7 @@ func read_line(parser *yaml_parser_t, s *[]byte) bool {
 		parser.buffer_pos += 2
 		parser.mark.index++
 		parser.unread--
-	case buf[pos] == '\r' || buf[pos+1] == '\n':
+	case buf[pos] == '\r' || buf[pos] == '\n':
 		// CR|LF . LF
 		*s = append(*s, '\n')
 		parser.buffer_pos += 1
@@ -546,7 +547,7 @@ func read_line(parser *yaml_parser_t, s *[]byte) bool {
 		*s = append(*s, buf[parser.buffer_pos:pos+3]...)
 		parser.buffer_pos += 3
 	default:
-		return false
+		return true
 	}
 	parser.mark.index++
 	parser.mark.column = 0
@@ -602,6 +603,13 @@ func yaml_parser_set_scanner_tag_error(parser *yaml_parser_t, directive bool, co
 	return yaml_parser_set_scanner_error(parser, context, context_mark, "did not find URI escaped octet")
 }
 
+func trace(args ...interface{}) func() {
+	pargs := append([]interface{}{"+++"}, args...)
+	fmt.Println(pargs...)
+	pargs = append([]interface{}{"---"}, args...)
+	return func() { fmt.Println(pargs...) }
+}
+
 // Ensure that the tokens queue contains at least one token which can be
 // returned to the Parser.
 func yaml_parser_fetch_more_tokens(parser *yaml_parser_t) bool {
@@ -619,7 +627,8 @@ func yaml_parser_fetch_more_tokens(parser *yaml_parser_t) bool {
 				return false
 			}
 
-			for _, simple_key := range parser.simple_keys {
+			for i := range parser.simple_keys {
+				simple_key := &parser.simple_keys[i]
 				if simple_key.possible && simple_key.token_number == parser.tokens_parsed {
 					need_more_tokens = true
 					break
@@ -643,7 +652,6 @@ func yaml_parser_fetch_more_tokens(parser *yaml_parser_t) bool {
 
 // The dispatcher for token fetchers.
 func yaml_parser_fetch_next_token(parser *yaml_parser_t) bool {
-
 	// Ensure that the buffer is initialized.
 	if !cache(parser, 1) {
 		return false
@@ -819,7 +827,8 @@ func yaml_parser_fetch_next_token(parser *yaml_parser_t) bool {
 // cannot contain simple keys anymore.
 func yaml_parser_stale_simple_keys(parser *yaml_parser_t) bool {
 	// Check for a potential simple key for each flow level.
-	for _, simple_key := range parser.simple_keys {
+	for i := range parser.simple_keys {
+		simple_key := &parser.simple_keys[i]
 
 		// The specification requires that a simple key
 		//
@@ -965,6 +974,7 @@ func yaml_parser_unroll_indent(parser *yaml_parser_t, column int) bool {
 
 // Initialize the scanner and produce the STREAM-START token.
 func yaml_parser_fetch_stream_start(parser *yaml_parser_t) bool {
+
 	// Set the initial indentation.
 	parser.indent = -1
 
@@ -990,6 +1000,7 @@ func yaml_parser_fetch_stream_start(parser *yaml_parser_t) bool {
 
 // Produce the STREAM-END token and shut down the scanner.
 func yaml_parser_fetch_stream_end(parser *yaml_parser_t) bool {
+
 	// Force new line.
 	if parser.mark.column != 0 {
 		parser.mark.column = 0
@@ -2177,7 +2188,7 @@ func yaml_parser_scan_block_scalar(parser *yaml_parser_t, token *yaml_token_t, l
 		trailing_blank = is_blank(parser.buffer, parser.buffer_pos)
 
 		// Check if we need to fold the leading line break.
-		if !literal && !leading_blank && !trailing_blank && leading_break[0] == '\n' {
+		if !literal && !leading_blank && !trailing_blank && len(leading_break) > 0 && leading_break[0] == '\n' {
 			// Do we need to join the lines by space?
 			if len(trailing_breaks) == 0 {
 				s = append(s, ' ')
@@ -2255,7 +2266,7 @@ func yaml_parser_scan_block_scalar_breaks(parser *yaml_parser_t, indent *int, br
 		if !cache(parser, 1) {
 			return false
 		}
-		for *indent == 0 || parser.mark.column < *indent && is_space(parser.buffer, parser.buffer_pos) {
+		for (*indent == 0 || parser.mark.column < *indent) && is_space(parser.buffer, parser.buffer_pos) {
 			skip(parser)
 			if !cache(parser, 1) {
 				return false
@@ -2569,6 +2580,7 @@ func yaml_parser_scan_flow_scalar(parser *yaml_parser_t, token *yaml_token_t, si
 
 // Scan a plain scalar.
 func yaml_parser_scan_plain_scalar(parser *yaml_parser_t, token *yaml_token_t) bool {
+
 	var s, leading_break, trailing_breaks, whitespaces []byte
 	var leading_blanks bool
 	var indent = parser.indent + 1

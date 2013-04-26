@@ -67,12 +67,27 @@ var unmarshalTests = []struct {
 	{"~: null key", map[interface{}]string{nil: "null key"}},
 	{"empty:", map[string]*bool{"empty": nil}},
 
-	// Sequence
+	// Flow sequence
 	{"seq: [A,B]", map[string]interface{}{"seq": []interface{}{"A", "B"}}},
-	{"seq: [A,B,C]", map[string][]string{"seq": []string{"A", "B", "C"}}},
+	{"seq: [A,B,C,]", map[string][]string{"seq": []string{"A", "B", "C"}}},
 	{"seq: [A,1,C]", map[string][]string{"seq": []string{"A", "1", "C"}}},
 	{"seq: [A,1,C]", map[string][]int{"seq": []int{1}}},
 	{"seq: [A,1,C]", map[string]interface{}{"seq": []interface{}{"A", 1, "C"}}},
+
+	// Block sequence
+	{"seq:\n - A\n - B", map[string]interface{}{"seq": []interface{}{"A", "B"}}},
+	{"seq:\n - A\n - B\n - C", map[string][]string{"seq": []string{"A", "B", "C"}}},
+	{"seq:\n - A\n - 1\n - C", map[string][]string{"seq": []string{"A", "1", "C"}}},
+	{"seq:\n - A\n - 1\n - C", map[string][]int{"seq": []int{1}}},
+	{"seq:\n - A\n - 1\n - C", map[string]interface{}{"seq": []interface{}{"A", 1, "C"}}},
+
+	// Literal block scalar
+	{"scalar: | # Comment\n\n literal\n\n \ttext\n\n",
+		map[string]string{"scalar": "\nliteral\n\n\ttext\n"}},
+
+	// Folded block scalar
+        {"scalar: > # Comment\n\n folded\n line\n \n next\n line\n  * one\n  * two\n\n last\n line\n\n",
+		map[string]string{"scalar": "\nfolded line\nnext line\n * one\n * two\n\nlast line\n"}},
 
 	// Map inside interface with no type hints.
 	{"a: {b: c}",

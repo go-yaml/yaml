@@ -91,6 +91,8 @@ func yaml_parser_set_parser_error_context(parser *yaml_parser_t, context string,
 
 // State dispatcher.
 func yaml_parser_state_machine(parser *yaml_parser_t, event *yaml_event_t) bool {
+	//trace("yaml_parser_state_machine", "state:", parser.state.String())
+
 	switch parser.state {
 	case yaml_PARSE_STREAM_START_STATE:
 		return yaml_parser_parse_stream_start(parser, event)
@@ -195,6 +197,7 @@ func yaml_parser_parse_stream_start(parser *yaml_parser_t, event *yaml_event_t) 
 // explicit_document    ::= DIRECTIVE* DOCUMENT-START block_node? DOCUMENT-END*
 //                          *************************
 func yaml_parser_parse_document_start(parser *yaml_parser_t, event *yaml_event_t, implicit bool) bool {
+
 	token := peek_token(parser)
 	if token == nil {
 		return false
@@ -212,10 +215,10 @@ func yaml_parser_parse_document_start(parser *yaml_parser_t, event *yaml_event_t
 	}
 
 	if implicit && token.typ != yaml_VERSION_DIRECTIVE_TOKEN &&
-		// Parse an implicit document.
 		token.typ != yaml_TAG_DIRECTIVE_TOKEN &&
 		token.typ != yaml_DOCUMENT_START_TOKEN &&
 		token.typ != yaml_STREAM_END_TOKEN {
+		// Parse an implicit document.
 		if !yaml_parser_process_directives(parser, nil, nil) {
 			return false
 		}
@@ -356,10 +359,13 @@ func yaml_parser_parse_document_end(parser *yaml_parser_t, event *yaml_event_t) 
 // flow_content         ::= flow_collection | SCALAR
 //                                            ******
 func yaml_parser_parse_node(parser *yaml_parser_t, event *yaml_event_t, block, indentless_sequence bool) bool {
+	//defer trace("yaml_parser_parse_node", "block:", block, "indentless_sequence:", indentless_sequence)()
+
 	token := peek_token(parser)
 	if token == nil {
 		return false
 	}
+
 	if token.typ == yaml_ALIAS_TOKEN {
 		parser.state = parser.states[len(parser.states)-1]
 		parser.states = parser.states[:len(parser.states)-1]
@@ -431,7 +437,7 @@ func yaml_parser_parse_node(parser *yaml_parser_t, event *yaml_event_t, block, i
 		} else {
 			for i := range parser.tag_directives {
 				if bytes.Equal(parser.tag_directives[i].handle, tag_handle) {
-					tag := append([]byte(nil), parser.tag_directives[i].prefix...)
+					tag = append([]byte(nil), parser.tag_directives[i].prefix...)
 					tag = append(tag, tag_suffix...)
 					break
 				}

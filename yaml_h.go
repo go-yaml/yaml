@@ -138,6 +138,56 @@ const (
 	yaml_SCALAR_TOKEN // A SCALAR token.
 )
 
+func (tt yaml_token_type_t) String() string {
+	switch tt {
+	case yaml_NO_TOKEN:
+		return "yaml_NO_TOKEN"
+	case yaml_STREAM_START_TOKEN:
+		return "yaml_STREAM_START_TOKEN"
+	case yaml_STREAM_END_TOKEN:
+		return "yaml_STREAM_END_TOKEN"
+	case yaml_VERSION_DIRECTIVE_TOKEN:
+		return "yaml_VERSION_DIRECTIVE_TOKEN"
+	case yaml_TAG_DIRECTIVE_TOKEN:
+		return "yaml_TAG_DIRECTIVE_TOKEN"
+	case yaml_DOCUMENT_START_TOKEN:
+		return "yaml_DOCUMENT_START_TOKEN"
+	case yaml_DOCUMENT_END_TOKEN:
+		return "yaml_DOCUMENT_END_TOKEN"
+	case yaml_BLOCK_SEQUENCE_START_TOKEN:
+		return "yaml_BLOCK_SEQUENCE_START_TOKEN"
+	case yaml_BLOCK_MAPPING_START_TOKEN:
+		return "yaml_BLOCK_MAPPING_START_TOKEN"
+	case yaml_BLOCK_END_TOKEN:
+		return "yaml_BLOCK_END_TOKEN"
+	case yaml_FLOW_SEQUENCE_START_TOKEN:
+		return "yaml_FLOW_SEQUENCE_START_TOKEN"
+	case yaml_FLOW_SEQUENCE_END_TOKEN:
+		return "yaml_FLOW_SEQUENCE_END_TOKEN"
+	case yaml_FLOW_MAPPING_START_TOKEN:
+		return "yaml_FLOW_MAPPING_START_TOKEN"
+	case yaml_FLOW_MAPPING_END_TOKEN:
+		return "yaml_FLOW_MAPPING_END_TOKEN"
+	case yaml_BLOCK_ENTRY_TOKEN:
+		return "yaml_BLOCK_ENTRY_TOKEN"
+	case yaml_FLOW_ENTRY_TOKEN:
+		return "yaml_FLOW_ENTRY_TOKEN"
+	case yaml_KEY_TOKEN:
+		return "yaml_KEY_TOKEN"
+	case yaml_VALUE_TOKEN:
+		return "yaml_VALUE_TOKEN"
+	case yaml_ALIAS_TOKEN:
+		return "yaml_ALIAS_TOKEN"
+	case yaml_ANCHOR_TOKEN:
+		return "yaml_ANCHOR_TOKEN"
+	case yaml_TAG_TOKEN:
+		return "yaml_TAG_TOKEN"
+	case yaml_SCALAR_TOKEN:
+		return "yaml_SCALAR_TOKEN"
+	}
+	return "<unknown token>"
+}
+
 // The token structure.
 type yaml_token_t struct {
 
@@ -553,157 +603,6 @@ type yaml_document_t struct {
 
 }
 
-///**
-// * Create a YAML document.
-// *
-// * @param[out]      document                An empty document object.
-// * @param[in]       version_directive       The %YAML directive value or
-// *                                          @c NULL.
-// * @param[in]       tag_directives_start    The beginning of the %TAG
-// *                                          directives list.
-// * @param[in]       tag_directives_end      The end of the %TAG directives
-// *                                          list.
-// * @param[in]       start_implicit          If the document start indicator is
-// *                                          implicit.
-// * @param[in]       end_implicit            If the document end indicator is
-// *                                          implicit.
-// *
-// * @returns @c 1 if the function succeeded, @c 0 on error.
-// */
-//
-//YAML_DECLARE(int)
-//yaml_document_initialize(yaml_document_t *document,
-//        yaml_version_directive_t *version_directive,
-//        yaml_tag_directive_t *tag_directives_start,
-//        yaml_tag_directive_t *tag_directives_end,
-//        int start_implicit, int end_implicit);
-//
-///**
-// * Delete a YAML document and all its nodes.
-// *
-// * @param[in,out]   document        A document object.
-// */
-//
-//YAML_DECLARE(void)
-//yaml_document_delete(yaml_document_t *document);
-//
-///**
-// * Get a node of a YAML document.
-// *
-// * The pointer returned by this function is valid until any of the functions
-// * modifying the documents are called.
-// *
-// * @param[in]       document        A document object.
-// * @param[in]       index           The node id.
-// *
-// * @returns the node objct or @c NULL if @c node_id is out of range.
-// */
-//
-//YAML_DECLARE(yaml_node_t *)
-//yaml_document_get_node(yaml_document_t *document, int index);
-//
-///**
-// * Get the root of a YAML document node.
-// *
-// * The root object is the first object added to the document.
-// *
-// * The pointer returned by this function is valid until any of the functions
-// * modifying the documents are called.
-// *
-// * An empty document produced by the parser signifies the end of a YAML
-// * stream.
-// *
-// * @param[in]       document        A document object.
-// *
-// * @returns the node object or @c NULL if the document is empty.
-// */
-//
-//YAML_DECLARE(yaml_node_t *)
-//yaml_document_get_root_node(yaml_document_t *document);
-//
-///**
-// * Create a SCALAR node and attach it to the document.
-// *
-// * The @a style argument may be ignored by the emitter.
-// *
-// * @param[in,out]   document        A document object.
-// * @param[in]       tag             The scalar tag.
-// * @param[in]       value           The scalar value.
-// * @param[in]       length          The length of the scalar value.
-// * @param[in]       style           The scalar style.
-// *
-// * @returns the node id or @c 0 on error.
-// */
-//
-//YAML_DECLARE(int)
-//yaml_document_add_scalar(yaml_document_t *document,
-//        yaml_char_t *tag, yaml_char_t *value, int length,
-//        yaml_scalar_style_t style);
-//
-///**
-// * Create a SEQUENCE node and attach it to the document.
-// *
-// * The @a style argument may be ignored by the emitter.
-// *
-// * @param[in,out]   document    A document object.
-// * @param[in]       tag         The sequence tag.
-// * @param[in]       style       The sequence style.
-// *
-// * @returns the node id or @c 0 on error.
-// */
-//
-//YAML_DECLARE(int)
-//yaml_document_add_sequence(yaml_document_t *document,
-//        yaml_char_t *tag, yaml_sequence_style_t style);
-//
-///**
-// * Create a MAPPING node and attach it to the document.
-// *
-// * The @a style argument may be ignored by the emitter.
-// *
-// * @param[in,out]   document    A document object.
-// * @param[in]       tag         The sequence tag.
-// * @param[in]       style       The sequence style.
-// *
-// * @returns the node id or @c 0 on error.
-// */
-//
-//YAML_DECLARE(int)
-//yaml_document_add_mapping(yaml_document_t *document,
-//        yaml_char_t *tag, yaml_mapping_style_t style);
-//
-///**
-// * Add an item to a SEQUENCE node.
-// *
-// * @param[in,out]   document    A document object.
-// * @param[in]       sequence    The sequence node id.
-// * @param[in]       item        The item node id.
-//*
-// * @returns @c 1 if the function succeeded, @c 0 on error.
-// */
-//
-//YAML_DECLARE(int)
-//yaml_document_append_sequence_item(yaml_document_t *document,
-//        int sequence, int item);
-//
-///**
-// * Add a pair of a key and a value to a MAPPING node.
-// *
-// * @param[in,out]   document    A document object.
-// * @param[in]       mapping     The mapping node id.
-// * @param[in]       key         The key node id.
-// * @param[in]       value       The value node id.
-//*
-// * @returns @c 1 if the function succeeded, @c 0 on error.
-// */
-//
-//YAML_DECLARE(int)
-//yaml_document_append_mapping_pair(yaml_document_t *document,
-//        int mapping, int key, int value);
-//
-
-// Parser Definitions
-
 // The prototype of a read handler.
 //
 // The read handler is called when the parser needs to read more bytes from the
@@ -759,6 +658,60 @@ const (
 	yaml_PARSE_FLOW_MAPPING_EMPTY_VALUE_STATE          // Expect an empty value of a flow mapping.
 	yaml_PARSE_END_STATE                               // Expect nothing.
 )
+
+func (ps yaml_parser_state_t) String() string {
+	switch ps {
+	case yaml_PARSE_STREAM_START_STATE:
+		return "yaml_PARSE_STREAM_START_STATE"
+	case yaml_PARSE_IMPLICIT_DOCUMENT_START_STATE:
+		return "yaml_PARSE_IMPLICIT_DOCUMENT_START_STATE"
+	case yaml_PARSE_DOCUMENT_START_STATE:
+		return "yaml_PARSE_DOCUMENT_START_STATE"
+	case yaml_PARSE_DOCUMENT_CONTENT_STATE:
+		return "yaml_PARSE_DOCUMENT_CONTENT_STATE"
+	case yaml_PARSE_DOCUMENT_END_STATE:
+		return "yaml_PARSE_DOCUMENT_END_STATE"
+	case yaml_PARSE_BLOCK_NODE_STATE:
+		return "yaml_PARSE_BLOCK_NODE_STATE"
+	case yaml_PARSE_BLOCK_NODE_OR_INDENTLESS_SEQUENCE_STATE:
+		return "yaml_PARSE_BLOCK_NODE_OR_INDENTLESS_SEQUENCE_STATE"
+	case yaml_PARSE_FLOW_NODE_STATE:
+		return "yaml_PARSE_FLOW_NODE_STATE"
+	case yaml_PARSE_BLOCK_SEQUENCE_FIRST_ENTRY_STATE:
+		return "yaml_PARSE_BLOCK_SEQUENCE_FIRST_ENTRY_STATE"
+	case yaml_PARSE_BLOCK_SEQUENCE_ENTRY_STATE:
+		return "yaml_PARSE_BLOCK_SEQUENCE_ENTRY_STATE"
+	case yaml_PARSE_INDENTLESS_SEQUENCE_ENTRY_STATE:
+		return "yaml_PARSE_INDENTLESS_SEQUENCE_ENTRY_STATE"
+	case yaml_PARSE_BLOCK_MAPPING_FIRST_KEY_STATE:
+		return "yaml_PARSE_BLOCK_MAPPING_FIRST_KEY_STATE"
+	case yaml_PARSE_BLOCK_MAPPING_KEY_STATE:
+		return "yaml_PARSE_BLOCK_MAPPING_KEY_STATE"
+	case yaml_PARSE_BLOCK_MAPPING_VALUE_STATE:
+		return "yaml_PARSE_BLOCK_MAPPING_VALUE_STATE"
+	case yaml_PARSE_FLOW_SEQUENCE_FIRST_ENTRY_STATE:
+		return "yaml_PARSE_FLOW_SEQUENCE_FIRST_ENTRY_STATE"
+	case yaml_PARSE_FLOW_SEQUENCE_ENTRY_STATE:
+		return "yaml_PARSE_FLOW_SEQUENCE_ENTRY_STATE"
+	case yaml_PARSE_FLOW_SEQUENCE_ENTRY_MAPPING_KEY_STATE:
+		return "yaml_PARSE_FLOW_SEQUENCE_ENTRY_MAPPING_KEY_STATE"
+	case yaml_PARSE_FLOW_SEQUENCE_ENTRY_MAPPING_VALUE_STATE:
+		return "yaml_PARSE_FLOW_SEQUENCE_ENTRY_MAPPING_VALUE_STATE"
+	case yaml_PARSE_FLOW_SEQUENCE_ENTRY_MAPPING_END_STATE:
+		return "yaml_PARSE_FLOW_SEQUENCE_ENTRY_MAPPING_END_STATE"
+	case yaml_PARSE_FLOW_MAPPING_FIRST_KEY_STATE:
+		return "yaml_PARSE_FLOW_MAPPING_FIRST_KEY_STATE"
+	case yaml_PARSE_FLOW_MAPPING_KEY_STATE:
+		return "yaml_PARSE_FLOW_MAPPING_KEY_STATE"
+	case yaml_PARSE_FLOW_MAPPING_VALUE_STATE:
+		return "yaml_PARSE_FLOW_MAPPING_VALUE_STATE"
+	case yaml_PARSE_FLOW_MAPPING_EMPTY_VALUE_STATE:
+		return "yaml_PARSE_FLOW_MAPPING_EMPTY_VALUE_STATE"
+	case yaml_PARSE_END_STATE:
+		return "yaml_PARSE_END_STATE"
+	}
+	return "<unknown parser state>"
+}
 
 // This structure holds aliases data.
 type yaml_alias_data_t struct {
@@ -843,157 +796,6 @@ type yaml_parser_t struct {
 	document *yaml_document_t // The currently parsed document.
 }
 
-//
-///**
-// * Initialize a parser.
-// *
-// * This function creates a new parser object.  An application is responsible
-// * for destroying the object using the yaml_parser_delete() function.
-// *
-// * @param[out]      parser  An empty parser object.
-// *
-// * @returns @c 1 if the function succeeded, @c 0 on error.
-// */
-//
-//YAML_DECLARE(int)
-//yaml_parser_initialize(yaml_parser_t *parser);
-//
-///**
-// * Destroy a parser.
-// *
-// * @param[in,out]   parser  A parser object.
-// */
-//
-//YAML_DECLARE(void)
-//yaml_parser_delete(yaml_parser_t *parser);
-//
-///**
-// * Set a string input.
-// *
-// * Note that the @a input pointer must be valid while the @a parser object
-// * exists.  The application is responsible for destroing @a input after
-// * destroying the @a parser.
-// *
-// * @param[in,out]   parser  A parser object.
-// * @param[in]       input   A source data.
-// * @param[in]       size    The length of the source data in bytes.
-// */
-//
-//YAML_DECLARE(void)
-//yaml_parser_set_input_string(yaml_parser_t *parser,
-//        unsigned char *input, int size);
-//
-///**
-// * Set a file input.
-// *
-// * @a file should be a file object open for reading.  The application is
-// * responsible for closing the @a file.
-// *
-// * @param[in,out]   parser  A parser object.
-// * @param[in]       file    An open file.
-// */
-//
-//YAML_DECLARE(void)
-//yaml_parser_set_input_file(yaml_parser_t *parser, FILE *file);
-//
-///**
-// * Set a generic input handler.
-// *
-// * @param[in,out]   parser  A parser object.
-// * @param[in]       handler A read handler.
-// * @param[in]       data    Any application data for passing to the read
-// *                          handler.
-// */
-//
-//YAML_DECLARE(void)
-//yaml_parser_set_input(yaml_parser_t *parser,
-//        yaml_read_handler_t *handler, void *data);
-//
-///**
-// * Set the source encoding.
-// *
-// * @param[in,out]   parser      A parser object.
-// * @param[in]       encoding    The source encoding.
-// */
-//
-//YAML_DECLARE(void)
-//yaml_parser_set_encoding(yaml_parser_t *parser, yaml_encoding_t encoding);
-//
-///**
-// * Scan the input stream and produce the next token.
-// *
-// * Call the function subsequently to produce a sequence of tokens corresponding
-// * to the input stream.  The initial token has the type
-// * yaml_STREAM_START_TOKEN while the ending token has the type
-// * yaml_STREAM_END_TOKEN.
-// *
-// * An application is responsible for freeing any buffers associated with the
-// * produced token object using the @c yaml_token_delete function.
-// *
-// * An application must not alternate the calls of yaml_parser_scan() with the
-// * calls of yaml_parser_parse() or yaml_parser_load(). Doing this will break
-// * the parser.
-// *
-// * @param[in,out]   parser      A parser object.
-// * @param[out]      token       An empty token object.
-// *
-// * @returns @c 1 if the function succeeded, @c 0 on error.
-// */
-//
-//YAML_DECLARE(int)
-//yaml_parser_scan(yaml_parser_t *parser, yaml_token_t *token);
-//
-///**
-// * Parse the input stream and produce the next parsing event.
-// *
-// * Call the function subsequently to produce a sequence of events corresponding
-// * to the input stream.  The initial event has the type
-// * yaml_STREAM_START_EVENT while the ending event has the type
-// * yaml_STREAM_END_EVENT.
-// *
-// * An application is responsible for freeing any buffers associated with the
-// * produced event object using the yaml_event_delete() function.
-// *
-// * An application must not alternate the calls of yaml_parser_parse() with the
-// * calls of yaml_parser_scan() or yaml_parser_load(). Doing this will break the
-// * parser.
-// *
-// * @param[in,out]   parser      A parser object.
-// * @param[out]      event       An empty event object.
-// *
-// * @returns @c 1 if the function succeeded, @c 0 on error.
-// */
-//
-//YAML_DECLARE(int)
-//yaml_parser_parse(yaml_parser_t *parser, yaml_event_t *event);
-//
-///**
-// * Parse the input stream and produce the next YAML document.
-// *
-// * Call this function subsequently to produce a sequence of documents
-// * constituting the input stream.
-// *
-// * If the produced document has no root node, it means that the document
-// * end has been reached.
-// *
-// * An application is responsible for freeing any data associated with the
-// * produced document object using the yaml_document_delete() function.
-// *
-// * An application must not alternate the calls of yaml_parser_load() with the
-// * calls of yaml_parser_scan() or yaml_parser_parse(). Doing this will break
-// * the parser.
-// *
-// * @param[in,out]   parser      A parser object.
-// * @param[out]      document    An empty document object.
-// *
-// * @return @c 1 if the function succeeded, @c 0 on error.
-// */
-//
-//YAML_DECLARE(int)
-//yaml_parser_load(yaml_parser_t *parser, yaml_document_t *document);
-//
-//// @}
-//
 ///**
 // * @defgroup emitter Emitter Definitions
 // * @{

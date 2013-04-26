@@ -5,70 +5,9 @@ import (
 	"os"
 )
 
-///*
-// * Extend a string.
-// */
-//
-//YAML_DECLARE(int)
-//yaml_string_extend(yaml_char_t **start,
-//        yaml_char_t **pointer, yaml_char_t **end)
-//{
-//    yaml_char_t *new_start = yaml_realloc(*start, (*end - *start)*2);
-//
-//    if (!new_start) return 0;
-//
-//    memset(new_start + (*end - *start), 0, *end - *start);
-//
-//    *pointer = new_start + (*pointer - *start);
-//    *end = new_start + (*end - *start)*2;
-//    *start = new_start;
-//
-//    return 1;
-//}
-//
-///*
-// * Append a string B to a string A.
-// */
-//
-//YAML_DECLARE(int)
-//yaml_string_join(
-//        yaml_char_t **a_start, yaml_char_t **a_pointer, yaml_char_t **a_end,
-//        yaml_char_t **b_start, yaml_char_t **b_pointer, yaml_char_t **b_end)
-//{
-//    if (*b_start == *b_pointer)
-//        return 1;
-//
-//    while (*a_end - *a_pointer <= *b_pointer - *b_start) {
-//        if (!yaml_string_extend(a_start, a_pointer, a_end))
-//            return 0;
-//    }
-//
-//    memcpy(*a_pointer, *b_start, *b_pointer - *b_start);
-//    *a_pointer += *b_pointer - *b_start;
-//
-//    return 1;
-//}
-//
-///*
-// * Extend a stack.
-// */
-//
-//YAML_DECLARE(int)
-//yaml_stack_extend(void **start, void **top, void **end)
-//{
-//    void *new_start = yaml_realloc(*start, ((char *)*end - (char *)*start)*2);
-//
-//    if (!new_start) return 0;
-//
-//    *top = (char *)new_start + ((char *)*top - (char *)*start);
-//    *end = (char *)new_start + ((char *)*end - (char *)*start)*2;
-//    *start = new_start;
-//
-//    return 1;
-//}
-
 func yaml_insert_token(parser *yaml_parser_t, pos int, token *yaml_token_t) {
 	//fmt.Println("yaml_insert_token", "pos:", pos, "typ:", token.typ, "head:", parser.tokens_head, "len:", len(parser.tokens))
+
 	// Check if we can move the queue at the beginning of the buffer.
 	if parser.tokens_head > 0 && len(parser.tokens) == cap(parser.tokens) {
 		if parser.tokens_head != len(parser.tokens) {
@@ -87,21 +26,23 @@ func yaml_insert_token(parser *yaml_parser_t, pos int, token *yaml_token_t) {
 
 // Create a new parser object.
 func yaml_parser_initialize(parser *yaml_parser_t) bool {
-	// [Go] These should be initialized lazily, and probably start with smaller sizes.
-	parser.raw_buffer = make([]byte, 0, input_raw_buffer_size)
-	parser.buffer = make([]byte, 0, input_buffer_size)
-	parser.tokens = make([]yaml_token_t, 0, initial_queue_size)
-	parser.indents = make([]int, 0, initial_stack_size)
-	parser.simple_keys = make([]yaml_simple_key_t, 0, initial_stack_size)
-	parser.states = make([]yaml_parser_state_t, 0, initial_stack_size)
-	parser.marks = make([]yaml_mark_t, 0, initial_stack_size)
-	parser.tag_directives = make([]yaml_tag_directive_t, 0, initial_stack_size)
+	// [Go] These should be initialized lazily instead.
+	*parser = yaml_parser_t{
+		raw_buffer:     make([]byte, 0, input_raw_buffer_size),
+		buffer:         make([]byte, 0, input_buffer_size),
+		tokens:         make([]yaml_token_t, 0, initial_queue_size),
+		indents:        make([]int, 0, initial_stack_size),
+		simple_keys:    make([]yaml_simple_key_t, 0, initial_stack_size),
+		states:         make([]yaml_parser_state_t, 0, initial_stack_size),
+		marks:          make([]yaml_mark_t, 0, initial_stack_size),
+		tag_directives: make([]yaml_tag_directive_t, 0, initial_stack_size),
+	}
 	return true
 }
 
 // Destroy a parser object.
 func yaml_parser_delete(parser *yaml_parser_t) {
-    *parser = yaml_parser_t{}
+	*parser = yaml_parser_t{}
 }
 
 // String read handler.
@@ -138,248 +79,102 @@ func yaml_parser_set_input_file(parser *yaml_parser_t, file *os.File) {
 	parser.input_file = file
 }
 
-///*
-// * Set the source encoding.
-// */
-//
-//YAML_DECLARE(void)
-//yaml_parser_set_encoding(yaml_parser_t *parser, yaml_encoding_t encoding)
-//{
-//    assert(parser); // Non-NULL parser object expected.
-//    assert(!parser.encoding); // Encoding is already set or detected.
-//
-//    parser.encoding = encoding;
-//}
-//
-///*
-// * Create a new emitter object.
-// */
-//
-//YAML_DECLARE(int)
-//yaml_emitter_initialize(yaml_emitter_t *emitter)
-//{
-//    assert(emitter);    // Non-NULL emitter object expected.
-//
-//    memset(emitter, 0, sizeof(yaml_emitter_t));
-//    if (!BUFFER_INIT(emitter, emitter.buffer, OUTPUT_BUFFER_SIZE))
-//        goto error;
-//    if (!BUFFER_INIT(emitter, emitter.raw_buffer, OUTPUT_RAW_BUFFER_SIZE))
-//        goto error;
-//    if (!STACK_INIT(emitter, emitter.states, INITIAL_STACK_SIZE))
-//        goto error;
-//    if (!QUEUE_INIT(emitter, emitter.events, INITIAL_QUEUE_SIZE))
-//        goto error;
-//    if (!STACK_INIT(emitter, emitter.indents, INITIAL_STACK_SIZE))
-//        goto error;
-//    if (!STACK_INIT(emitter, emitter.tag_directives, INITIAL_STACK_SIZE))
-//        goto error;
-//
-//    return 1;
-//
-//error:
-//
-//    BUFFER_DEL(emitter, emitter.buffer);
-//    BUFFER_DEL(emitter, emitter.raw_buffer);
-//    STACK_DEL(emitter, emitter.states);
-//    QUEUE_DEL(emitter, emitter.events);
-//    STACK_DEL(emitter, emitter.indents);
-//    STACK_DEL(emitter, emitter.tag_directives);
-//
-//    return 0;
-//}
-//
-///*
-// * Destroy an emitter object.
-// */
-//
-//YAML_DECLARE(void)
-//yaml_emitter_delete(yaml_emitter_t *emitter)
-//{
-//    assert(emitter);    // Non-NULL emitter object expected.
-//
-//    BUFFER_DEL(emitter, emitter.buffer);
-//    BUFFER_DEL(emitter, emitter.raw_buffer);
-//    STACK_DEL(emitter, emitter.states);
-//    while (!QUEUE_EMPTY(emitter, emitter.events)) {
-//        yaml_event_delete(&DEQUEUE(emitter, emitter.events));
-//    }
-//    QUEUE_DEL(emitter, emitter.events);
-//    STACK_DEL(emitter, emitter.indents);
-//    while (!STACK_EMPTY(empty, emitter.tag_directives)) {
-//        yaml_tag_directive_t tag_directive = POP(emitter, emitter.tag_directives);
-//        yaml_free(tag_directive.handle);
-//        yaml_free(tag_directive.prefix);
-//    }
-//    STACK_DEL(emitter, emitter.tag_directives);
-//    yaml_free(emitter.anchors);
-//
-//    memset(emitter, 0, sizeof(yaml_emitter_t));
-//}
-//
-///*
-// * String write handler.
-// */
-//
-//static int
-//yaml_string_write_handler(void *data, unsigned char *buffer, size_t size)
-//{
-//    yaml_emitter_t *emitter = data;
-//
-//    if (emitter.output.string.size + *emitter.output.string.size_written
-//            < size) {
-//        memcpy(emitter.output.string.buffer
-//                + *emitter.output.string.size_written,
-//                buffer,
-//                emitter.output.string.size
-//                - *emitter.output.string.size_written);
-//        *emitter.output.string.size_written = emitter.output.string.size;
-//        return 0;
-//    }
-//
-//    memcpy(emitter.output.string.buffer
-//            + *emitter.output.string.size_written, buffer, size);
-//    *emitter.output.string.size_written += size;
-//    return 1;
-//}
-//
-///*
-// * File write handler.
-// */
-//
-//static int
-//yaml_file_write_handler(void *data, unsigned char *buffer, size_t size)
-//{
-//    yaml_emitter_t *emitter = data;
-//
-//    return (fwrite(buffer, 1, size, emitter.output.file) == size);
-//}
-///*
-// * Set a string output.
-// */
-//
-//YAML_DECLARE(void)
-//yaml_emitter_set_output_string(yaml_emitter_t *emitter,
-//        unsigned char *output, size_t size, size_t *size_written)
-//{
-//    assert(emitter);    // Non-NULL emitter object expected.
-//    assert(!emitter.write_handler);    // You can set the output only once.
-//    assert(output);     // Non-NULL output string expected.
-//
-//    emitter.write_handler = yaml_string_write_handler;
-//    emitter.write_handler_data = emitter;
-//
-//    emitter.output.string.buffer = output;
-//    emitter.output.string.size = size;
-//    emitter.output.string.size_written = size_written;
-//    *size_written = 0;
-//}
-//
-///*
-// * Set a file output.
-// */
-//
-//YAML_DECLARE(void)
-//yaml_emitter_set_output_file(yaml_emitter_t *emitter, FILE *file)
-//{
-//    assert(emitter);    // Non-NULL emitter object expected.
-//    assert(!emitter.write_handler);    // You can set the output only once.
-//    assert(file);       // Non-NULL file object expected.
-//
-//    emitter.write_handler = yaml_file_write_handler;
-//    emitter.write_handler_data = emitter;
-//
-//    emitter.output.file = file;
-//}
-//
-///*
-// * Set a generic output handler.
-// */
-//
-//YAML_DECLARE(void)
-//yaml_emitter_set_output(yaml_emitter_t *emitter,
-//        yaml_write_handler_t *handler, void *data)
-//{
-//    assert(emitter);    // Non-NULL emitter object expected.
-//    assert(!emitter.write_handler);    // You can set the output only once.
-//    assert(handler);    // Non-NULL handler object expected.
-//
-//    emitter.write_handler = handler;
-//    emitter.write_handler_data = data;
-//}
-//
-///*
-// * Set the output encoding.
-// */
-//
-//YAML_DECLARE(void)
-//yaml_emitter_set_encoding(yaml_emitter_t *emitter, yaml_encoding_t encoding)
-//{
-//    assert(emitter);    // Non-NULL emitter object expected.
-//    assert(!emitter.encoding);     // You can set encoding only once.
-//
-//    emitter.encoding = encoding;
-//}
-//
-///*
-// * Set the canonical output style.
-// */
-//
-//YAML_DECLARE(void)
-//yaml_emitter_set_canonical(yaml_emitter_t *emitter, int canonical)
-//{
-//    assert(emitter);    // Non-NULL emitter object expected.
-//
-//    emitter.canonical = (canonical != 0);
-//}
-//
-///*
-// * Set the indentation increment.
-// */
-//
-//YAML_DECLARE(void)
-//yaml_emitter_set_indent(yaml_emitter_t *emitter, int indent)
-//{
-//    assert(emitter);    // Non-NULL emitter object expected.
-//
-//    emitter.best_indent = (1 < indent && indent < 10) ? indent : 2;
-//}
-//
-///*
-// * Set the preferred line width.
-// */
-//
-//YAML_DECLARE(void)
-//yaml_emitter_set_width(yaml_emitter_t *emitter, int width)
-//{
-//    assert(emitter);    // Non-NULL emitter object expected.
-//
-//    emitter.best_width = (width >= 0) ? width : -1;
-//}
-//
-///*
-// * Set if unescaped non-ASCII characters are allowed.
-// */
-//
-//YAML_DECLARE(void)
-//yaml_emitter_set_unicode(yaml_emitter_t *emitter, int unicode)
-//{
-//    assert(emitter);    // Non-NULL emitter object expected.
-//
-//    emitter.unicode = (unicode != 0);
-//}
-//
-///*
-// * Set the preferred line break character.
-// */
-//
-//YAML_DECLARE(void)
-//yaml_emitter_set_break(yaml_emitter_t *emitter, yaml_break_t line_break)
-//{
-//    assert(emitter);    // Non-NULL emitter object expected.
-//
-//    emitter.line_break = line_break;
-//}
-//
+// Set the source encoding.
+func yaml_parser_set_encoding(parser *yaml_parser_t, encoding yaml_encoding_t) {
+	if parser.encoding != yaml_ANY_ENCODING {
+		panic("must set the encoding only once")
+	}
+	parser.encoding = encoding
+}
+
+// Create a new emitter object.
+func yaml_emitter_initialize(emitter *yaml_emitter_t) bool {
+	// [Go] These should be initialized lazily instead.
+	*emitter = yaml_emitter_t{
+		buffer:         make([]byte, 0, output_buffer_size),
+		raw_buffer:     make([]byte, 0, output_raw_buffer_size),
+		states:         make([]yaml_emitter_state_t, 0, initial_stack_size),
+		events:         make([]yaml_event_t, 0, initial_queue_size),
+		indents:        make([]int, 0, initial_stack_size),
+		tag_directives: make([]yaml_tag_directive_t, 0, initial_stack_size),
+	}
+	return true
+}
+
+// Destroy an emitter object.
+func yaml_emitter_delete(emitter *yaml_emitter_t) {
+	*emitter = yaml_emitter_t{}
+}
+
+// String write handler.
+func yaml_string_write_handler(emitter *yaml_emitter_t, buffer []byte) error {
+	*emitter.output_buffer = append(*emitter.output_buffer, buffer...)
+	return nil
+}
+
+// File write handler.
+func yaml_file_write_handler(emitter *yaml_emitter_t, buffer []byte) error {
+	_, err := emitter.output_file.Write(buffer)
+	return err
+}
+
+// Set a string output.
+func yaml_emitter_set_output_string(emitter *yaml_emitter_t, output_buffer *[]byte) {
+	if emitter.write_handler != nil {
+		panic("must set the output target only once")
+	}
+	emitter.write_handler = yaml_string_write_handler
+	emitter.output_buffer = output_buffer
+}
+
+// Set a file output.
+func yaml_emitter_set_output_file(emitter *yaml_emitter_t, file io.Writer) {
+	if emitter.write_handler != nil {
+		panic("must set the output target only once")
+	}
+	emitter.write_handler = yaml_file_write_handler
+	emitter.output_file = file
+}
+
+// Set the output encoding.
+func yaml_emitter_set_encoding(emitter *yaml_emitter_t, encoding yaml_encoding_t) {
+	if emitter.encoding != yaml_ANY_ENCODING {
+		panic("must set the output encoding only once")
+	}
+	emitter.encoding = encoding
+}
+
+// Set the canonical output style.
+func yaml_emitter_set_canonical(emitter *yaml_emitter_t, canonical bool) {
+	emitter.canonical = canonical
+}
+
+//// Set the indentation increment.
+func yaml_emitter_set_indent(emitter *yaml_emitter_t, indent int) {
+	if indent < 2 || indent > 9 {
+		indent = 2
+	}
+	emitter.best_indent = indent
+}
+
+// Set the preferred line width.
+func yaml_emitter_set_width(emitter *yaml_emitter_t, width int) {
+	if width < 0 {
+		width = -1
+	}
+	emitter.best_width = width
+}
+
+// Set if unescaped non-ASCII characters are allowed.
+func yaml_emitter_set_unicode(emitter *yaml_emitter_t, unicode bool) {
+	emitter.unicode = unicode
+}
+
+// Set the preferred line break character.
+func yaml_emitter_set_break(emitter *yaml_emitter_t, line_break yaml_break_t) {
+	emitter.line_break = line_break
+}
+
 ///*
 // * Destroy a token object.
 // */
@@ -465,340 +260,175 @@ func yaml_parser_set_input_file(parser *yaml_parser_t, file *os.File) {
 //    return 1;
 //}
 //
-///*
-// * Create STREAM-START.
-// */
-//
-//YAML_DECLARE(int)
-//yaml_stream_start_event_initialize(yaml_event_t *event,
-//        yaml_encoding_t encoding)
-//{
-//    yaml_mark_t mark = { 0, 0, 0 };
-//
-//    assert(event);  // Non-NULL event object is expected.
-//
-//    STREAM_START_EVENT_INIT(*event, encoding, mark, mark);
-		//*event = yaml_event_t{
-		//	typ:        yaml_STREAM_START_EVENT,
-		//	start_mark: mark,
-		//	end_mark:   mark,
-		//}
-		//event.stream_start.encoding = encoding
-//
-//    return 1;
-//}
-//
-///*
-// * Create STREAM-END.
-// */
-//
-//YAML_DECLARE(int)
-//yaml_stream_end_event_initialize(yaml_event_t *event)
-//{
-//    yaml_mark_t mark = { 0, 0, 0 };
-//
-//    assert(event);  // Non-NULL event object is expected.
-//
-//    STREAM_END_EVENT_INIT(*event, mark, mark);
-	//*event = yaml_event_t{
-	//	typ: yaml_STREAM_END_EVENT,
-	//	start_mark: mark,
-	//	end_mark: mark,
-	//}
-//
-//    return 1;
-//}
-//
-///*
-// * Create DOCUMENT-START.
-// */
-//
-//YAML_DECLARE(int)
-//yaml_document_start_event_initialize(yaml_event_t *event,
-//        yaml_version_directive_t *version_directive,
-//        yaml_tag_directive_t *tag_directives_start,
-//        yaml_tag_directive_t *tag_directives_end,
-//        int implicit)
-//{
-//    struct {
-//        yaml_error_type_t error;
-//    } context;
-//    yaml_mark_t mark = { 0, 0, 0 };
-//    yaml_version_directive_t *version_directive_copy = NULL;
-//    struct {
-//        yaml_tag_directive_t *start;
-//        yaml_tag_directive_t *end;
-//        yaml_tag_directive_t *top;
-//    } tag_directives_copy = { NULL, NULL, NULL };
-//    yaml_tag_directive_t value = { NULL, NULL };
-//
-//    assert(event);          // Non-NULL event object is expected.
-//    assert((tag_directives_start && tag_directives_end) ||
-//            (tag_directives_start == tag_directives_end));
-//                            // Valid tag directives are expected.
-//
-//    if (version_directive) {
-//        version_directive_copy = yaml_malloc(sizeof(yaml_version_directive_t));
-//        if (!version_directive_copy) goto error;
-//        version_directive_copy.major = version_directive.major;
-//        version_directive_copy.minor = version_directive.minor;
-//    }
-//
-//    if (tag_directives_start != tag_directives_end) {
-//        yaml_tag_directive_t *tag_directive;
-//        if (!STACK_INIT(&context, tag_directives_copy, INITIAL_STACK_SIZE))
-//            goto error;
-//        for (tag_directive = tag_directives_start;
-//                tag_directive != tag_directives_end; tag_directive ++) {
-//            assert(tag_directive.handle);
-//            assert(tag_directive.prefix);
-//            if (!yaml_check_utf8(tag_directive.handle,
-//                        strlen((char *)tag_directive.handle)))
-//                goto error;
-//            if (!yaml_check_utf8(tag_directive.prefix,
-//                        strlen((char *)tag_directive.prefix)))
-//                goto error;
-//            value.handle = yaml_strdup(tag_directive.handle);
-//            value.prefix = yaml_strdup(tag_directive.prefix);
-//            if (!value.handle || !value.prefix) goto error;
-//            if (!PUSH(&context, tag_directives_copy, value))
-//                goto error;
-//            value.handle = NULL;
-//            value.prefix = NULL;
-//        }
-//    }
-//
-//    DOCUMENT_START_EVENT_INIT(*event, version_directive_copy,
-//            tag_directives_copy.start, tag_directives_copy.top,
-//            implicit, mark, mark);
-	//*event = yaml_event_t{
-	//	typ: yaml_DOCUMENT_START_EVENT,
-	//	start_mark: mark,
-	//	end_mark: mark,
-	//}
-	//event.document_start.version_directive = version_directive_copy
-	//event.document_start.tag_directives = tag_directives
-	//event.document_start.implicit = implicit
-//
-//    return 1;
-//
-//error:
-//    yaml_free(version_directive_copy);
-//    while (!STACK_EMPTY(context, tag_directives_copy)) {
-//        yaml_tag_directive_t value = POP(context, tag_directives_copy);
-//        yaml_free(value.handle);
-//        yaml_free(value.prefix);
-//    }
-//    STACK_DEL(context, tag_directives_copy);
-//    yaml_free(value.handle);
-//    yaml_free(value.prefix);
-//
-//    return 0;
-//}
-//
-///*
-// * Create DOCUMENT-END.
-// */
-//
-//YAML_DECLARE(int)
-//yaml_document_end_event_initialize(yaml_event_t *event, int implicit)
-//{
-//    yaml_mark_t mark = { 0, 0, 0 };
-//
-//    assert(event);      // Non-NULL emitter object is expected.
-//
-//    DOCUMENT_END_EVENT_INIT(*event, implicit, mark, mark);
-//
-//    return 1;
-//}
-//
+
+// Create STREAM-START.
+func yaml_stream_start_event_initialize(event *yaml_event_t, encoding yaml_encoding_t) bool {
+	*event = yaml_event_t{
+		typ: yaml_STREAM_START_EVENT,
+	}
+	event.stream_start.encoding = encoding
+	return true
+}
+
+// Create STREAM-END.
+func yaml_stream_end_event_initialize(event *yaml_event_t) bool {
+	*event = yaml_event_t{
+		typ: yaml_STREAM_END_EVENT,
+	}
+	return true
+}
+
+// Create DOCUMENT-START.
+func yaml_document_start_event_initialize(event *yaml_event_t, version_directive *yaml_version_directive_t,
+	tag_directives []yaml_tag_directive_t, implicit bool) bool {
+
+	// [Go] It doesn't sound necessary to perform these copies
+	// given that with garbage collection ownership is handled.
+	var version_directive_copy *yaml_version_directive_t
+	var tag_directives_copy []yaml_tag_directive_t
+	if version_directive != nil {
+		copy := *version_directive
+		version_directive_copy = &copy
+	}
+	if len(tag_directives) > 0 {
+		tag_directives_copy = append([]yaml_tag_directive_t(nil), tag_directives...)
+	}
+
+	*event = yaml_event_t{
+		typ: yaml_DOCUMENT_START_EVENT,
+	}
+	event.document_start.version_directive = version_directive_copy
+	event.document_start.tag_directives = tag_directives_copy
+	event.document_start.implicit = implicit
+	return true
+}
+
+// Create DOCUMENT-END.
+func yaml_document_end_event_initialize(event *yaml_event_t, implicit bool) bool {
+	*event = yaml_event_t{
+		typ: yaml_DOCUMENT_END_EVENT,
+	}
+	event.document_end.implicit = implicit
+	return true
+}
+
 ///*
 // * Create ALIAS.
 // */
 //
 //YAML_DECLARE(int)
-//yaml_alias_event_initialize(yaml_event_t *event, yaml_char_t *anchor)
+//yaml_alias_event_initialize(event *yaml_event_t, anchor *yaml_char_t)
 //{
-//    yaml_mark_t mark = { 0, 0, 0 };
-//    yaml_char_t *anchor_copy = NULL;
+//    mark yaml_mark_t = { 0, 0, 0 }
+//    anchor_copy *yaml_char_t = NULL
 //
-//    assert(event);      // Non-NULL event object is expected.
-//    assert(anchor);     // Non-NULL anchor is expected.
+//    assert(event) // Non-NULL event object is expected.
+//    assert(anchor) // Non-NULL anchor is expected.
 //
-//    if (!yaml_check_utf8(anchor, strlen((char *)anchor))) return 0;
+//    if (!yaml_check_utf8(anchor, strlen((char *)anchor))) return 0
 //
-//    anchor_copy = yaml_strdup(anchor);
+//    anchor_copy = yaml_strdup(anchor)
 //    if (!anchor_copy)
-//        return 0;
+//        return 0
 //
-//    ALIAS_EVENT_INIT(*event, anchor_copy, mark, mark);
+//    ALIAS_EVENT_INIT(*event, anchor_copy, mark, mark)
 //
-//    return 1;
+//    return 1
 //}
-//
-///*
-// * Create SCALAR.
-// */
-//
-//YAML_DECLARE(int)
-//yaml_scalar_event_initialize(yaml_event_t *event,
-//        yaml_char_t *anchor, yaml_char_t *tag,
-//        yaml_char_t *value, int length,
-//        int plain_implicit, int quoted_implicit,
-//        yaml_scalar_style_t style)
-//{
-//    yaml_mark_t mark = { 0, 0, 0 };
-//    yaml_char_t *anchor_copy = NULL;
-//    yaml_char_t *tag_copy = NULL;
-//    yaml_char_t *value_copy = NULL;
-//
-//    assert(event);      // Non-NULL event object is expected.
-//    assert(value);      // Non-NULL anchor is expected.
-//
-//    if (anchor) {
-//        if (!yaml_check_utf8(anchor, strlen((char *)anchor))) goto error;
-//        anchor_copy = yaml_strdup(anchor);
-//        if (!anchor_copy) goto error;
-//    }
-//
-//    if (tag) {
-//        if (!yaml_check_utf8(tag, strlen((char *)tag))) goto error;
-//        tag_copy = yaml_strdup(tag);
-//        if (!tag_copy) goto error;
-//    }
-//
-//    if (length < 0) {
-//        length = strlen((char *)value);
-//    }
-//
-//    if (!yaml_check_utf8(value, length)) goto error;
-//    value_copy = yaml_malloc(length+1);
-//    if (!value_copy) goto error;
-//    memcpy(value_copy, value, length);
-//    value_copy[length] = '\0';
-//
-//    SCALAR_EVENT_INIT(*event, anchor_copy, tag_copy, value_copy, length,
-//            plain_implicit, quoted_implicit, style, mark, mark);
-//
-//    return 1;
-//
-//error:
-//    yaml_free(anchor_copy);
-//    yaml_free(tag_copy);
-//    yaml_free(value_copy);
-//
-//    return 0;
-//}
-//
-///*
-// * Create SEQUENCE-START.
-// */
-//
-//YAML_DECLARE(int)
-//yaml_sequence_start_event_initialize(yaml_event_t *event,
-//        yaml_char_t *anchor, yaml_char_t *tag, int implicit,
-//        yaml_sequence_style_t style)
-//{
-//    yaml_mark_t mark = { 0, 0, 0 };
-//    yaml_char_t *anchor_copy = NULL;
-//    yaml_char_t *tag_copy = NULL;
-//
-//    assert(event);      // Non-NULL event object is expected.
-//
-//    if (anchor) {
-//        if (!yaml_check_utf8(anchor, strlen((char *)anchor))) goto error;
-//        anchor_copy = yaml_strdup(anchor);
-//        if (!anchor_copy) goto error;
-//    }
-//
-//    if (tag) {
-//        if (!yaml_check_utf8(tag, strlen((char *)tag))) goto error;
-//        tag_copy = yaml_strdup(tag);
-//        if (!tag_copy) goto error;
-//    }
-//
-//    SEQUENCE_START_EVENT_INIT(*event, anchor_copy, tag_copy,
-//            implicit, style, mark, mark);
-//
-//    return 1;
-//
-//error:
-//    yaml_free(anchor_copy);
-//    yaml_free(tag_copy);
-//
-//    return 0;
-//}
-//
-///*
-// * Create SEQUENCE-END.
-// */
-//
-//YAML_DECLARE(int)
-//yaml_sequence_end_event_initialize(yaml_event_t *event)
-//{
-//    yaml_mark_t mark = { 0, 0, 0 };
-//
-//    assert(event);      // Non-NULL event object is expected.
-//
-//    SEQUENCE_END_EVENT_INIT(*event, mark, mark);
-//
-//    return 1;
-//}
-//
-///*
-// * Create MAPPING-START.
-// */
-//
-//YAML_DECLARE(int)
-//yaml_mapping_start_event_initialize(yaml_event_t *event,
-//        yaml_char_t *anchor, yaml_char_t *tag, int implicit,
-//        yaml_mapping_style_t style)
-//{
-//    yaml_mark_t mark = { 0, 0, 0 };
-//    yaml_char_t *anchor_copy = NULL;
-//    yaml_char_t *tag_copy = NULL;
-//
-//    assert(event);      // Non-NULL event object is expected.
-//
-//    if (anchor) {
-//        if (!yaml_check_utf8(anchor, strlen((char *)anchor))) goto error;
-//        anchor_copy = yaml_strdup(anchor);
-//        if (!anchor_copy) goto error;
-//    }
-//
-//    if (tag) {
-//        if (!yaml_check_utf8(tag, strlen((char *)tag))) goto error;
-//        tag_copy = yaml_strdup(tag);
-//        if (!tag_copy) goto error;
-//    }
-//
-//    MAPPING_START_EVENT_INIT(*event, anchor_copy, tag_copy,
-//            implicit, style, mark, mark);
-//
-//    return 1;
-//
-//error:
-//    yaml_free(anchor_copy);
-//    yaml_free(tag_copy);
-//
-//    return 0;
-//}
-//
-///*
-// * Create MAPPING-END.
-// */
-//
-//YAML_DECLARE(int)
-//yaml_mapping_end_event_initialize(yaml_event_t *event)
-//{
-//    yaml_mark_t mark = { 0, 0, 0 };
-//
-//    assert(event);      // Non-NULL event object is expected.
-//
-//    MAPPING_END_EVENT_INIT(*event, mark, mark);
-//
-//    return 1;
-//}
+
+// Create SCALAR.
+func yaml_scalar_event_initialize(event *yaml_event_t, anchor, tag, value []byte,
+	plain_implicit, quoted_implicit bool, style yaml_scalar_style_t) bool {
+	var anchor_copy, tag_copy, value_copy []byte
+
+	// [Go] These copies are probably not necessary in Go, where
+	// ownership of data is more flexible due to garbage collection.
+	if len(anchor) > 0 {
+		//if !yaml_check_utf8(anchor) { return false }
+		anchor_copy = append([]byte(nil), anchor...)
+	}
+	if len(tag) > 0 {
+		//if !yaml_check_utf8(tag) { return false }
+		tag_copy = append([]byte(nil), tag...)
+	}
+	//if !yaml_check_utf8(value) { return false }
+	value_copy = append([]byte(nil), value...)
+
+	*event = yaml_event_t{
+		typ: yaml_SCALAR_EVENT,
+	}
+	event.scalar.anchor = anchor_copy
+	event.scalar.tag = tag_copy
+	event.scalar.value = value_copy
+	event.scalar.plain_implicit = plain_implicit
+	event.scalar.quoted_implicit = quoted_implicit
+	event.scalar.style = style
+	return true
+}
+
+// Create SEQUENCE-START.
+func yaml_sequence_start_event_initialize(event *yaml_event_t, anchor, tag []byte, implicit bool, style yaml_sequence_style_t) bool {
+	// [Go] These copies are probably not necessary in Go, where
+	// ownership of data is more flexible due to garbage collection.
+	var anchor_copy, tag_copy []byte
+	if len(anchor) > 0 {
+		//if !yaml_check_utf8(anchor) { return false }
+		anchor_copy = append([]byte(nil), anchor...)
+	}
+	if len(tag) > 0 {
+		//if !yaml_check_utf8(tag) { return false }
+		tag_copy = append([]byte(nil), tag...)
+	}
+
+	*event = yaml_event_t{
+		typ: yaml_SEQUENCE_START_EVENT,
+	}
+	event.sequence_start.anchor = anchor_copy
+	event.sequence_start.tag = tag_copy
+	event.sequence_start.implicit = implicit
+	event.sequence_start.style = style
+	return true
+}
+
+// Create SEQUENCE-END.
+func yaml_sequence_end_event_initialize(event *yaml_event_t) bool {
+	*event = yaml_event_t{
+		typ: yaml_SEQUENCE_END_EVENT,
+	}
+	return true
+}
+
+// Create MAPPING-START.
+func yaml_mapping_start_event_initialize(event *yaml_event_t, anchor, tag []byte, implicit bool, style yaml_mapping_style_t) bool {
+	// [Go] These copies are probably not necessary in Go, where
+	// ownership of data is more flexible due to garbage collection.
+	var anchor_copy, tag_copy []byte
+	if len(anchor) > 0 {
+		//if !yaml_check_utf8(anchor) { return false }
+		anchor_copy = append([]byte(nil), anchor...)
+	}
+	if len(tag) > 0 {
+		//if !yaml_check_utf8(tag) { return false }
+		tag_copy = append([]byte(nil), tag...)
+	}
+
+	*event = yaml_event_t{
+		typ: yaml_MAPPING_START_EVENT,
+	}
+	event.mapping_start.anchor = anchor_copy
+	event.mapping_start.tag = tag_copy
+	event.mapping_start.implicit = implicit
+	event.mapping_start.style = style
+	return true
+}
+
+// Create MAPPING-END.
+func yaml_mapping_end_event_initialize(event *yaml_event_t) bool {
+	*event = yaml_event_t{
+		typ: yaml_MAPPING_END_EVENT,
+	}
+	return true
+}
 
 // Destroy an event object.
 func yaml_event_delete(event *yaml_event_t) {
@@ -810,86 +440,86 @@ func yaml_event_delete(event *yaml_event_t) {
 // */
 //
 //YAML_DECLARE(int)
-//yaml_document_initialize(yaml_document_t *document,
-//        yaml_version_directive_t *version_directive,
-//        yaml_tag_directive_t *tag_directives_start,
-//        yaml_tag_directive_t *tag_directives_end,
-//        int start_implicit, int end_implicit)
+//yaml_document_initialize(document *yaml_document_t,
+//        version_directive *yaml_version_directive_t,
+//        tag_directives_start *yaml_tag_directive_t,
+//        tag_directives_end *yaml_tag_directive_t,
+//        start_implicit int, end_implicit int)
 //{
 //    struct {
-//        yaml_error_type_t error;
-//    } context;
+//        error yaml_error_type_t
+//    } context
 //    struct {
-//        yaml_node_t *start;
-//        yaml_node_t *end;
-//        yaml_node_t *top;
-//    } nodes = { NULL, NULL, NULL };
-//    yaml_version_directive_t *version_directive_copy = NULL;
+//        start *yaml_node_t
+//        end *yaml_node_t
+//        top *yaml_node_t
+//    } nodes = { NULL, NULL, NULL }
+//    version_directive_copy *yaml_version_directive_t = NULL
 //    struct {
-//        yaml_tag_directive_t *start;
-//        yaml_tag_directive_t *end;
-//        yaml_tag_directive_t *top;
-//    } tag_directives_copy = { NULL, NULL, NULL };
-//    yaml_tag_directive_t value = { NULL, NULL };
-//    yaml_mark_t mark = { 0, 0, 0 };
+//        start *yaml_tag_directive_t
+//        end *yaml_tag_directive_t
+//        top *yaml_tag_directive_t
+//    } tag_directives_copy = { NULL, NULL, NULL }
+//    value yaml_tag_directive_t = { NULL, NULL }
+//    mark yaml_mark_t = { 0, 0, 0 }
 //
-//    assert(document);       // Non-NULL document object is expected.
+//    assert(document) // Non-NULL document object is expected.
 //    assert((tag_directives_start && tag_directives_end) ||
-//            (tag_directives_start == tag_directives_end));
+//            (tag_directives_start == tag_directives_end))
 //                            // Valid tag directives are expected.
 //
-//    if (!STACK_INIT(&context, nodes, INITIAL_STACK_SIZE)) goto error;
+//    if (!STACK_INIT(&context, nodes, INITIAL_STACK_SIZE)) goto error
 //
 //    if (version_directive) {
-//        version_directive_copy = yaml_malloc(sizeof(yaml_version_directive_t));
-//        if (!version_directive_copy) goto error;
-//        version_directive_copy.major = version_directive.major;
-//        version_directive_copy.minor = version_directive.minor;
+//        version_directive_copy = yaml_malloc(sizeof(yaml_version_directive_t))
+//        if (!version_directive_copy) goto error
+//        version_directive_copy.major = version_directive.major
+//        version_directive_copy.minor = version_directive.minor
 //    }
 //
 //    if (tag_directives_start != tag_directives_end) {
-//        yaml_tag_directive_t *tag_directive;
+//        tag_directive *yaml_tag_directive_t
 //        if (!STACK_INIT(&context, tag_directives_copy, INITIAL_STACK_SIZE))
-//            goto error;
-//        for (tag_directive = tag_directives_start;
+//            goto error
+//        for (tag_directive = tag_directives_start
 //                tag_directive != tag_directives_end; tag_directive ++) {
-//            assert(tag_directive.handle);
-//            assert(tag_directive.prefix);
+//            assert(tag_directive.handle)
+//            assert(tag_directive.prefix)
 //            if (!yaml_check_utf8(tag_directive.handle,
 //                        strlen((char *)tag_directive.handle)))
-//                goto error;
+//                goto error
 //            if (!yaml_check_utf8(tag_directive.prefix,
 //                        strlen((char *)tag_directive.prefix)))
-//                goto error;
-//            value.handle = yaml_strdup(tag_directive.handle);
-//            value.prefix = yaml_strdup(tag_directive.prefix);
-//            if (!value.handle || !value.prefix) goto error;
+//                goto error
+//            value.handle = yaml_strdup(tag_directive.handle)
+//            value.prefix = yaml_strdup(tag_directive.prefix)
+//            if (!value.handle || !value.prefix) goto error
 //            if (!PUSH(&context, tag_directives_copy, value))
-//                goto error;
-//            value.handle = NULL;
-//            value.prefix = NULL;
+//                goto error
+//            value.handle = NULL
+//            value.prefix = NULL
 //        }
 //    }
 //
 //    DOCUMENT_INIT(*document, nodes.start, nodes.end, version_directive_copy,
 //            tag_directives_copy.start, tag_directives_copy.top,
-//            start_implicit, end_implicit, mark, mark);
+//            start_implicit, end_implicit, mark, mark)
 //
-//    return 1;
+//    return 1
 //
 //error:
-//    STACK_DEL(&context, nodes);
-//    yaml_free(version_directive_copy);
+//    STACK_DEL(&context, nodes)
+//    yaml_free(version_directive_copy)
 //    while (!STACK_EMPTY(&context, tag_directives_copy)) {
-//        yaml_tag_directive_t value = POP(&context, tag_directives_copy);
-//        yaml_free(value.handle);
-//        yaml_free(value.prefix);
+//        value yaml_tag_directive_t = POP(&context, tag_directives_copy)
+//        yaml_free(value.handle)
+//        yaml_free(value.prefix)
 //    }
-//    STACK_DEL(&context, tag_directives_copy);
-//    yaml_free(value.handle);
-//    yaml_free(value.prefix);
+//    STACK_DEL(&context, tag_directives_copy)
+//    yaml_free(value.handle)
+//    yaml_free(value.prefix)
 //
-//    return 0;
+//    return 0
 //}
 //
 ///*
@@ -897,46 +527,46 @@ func yaml_event_delete(event *yaml_event_t) {
 // */
 //
 //YAML_DECLARE(void)
-//yaml_document_delete(yaml_document_t *document)
+//yaml_document_delete(document *yaml_document_t)
 //{
 //    struct {
-//        yaml_error_type_t error;
-//    } context;
-//    yaml_tag_directive_t *tag_directive;
+//        error yaml_error_type_t
+//    } context
+//    tag_directive *yaml_tag_directive_t
 //
-//    context.error = YAML_NO_ERROR;  // Eliminate a compliler warning.
+//    context.error = YAML_NO_ERROR // Eliminate a compliler warning.
 //
-//    assert(document);   // Non-NULL document object is expected.
+//    assert(document) // Non-NULL document object is expected.
 //
 //    while (!STACK_EMPTY(&context, document.nodes)) {
-//        yaml_node_t node = POP(&context, document.nodes);
-//        yaml_free(node.tag);
+//        node yaml_node_t = POP(&context, document.nodes)
+//        yaml_free(node.tag)
 //        switch (node.type) {
 //            case YAML_SCALAR_NODE:
-//                yaml_free(node.data.scalar.value);
-//                break;
+//                yaml_free(node.data.scalar.value)
+//                break
 //            case YAML_SEQUENCE_NODE:
-//                STACK_DEL(&context, node.data.sequence.items);
-//                break;
+//                STACK_DEL(&context, node.data.sequence.items)
+//                break
 //            case YAML_MAPPING_NODE:
-//                STACK_DEL(&context, node.data.mapping.pairs);
-//                break;
+//                STACK_DEL(&context, node.data.mapping.pairs)
+//                break
 //            default:
-//                assert(0);  // Should not happen.
+//                assert(0) // Should not happen.
 //        }
 //    }
-//    STACK_DEL(&context, document.nodes);
+//    STACK_DEL(&context, document.nodes)
 //
-//    yaml_free(document.version_directive);
-//    for (tag_directive = document.tag_directives.start;
-//            tag_directive != document.tag_directives.end;
+//    yaml_free(document.version_directive)
+//    for (tag_directive = document.tag_directives.start
+//            tag_directive != document.tag_directives.end
 //            tag_directive++) {
-//        yaml_free(tag_directive.handle);
-//        yaml_free(tag_directive.prefix);
+//        yaml_free(tag_directive.handle)
+//        yaml_free(tag_directive.prefix)
 //    }
-//    yaml_free(document.tag_directives.start);
+//    yaml_free(document.tag_directives.start)
 //
-//    memset(document, 0, sizeof(yaml_document_t));
+//    memset(document, 0, sizeof(yaml_document_t))
 //}
 //
 ///**
@@ -944,14 +574,14 @@ func yaml_event_delete(event *yaml_event_t) {
 // */
 //
 //YAML_DECLARE(yaml_node_t *)
-//yaml_document_get_node(yaml_document_t *document, int index)
+//yaml_document_get_node(document *yaml_document_t, index int)
 //{
-//    assert(document);   // Non-NULL document object is expected.
+//    assert(document) // Non-NULL document object is expected.
 //
 //    if (index > 0 && document.nodes.start + index <= document.nodes.top) {
-//        return document.nodes.start + index - 1;
+//        return document.nodes.start + index - 1
 //    }
-//    return NULL;
+//    return NULL
 //}
 //
 ///**
@@ -959,14 +589,14 @@ func yaml_event_delete(event *yaml_event_t) {
 // */
 //
 //YAML_DECLARE(yaml_node_t *)
-//yaml_document_get_root_node(yaml_document_t *document)
+//yaml_document_get_root_node(document *yaml_document_t)
 //{
-//    assert(document);   // Non-NULL document object is expected.
+//    assert(document) // Non-NULL document object is expected.
 //
 //    if (document.nodes.top != document.nodes.start) {
-//        return document.nodes.start;
+//        return document.nodes.start
 //    }
-//    return NULL;
+//    return NULL
 //}
 //
 ///*
@@ -974,49 +604,49 @@ func yaml_event_delete(event *yaml_event_t) {
 // */
 //
 //YAML_DECLARE(int)
-//yaml_document_add_scalar(yaml_document_t *document,
-//        yaml_char_t *tag, yaml_char_t *value, int length,
-//        yaml_scalar_style_t style)
+//yaml_document_add_scalar(document *yaml_document_t,
+//        tag *yaml_char_t, value *yaml_char_t, length int,
+//        style yaml_scalar_style_t)
 //{
 //    struct {
-//        yaml_error_type_t error;
-//    } context;
-//    yaml_mark_t mark = { 0, 0, 0 };
-//    yaml_char_t *tag_copy = NULL;
-//    yaml_char_t *value_copy = NULL;
-//    yaml_node_t node;
+//        error yaml_error_type_t
+//    } context
+//    mark yaml_mark_t = { 0, 0, 0 }
+//    tag_copy *yaml_char_t = NULL
+//    value_copy *yaml_char_t = NULL
+//    node yaml_node_t
 //
-//    assert(document);   // Non-NULL document object is expected.
-//    assert(value);      // Non-NULL value is expected.
+//    assert(document) // Non-NULL document object is expected.
+//    assert(value) // Non-NULL value is expected.
 //
 //    if (!tag) {
-//        tag = (yaml_char_t *)YAML_DEFAULT_SCALAR_TAG;
+//        tag = (yaml_char_t *)YAML_DEFAULT_SCALAR_TAG
 //    }
 //
-//    if (!yaml_check_utf8(tag, strlen((char *)tag))) goto error;
-//    tag_copy = yaml_strdup(tag);
-//    if (!tag_copy) goto error;
+//    if (!yaml_check_utf8(tag, strlen((char *)tag))) goto error
+//    tag_copy = yaml_strdup(tag)
+//    if (!tag_copy) goto error
 //
 //    if (length < 0) {
-//        length = strlen((char *)value);
+//        length = strlen((char *)value)
 //    }
 //
-//    if (!yaml_check_utf8(value, length)) goto error;
-//    value_copy = yaml_malloc(length+1);
-//    if (!value_copy) goto error;
-//    memcpy(value_copy, value, length);
-//    value_copy[length] = '\0';
+//    if (!yaml_check_utf8(value, length)) goto error
+//    value_copy = yaml_malloc(length+1)
+//    if (!value_copy) goto error
+//    memcpy(value_copy, value, length)
+//    value_copy[length] = '\0'
 //
-//    SCALAR_NODE_INIT(node, tag_copy, value_copy, length, style, mark, mark);
-//    if (!PUSH(&context, document.nodes, node)) goto error;
+//    SCALAR_NODE_INIT(node, tag_copy, value_copy, length, style, mark, mark)
+//    if (!PUSH(&context, document.nodes, node)) goto error
 //
-//    return document.nodes.top - document.nodes.start;
+//    return document.nodes.top - document.nodes.start
 //
 //error:
-//    yaml_free(tag_copy);
-//    yaml_free(value_copy);
+//    yaml_free(tag_copy)
+//    yaml_free(value_copy)
 //
-//    return 0;
+//    return 0
 //}
 //
 ///*
@@ -1024,44 +654,44 @@ func yaml_event_delete(event *yaml_event_t) {
 // */
 //
 //YAML_DECLARE(int)
-//yaml_document_add_sequence(yaml_document_t *document,
-//        yaml_char_t *tag, yaml_sequence_style_t style)
+//yaml_document_add_sequence(document *yaml_document_t,
+//        tag *yaml_char_t, style yaml_sequence_style_t)
 //{
 //    struct {
-//        yaml_error_type_t error;
-//    } context;
-//    yaml_mark_t mark = { 0, 0, 0 };
-//    yaml_char_t *tag_copy = NULL;
+//        error yaml_error_type_t
+//    } context
+//    mark yaml_mark_t = { 0, 0, 0 }
+//    tag_copy *yaml_char_t = NULL
 //    struct {
-//        yaml_node_item_t *start;
-//        yaml_node_item_t *end;
-//        yaml_node_item_t *top;
-//    } items = { NULL, NULL, NULL };
-//    yaml_node_t node;
+//        start *yaml_node_item_t
+//        end *yaml_node_item_t
+//        top *yaml_node_item_t
+//    } items = { NULL, NULL, NULL }
+//    node yaml_node_t
 //
-//    assert(document);   // Non-NULL document object is expected.
+//    assert(document) // Non-NULL document object is expected.
 //
 //    if (!tag) {
-//        tag = (yaml_char_t *)YAML_DEFAULT_SEQUENCE_TAG;
+//        tag = (yaml_char_t *)YAML_DEFAULT_SEQUENCE_TAG
 //    }
 //
-//    if (!yaml_check_utf8(tag, strlen((char *)tag))) goto error;
-//    tag_copy = yaml_strdup(tag);
-//    if (!tag_copy) goto error;
+//    if (!yaml_check_utf8(tag, strlen((char *)tag))) goto error
+//    tag_copy = yaml_strdup(tag)
+//    if (!tag_copy) goto error
 //
-//    if (!STACK_INIT(&context, items, INITIAL_STACK_SIZE)) goto error;
+//    if (!STACK_INIT(&context, items, INITIAL_STACK_SIZE)) goto error
 //
 //    SEQUENCE_NODE_INIT(node, tag_copy, items.start, items.end,
-//            style, mark, mark);
-//    if (!PUSH(&context, document.nodes, node)) goto error;
+//            style, mark, mark)
+//    if (!PUSH(&context, document.nodes, node)) goto error
 //
-//    return document.nodes.top - document.nodes.start;
+//    return document.nodes.top - document.nodes.start
 //
 //error:
-//    STACK_DEL(&context, items);
-//    yaml_free(tag_copy);
+//    STACK_DEL(&context, items)
+//    yaml_free(tag_copy)
 //
-//    return 0;
+//    return 0
 //}
 //
 ///*
@@ -1069,44 +699,44 @@ func yaml_event_delete(event *yaml_event_t) {
 // */
 //
 //YAML_DECLARE(int)
-//yaml_document_add_mapping(yaml_document_t *document,
-//        yaml_char_t *tag, yaml_mapping_style_t style)
+//yaml_document_add_mapping(document *yaml_document_t,
+//        tag *yaml_char_t, style yaml_mapping_style_t)
 //{
 //    struct {
-//        yaml_error_type_t error;
-//    } context;
-//    yaml_mark_t mark = { 0, 0, 0 };
-//    yaml_char_t *tag_copy = NULL;
+//        error yaml_error_type_t
+//    } context
+//    mark yaml_mark_t = { 0, 0, 0 }
+//    tag_copy *yaml_char_t = NULL
 //    struct {
-//        yaml_node_pair_t *start;
-//        yaml_node_pair_t *end;
-//        yaml_node_pair_t *top;
-//    } pairs = { NULL, NULL, NULL };
-//    yaml_node_t node;
+//        start *yaml_node_pair_t
+//        end *yaml_node_pair_t
+//        top *yaml_node_pair_t
+//    } pairs = { NULL, NULL, NULL }
+//    node yaml_node_t
 //
-//    assert(document);   // Non-NULL document object is expected.
+//    assert(document) // Non-NULL document object is expected.
 //
 //    if (!tag) {
-//        tag = (yaml_char_t *)YAML_DEFAULT_MAPPING_TAG;
+//        tag = (yaml_char_t *)YAML_DEFAULT_MAPPING_TAG
 //    }
 //
-//    if (!yaml_check_utf8(tag, strlen((char *)tag))) goto error;
-//    tag_copy = yaml_strdup(tag);
-//    if (!tag_copy) goto error;
+//    if (!yaml_check_utf8(tag, strlen((char *)tag))) goto error
+//    tag_copy = yaml_strdup(tag)
+//    if (!tag_copy) goto error
 //
-//    if (!STACK_INIT(&context, pairs, INITIAL_STACK_SIZE)) goto error;
+//    if (!STACK_INIT(&context, pairs, INITIAL_STACK_SIZE)) goto error
 //
 //    MAPPING_NODE_INIT(node, tag_copy, pairs.start, pairs.end,
-//            style, mark, mark);
-//    if (!PUSH(&context, document.nodes, node)) goto error;
+//            style, mark, mark)
+//    if (!PUSH(&context, document.nodes, node)) goto error
 //
-//    return document.nodes.top - document.nodes.start;
+//    return document.nodes.top - document.nodes.start
 //
 //error:
-//    STACK_DEL(&context, pairs);
-//    yaml_free(tag_copy);
+//    STACK_DEL(&context, pairs)
+//    yaml_free(tag_copy)
 //
-//    return 0;
+//    return 0
 //}
 //
 ///*
@@ -1114,27 +744,27 @@ func yaml_event_delete(event *yaml_event_t) {
 // */
 //
 //YAML_DECLARE(int)
-//yaml_document_append_sequence_item(yaml_document_t *document,
-//        int sequence, int item)
+//yaml_document_append_sequence_item(document *yaml_document_t,
+//        sequence int, item int)
 //{
 //    struct {
-//        yaml_error_type_t error;
-//    } context;
+//        error yaml_error_type_t
+//    } context
 //
-//    assert(document);       // Non-NULL document is required.
+//    assert(document) // Non-NULL document is required.
 //    assert(sequence > 0
-//            && document.nodes.start + sequence <= document.nodes.top);
+//            && document.nodes.start + sequence <= document.nodes.top)
 //                            // Valid sequence id is required.
-//    assert(document.nodes.start[sequence-1].type == YAML_SEQUENCE_NODE);
+//    assert(document.nodes.start[sequence-1].type == YAML_SEQUENCE_NODE)
 //                            // A sequence node is required.
-//    assert(item > 0 && document.nodes.start + item <= document.nodes.top);
+//    assert(item > 0 && document.nodes.start + item <= document.nodes.top)
 //                            // Valid item id is required.
 //
 //    if (!PUSH(&context,
 //                document.nodes.start[sequence-1].data.sequence.items, item))
-//        return 0;
+//        return 0
 //
-//    return 1;
+//    return 1
 //}
 //
 ///*
@@ -1142,34 +772,34 @@ func yaml_event_delete(event *yaml_event_t) {
 // */
 //
 //YAML_DECLARE(int)
-//yaml_document_append_mapping_pair(yaml_document_t *document,
-//        int mapping, int key, int value)
+//yaml_document_append_mapping_pair(document *yaml_document_t,
+//        mapping int, key int, value int)
 //{
 //    struct {
-//        yaml_error_type_t error;
-//    } context;
+//        error yaml_error_type_t
+//    } context
 //
-//    yaml_node_pair_t pair;
+//    pair yaml_node_pair_t
 //
-//    assert(document);       // Non-NULL document is required.
+//    assert(document) // Non-NULL document is required.
 //    assert(mapping > 0
-//            && document.nodes.start + mapping <= document.nodes.top);
+//            && document.nodes.start + mapping <= document.nodes.top)
 //                            // Valid mapping id is required.
-//    assert(document.nodes.start[mapping-1].type == YAML_MAPPING_NODE);
+//    assert(document.nodes.start[mapping-1].type == YAML_MAPPING_NODE)
 //                            // A mapping node is required.
-//    assert(key > 0 && document.nodes.start + key <= document.nodes.top);
+//    assert(key > 0 && document.nodes.start + key <= document.nodes.top)
 //                            // Valid key id is required.
-//    assert(value > 0 && document.nodes.start + value <= document.nodes.top);
+//    assert(value > 0 && document.nodes.start + value <= document.nodes.top)
 //                            // Valid value id is required.
 //
-//    pair.key = key;
-//    pair.value = value;
+//    pair.key = key
+//    pair.value = value
 //
 //    if (!PUSH(&context,
 //                document.nodes.start[mapping-1].data.mapping.pairs, pair))
-//        return 0;
+//        return 0
 //
-//    return 1;
+//    return 1
 //}
 //
 //

@@ -26,16 +26,15 @@ func yaml_insert_token(parser *yaml_parser_t, pos int, token *yaml_token_t) {
 
 // Create a new parser object.
 func yaml_parser_initialize(parser *yaml_parser_t) bool {
-	// [Go] These should be initialized lazily instead.
 	*parser = yaml_parser_t{
 		raw_buffer:     make([]byte, 0, input_raw_buffer_size),
 		buffer:         make([]byte, 0, input_buffer_size),
-		tokens:         make([]yaml_token_t, 0, initial_queue_size),
-		indents:        make([]int, 0, initial_stack_size),
-		simple_keys:    make([]yaml_simple_key_t, 0, initial_stack_size),
-		states:         make([]yaml_parser_state_t, 0, initial_stack_size),
-		marks:          make([]yaml_mark_t, 0, initial_stack_size),
-		tag_directives: make([]yaml_tag_directive_t, 0, initial_stack_size),
+		//tokens:         make([]yaml_token_t, 0, initial_queue_size),
+		//indents:        make([]int, 0, initial_stack_size),
+		//simple_keys:    make([]yaml_simple_key_t, 0, initial_stack_size),
+		//states:         make([]yaml_parser_state_t, 0, initial_stack_size),
+		//marks:          make([]yaml_mark_t, 0, initial_stack_size),
+		//tag_directives: make([]yaml_tag_directive_t, 0, initial_stack_size),
 	}
 	return true
 }

@@ -14,16 +14,16 @@ func yaml_emitter_flush(emitter *yaml_emitter_t) bool {
 	}
 
 	// Check if the buffer is empty.
-	if len(emitter.buffer) == 0 {
+	if emitter.buffer_pos == 0 {
 		return true
 	}
 
 	// If the output encoding is UTF-8, we don't need to recode the buffer.
 	if emitter.encoding == yaml_UTF8_ENCODING {
-		if err := emitter.write_handler(emitter, emitter.buffer); err != nil {
+		if err := emitter.write_handler(emitter, emitter.buffer[:emitter.buffer_pos]); err != nil {
 			return yaml_emitter_set_writer_error(emitter, "write error: "+err.Error())
 		}
-		emitter.buffer = emitter.buffer[:0]
+		emitter.buffer_pos = 0
 		return true
 	}
 
@@ -36,7 +36,7 @@ func yaml_emitter_flush(emitter *yaml_emitter_t) bool {
 	}
 
 	pos := 0
-	for pos < len(emitter.buffer) {
+	for pos < emitter.buffer_pos {
 		// See the "reader.c" code for more details on UTF-8 encoding.  Note
 		// that we assume that the buffer contains a valid UTF-8 sequence.
 
@@ -83,7 +83,7 @@ func yaml_emitter_flush(emitter *yaml_emitter_t) bool {
 	if err := emitter.write_handler(emitter, emitter.raw_buffer); err != nil {
 		return yaml_emitter_set_writer_error(emitter, "write error: "+err.Error())
 	}
-	emitter.buffer = emitter.buffer[:0]
+	emitter.buffer_pos = 0
 	emitter.raw_buffer = emitter.raw_buffer[:0]
 	return true
 }

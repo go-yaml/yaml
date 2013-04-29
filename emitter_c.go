@@ -546,13 +546,12 @@ func yaml_emitter_emit_flow_mapping_key(emitter *yaml_emitter_t, event *yaml_eve
 	if !emitter.canonical && yaml_emitter_check_simple_key(emitter) {
 		emitter.states = append(emitter.states, yaml_EMIT_FLOW_MAPPING_SIMPLE_VALUE_STATE)
 		return yaml_emitter_emit_node(emitter, event, false, false, true, true)
-	} else {
-		if !yaml_emitter_write_indicator(emitter, []byte{'?'}, true, false, false) {
-			return false
-		}
-		emitter.states = append(emitter.states, yaml_EMIT_FLOW_MAPPING_VALUE_STATE)
-		return yaml_emitter_emit_node(emitter, event, false, false, true, false)
 	}
+	if !yaml_emitter_write_indicator(emitter, []byte{'?'}, true, false, false) {
+		return false
+	}
+	emitter.states = append(emitter.states, yaml_EMIT_FLOW_MAPPING_VALUE_STATE)
+	return yaml_emitter_emit_node(emitter, event, false, false, true, false)
 }
 
 // Expect a flow value node.
@@ -619,13 +618,12 @@ func yaml_emitter_emit_block_mapping_key(emitter *yaml_emitter_t, event *yaml_ev
 	if yaml_emitter_check_simple_key(emitter) {
 		emitter.states = append(emitter.states, yaml_EMIT_BLOCK_MAPPING_SIMPLE_VALUE_STATE)
 		return yaml_emitter_emit_node(emitter, event, false, false, true, true)
-	} else {
-		if !yaml_emitter_write_indicator(emitter, []byte{'?'}, true, false, true) {
-			return false
-		}
-		emitter.states = append(emitter.states, yaml_EMIT_BLOCK_MAPPING_VALUE_STATE)
-		return yaml_emitter_emit_node(emitter, event, false, false, true, false)
 	}
+	if !yaml_emitter_write_indicator(emitter, []byte{'?'}, true, false, true) {
+		return false
+	}
+	emitter.states = append(emitter.states, yaml_EMIT_BLOCK_MAPPING_VALUE_STATE)
+	return yaml_emitter_emit_node(emitter, event, false, false, true, false)
 }
 
 // Expect a block value node.
@@ -1497,13 +1495,13 @@ func yaml_emitter_write_double_quoted_scalar(emitter *yaml_emitter_t, value []by
 			default:
 				if v <= 0xFF {
 					ok = put(emitter, 'x')
-					w= 2
+					w = 2
 				} else if v <= 0xFFFF {
 					ok = put(emitter, 'u')
-					w= 4
+					w = 4
 				} else {
 					ok = put(emitter, 'U')
-					w= 8
+					w = 8
 				}
 				for k := (w - 1) * 4; ok && k >= 0; k -= 4 {
 					digit := byte((v >> uint(k)) & 0x0F)

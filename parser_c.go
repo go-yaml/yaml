@@ -294,9 +294,8 @@ func yaml_parser_parse_document_content(parser *yaml_parser_t, event *yaml_event
 		parser.states = parser.states[:len(parser.states)-1]
 		return yaml_parser_process_empty_scalar(parser, event,
 			token.start_mark)
-	} else {
-		return yaml_parser_parse_node(parser, event, true, false)
 	}
+	return yaml_parser_parse_node(parser, event, true, false)
 }
 
 // Parse the productions:
@@ -649,21 +648,19 @@ func yaml_parser_parse_indentless_sequence_entry(parser *yaml_parser_t, event *y
 			token.typ != yaml_BLOCK_END_TOKEN {
 			parser.states = append(parser.states, yaml_PARSE_INDENTLESS_SEQUENCE_ENTRY_STATE)
 			return yaml_parser_parse_node(parser, event, true, false)
-		} else {
-			parser.state = yaml_PARSE_INDENTLESS_SEQUENCE_ENTRY_STATE
-			return yaml_parser_process_empty_scalar(parser, event, mark)
 		}
-	} else {
-		parser.state = parser.states[len(parser.states)-1]
-		parser.states = parser.states[:len(parser.states)-1]
-
-		*event = yaml_event_t{
-			typ:        yaml_SEQUENCE_END_EVENT,
-			start_mark: token.start_mark,
-			end_mark:   token.start_mark, // [Go] Shouldn't this be token.end_mark?
-		}
-		return true
+		parser.state = yaml_PARSE_INDENTLESS_SEQUENCE_ENTRY_STATE
+		return yaml_parser_process_empty_scalar(parser, event, mark)
 	}
+	parser.state = parser.states[len(parser.states)-1]
+	parser.states = parser.states[:len(parser.states)-1]
+
+	*event = yaml_event_t{
+		typ:        yaml_SEQUENCE_END_EVENT,
+		start_mark: token.start_mark,
+		end_mark:   token.start_mark, // [Go] Shouldn't this be token.end_mark?
+	}
+	return true
 }
 
 // Parse the productions:
@@ -751,14 +748,12 @@ func yaml_parser_parse_block_mapping_value(parser *yaml_parser_t, event *yaml_ev
 			token.typ != yaml_BLOCK_END_TOKEN {
 			parser.states = append(parser.states, yaml_PARSE_BLOCK_MAPPING_KEY_STATE)
 			return yaml_parser_parse_node(parser, event, true, true)
-		} else {
-			parser.state = yaml_PARSE_BLOCK_MAPPING_KEY_STATE
-			return yaml_parser_process_empty_scalar(parser, event, mark)
 		}
-	} else {
 		parser.state = yaml_PARSE_BLOCK_MAPPING_KEY_STATE
-		return yaml_parser_process_empty_scalar(parser, event, token.start_mark)
+		return yaml_parser_process_empty_scalar(parser, event, mark)
 	}
+	parser.state = yaml_PARSE_BLOCK_MAPPING_KEY_STATE
+	return yaml_parser_process_empty_scalar(parser, event, token.start_mark)
 }
 
 // Parse the productions:
@@ -846,12 +841,11 @@ func yaml_parser_parse_flow_sequence_entry_mapping_key(parser *yaml_parser_t, ev
 		token.typ != yaml_FLOW_SEQUENCE_END_TOKEN {
 		parser.states = append(parser.states, yaml_PARSE_FLOW_SEQUENCE_ENTRY_MAPPING_VALUE_STATE)
 		return yaml_parser_parse_node(parser, event, false, false)
-	} else {
-		mark := token.end_mark
-		skip_token(parser)
-		parser.state = yaml_PARSE_FLOW_SEQUENCE_ENTRY_MAPPING_VALUE_STATE
-		return yaml_parser_process_empty_scalar(parser, event, mark)
 	}
+	mark := token.end_mark
+	skip_token(parser)
+	parser.state = yaml_PARSE_FLOW_SEQUENCE_ENTRY_MAPPING_VALUE_STATE
+	return yaml_parser_process_empty_scalar(parser, event, mark)
 }
 
 // Parse the productions:

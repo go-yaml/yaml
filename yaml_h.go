@@ -196,6 +196,10 @@ type yaml_token_t struct {
 
 	// The token data.
 
+	// [Go] These structs should all be flattened onto the outer
+	// struct, as many of them are naturally shared among the various
+	// token types. This will reduce the impact of the lack of a union.
+
 	// The stream start (for yaml_STREAM_START_TOKEN).
 	stream_start struct {
 		encoding yaml_encoding_t // The stream encoding.

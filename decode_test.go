@@ -267,6 +267,9 @@ var unmarshalTests = []struct {
 	{
 		"'1': '\"2\"'",
 		map[interface{}]interface{}{"1": "\"2\""},
+	}, {
+		"v:\n- A\n- 'B\n\n  C'\n",
+		map[string][]string{"v": []string{"A", "B\nC"}},
 	},
 
 	// Explicit tags.

@@ -513,19 +513,8 @@ func skip_line(parser *yaml_parser_t) {
 
 // Copy a character to a string buffer and advance pointers.
 func read(parser *yaml_parser_t, s *[]byte) bool {
-	//w := width(parser.buffer[parser.buffer_pos])
-	b := parser.buffer[parser.buffer_pos]
-	w := 0
-	switch {
-	case b&0x80 == 0x00:
-		w = 1
-	case b&0xE0 == 0xC0:
-		w = 2
-	case b&0xF0 == 0xE0:
-		w = 3
-	case b&0xF8 == 0xF0:
-		w = 4
-	default:
+	w := width(parser.buffer[parser.buffer_pos])
+	if w == 0 {
 		panic("invalid character sequence")
 	}
 	if len(*s) == 0 {
@@ -534,10 +523,11 @@ func read(parser *yaml_parser_t, s *[]byte) bool {
 	if w == 1 && len(*s)+w <= cap(*s) {
 		*s = (*s)[:len(*s)+1]
 		(*s)[len(*s)-1] = parser.buffer[parser.buffer_pos]
+		parser.buffer_pos++
 	} else {
 		*s = append(*s, parser.buffer[parser.buffer_pos:parser.buffer_pos+w]...)
+		parser.buffer_pos += w
 	}
-	parser.buffer_pos += w
 	parser.mark.index++
 	parser.mark.column++
 	parser.unread--

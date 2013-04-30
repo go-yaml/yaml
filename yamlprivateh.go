@@ -154,15 +154,20 @@ func is_blankz(b []byte, i int) bool {
 
 // Determine the width of the character.
 func width(b byte) int {
-	switch {
-	case b&0x80 == 0x00:
+	// Don't replace these by a switch without first
+	// confirming that it is being inlined.
+	if b&0x80 == 0x00 {
 		return 1
-	case b&0xE0 == 0xC0:
+	}
+	if b&0xE0 == 0xC0 {
 		return 2
-	case b&0xF0 == 0xE0:
+	}
+	if b&0xF0 == 0xE0 {
 		return 3
-	case b&0xF8 == 0xF0:
+	}
+	if b&0xF8 == 0xF0 {
 		return 4
 	}
 	return 0
+
 }

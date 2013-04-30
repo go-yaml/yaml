@@ -111,15 +111,18 @@ func yaml_parser_update_buffer(parser *yaml_parser_t, length int) bool {
 	}
 
 	// Move the unread characters to the beginning of the buffer.
-	if parser.buffer_pos > 0 && parser.buffer_pos < len(parser.buffer) {
-		size := len(parser.buffer) - parser.buffer_pos
+	buffer_len := len(parser.buffer)
+	if parser.buffer_pos > 0 && parser.buffer_pos < buffer_len {
 		copy(parser.buffer, parser.buffer[parser.buffer_pos:])
+		buffer_len -= parser.buffer_pos
 		parser.buffer_pos = 0
-		parser.buffer = parser.buffer[:size]
-	} else if parser.buffer_pos == len(parser.buffer) {
+	} else if parser.buffer_pos == buffer_len {
+		buffer_len = 0
 		parser.buffer_pos = 0
-		parser.buffer = parser.buffer[:0]
 	}
+
+	// Open the whole buffer for writing, and cut it before returning.
+	parser.buffer = parser.buffer[:cap(parser.buffer)]
 
 	// Fill the buffer until it has enough characters.
 	first := true
@@ -128,6 +131,7 @@ func yaml_parser_update_buffer(parser *yaml_parser_t, length int) bool {
 		// Fill the raw buffer if necessary.
 		if !first || parser.raw_buffer_pos == len(parser.raw_buffer) {
 			if !yaml_parser_update_raw_buffer(parser) {
+				parser.buffer = parser.buffer[:buffer_len]
 				return false
 			}
 		}
@@ -349,41 +353,39 @@ func yaml_parser_update_buffer(parser *yaml_parser_t, length int) bool {
 			parser.raw_buffer_pos += width
 			parser.offset += width
 
-			pos := len(parser.buffer)
-			parser.buffer = parser.buffer[:pos+width]
-
 			// Finally put the character into the buffer.
 			if value <= 0x7F {
 				// 0000 0000-0000 007F . 0xxxxxxx
-				parser.buffer[pos+0] = byte(value)
+				parser.buffer[buffer_len+0] = byte(value)
 			} else if value <= 0x7FF {
 				// 0000 0080-0000 07FF . 110xxxxx 10xxxxxx
-				parser.buffer[pos+0] = byte(0xC0 + (value >> 6))
-				parser.buffer[pos+1] = byte(0x80 + (value & 0x3F))
+				parser.buffer[buffer_len+0] = byte(0xC0 + (value >> 6))
+				parser.buffer[buffer_len+1] = byte(0x80 + (value & 0x3F))
 			} else if value <= 0xFFFF {
 				// 0000 0800-0000 FFFF . 1110xxxx 10xxxxxx 10xxxxxx
-				parser.buffer[pos+0] = byte(0xE0 + (value >> 12))
-				parser.buffer[pos+1] = byte(0x80 + ((value >> 6) & 0x3F))
-				parser.buffer[pos+2] = byte(0x80 + (value & 0x3F))
+				parser.buffer[buffer_len+0] = byte(0xE0 + (value >> 12))
+				parser.buffer[buffer_len+1] = byte(0x80 + ((value >> 6) & 0x3F))
+				parser.buffer[buffer_len+2] = byte(0x80 + (value & 0x3F))
 			} else {
 				// 0001 0000-0010 FFFF . 11110xxx 10xxxxxx 10xxxxxx 10xxxxxx
-				parser.buffer[pos+0] = byte(0xF0 + (value >> 18))
-				parser.buffer[pos+1] = byte(0x80 + ((value >> 12) & 0x3F))
-				parser.buffer[pos+2] = byte(0x80 + ((value >> 6) & 0x3F))
-				parser.buffer[pos+3] = byte(0x80 + (value & 0x3F))
+				parser.buffer[buffer_len+0] = byte(0xF0 + (value >> 18))
+				parser.buffer[buffer_len+1] = byte(0x80 + ((value >> 12) & 0x3F))
+				parser.buffer[buffer_len+2] = byte(0x80 + ((value >> 6) & 0x3F))
+				parser.buffer[buffer_len+3] = byte(0x80 + (value & 0x3F))
 			}
+			buffer_len += width
 
 			parser.unread++
 		}
 
 		// On EOF, put NUL into the buffer and return.
 		if parser.eof {
-			parser.buffer = parser.buffer[:len(parser.buffer)+1]
-			parser.buffer[len(parser.buffer)-1] = 0x00
+			parser.buffer[buffer_len] = 0
+			buffer_len++
 			parser.unread++
-			return true
+			break
 		}
 	}
-
+	parser.buffer = parser.buffer[:buffer_len]
 	return true
 }

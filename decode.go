@@ -143,25 +143,24 @@ func (p *parser) document() *node {
 
 func (p *parser) alias() *node {
 	n := p.node(aliasNode)
-	n.value = string(p.event.alias.anchor)
+	n.value = string(p.event.anchor)
 	p.skip()
 	return n
 }
 
 func (p *parser) scalar() *node {
-	scalar := p.event.scalar
 	n := p.node(scalarNode)
-	n.value = string(scalar.value)
-	n.tag = string(scalar.tag)
-	n.implicit = scalar.plain_implicit
-	p.anchor(n, scalar.anchor)
+	n.value = string(p.event.value)
+	n.tag = string(p.event.tag)
+	n.implicit = p.event.implicit
+	p.anchor(n, p.event.anchor)
 	p.skip()
 	return n
 }
 
 func (p *parser) sequence() *node {
 	n := p.node(sequenceNode)
-	p.anchor(n, p.event.sequence_start.anchor)
+	p.anchor(n, p.event.anchor)
 	p.skip()
 	for p.event.typ != yaml_SEQUENCE_END_EVENT {
 		n.children = append(n.children, p.parse())
@@ -172,7 +171,7 @@ func (p *parser) sequence() *node {
 
 func (p *parser) mapping() *node {
 	n := p.node(mappingNode)
-	p.anchor(n, p.event.mapping_start.anchor)
+	p.anchor(n, p.event.anchor)
 	p.skip()
 	for p.event.typ != yaml_MAPPING_END_EVENT {
 		n.children = append(n.children, p.parse(), p.parse())

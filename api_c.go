@@ -27,14 +27,8 @@ func yaml_insert_token(parser *yaml_parser_t, pos int, token *yaml_token_t) {
 // Create a new parser object.
 func yaml_parser_initialize(parser *yaml_parser_t) bool {
 	*parser = yaml_parser_t{
-		raw_buffer:     make([]byte, 0, input_raw_buffer_size),
-		buffer:         make([]byte, 0, input_buffer_size),
-		//tokens:         make([]yaml_token_t, 0, initial_queue_size),
-		//indents:        make([]int, 0, initial_stack_size),
-		//simple_keys:    make([]yaml_simple_key_t, 0, initial_stack_size),
-		//states:         make([]yaml_parser_state_t, 0, initial_stack_size),
-		//marks:          make([]yaml_mark_t, 0, initial_stack_size),
-		//tag_directives: make([]yaml_tag_directive_t, 0, initial_stack_size),
+		raw_buffer: make([]byte, 0, input_raw_buffer_size),
+		buffer:     make([]byte, 0, input_buffer_size),
 	}
 	return true
 }
@@ -88,14 +82,11 @@ func yaml_parser_set_encoding(parser *yaml_parser_t, encoding yaml_encoding_t) {
 
 // Create a new emitter object.
 func yaml_emitter_initialize(emitter *yaml_emitter_t) bool {
-	// [Go] These should be initialized lazily instead.
 	*emitter = yaml_emitter_t{
 		buffer:         make([]byte, output_buffer_size),
 		raw_buffer:     make([]byte, 0, output_raw_buffer_size),
 		states:         make([]yaml_emitter_state_t, 0, initial_stack_size),
 		events:         make([]yaml_event_t, 0, initial_queue_size),
-		indents:        make([]int, 0, initial_stack_size),
-		tag_directives: make([]yaml_tag_directive_t, 0, initial_stack_size),
 	}
 	return true
 }
@@ -263,9 +254,9 @@ func yaml_emitter_set_break(emitter *yaml_emitter_t, line_break yaml_break_t) {
 // Create STREAM-START.
 func yaml_stream_start_event_initialize(event *yaml_event_t, encoding yaml_encoding_t) bool {
 	*event = yaml_event_t{
-		typ: yaml_STREAM_START_EVENT,
+		typ:      yaml_STREAM_START_EVENT,
+		encoding: encoding,
 	}
-	event.stream_start.encoding = encoding
 	return true
 }
 
@@ -280,34 +271,21 @@ func yaml_stream_end_event_initialize(event *yaml_event_t) bool {
 // Create DOCUMENT-START.
 func yaml_document_start_event_initialize(event *yaml_event_t, version_directive *yaml_version_directive_t,
 	tag_directives []yaml_tag_directive_t, implicit bool) bool {
-
-	// [Go] It doesn't sound necessary to perform these copies
-	// given that with garbage collection ownership is handled.
-	var version_directive_copy *yaml_version_directive_t
-	var tag_directives_copy []yaml_tag_directive_t
-	if version_directive != nil {
-		copy := *version_directive
-		version_directive_copy = &copy
-	}
-	if len(tag_directives) > 0 {
-		tag_directives_copy = append([]yaml_tag_directive_t(nil), tag_directives...)
-	}
-
 	*event = yaml_event_t{
-		typ: yaml_DOCUMENT_START_EVENT,
+		typ:               yaml_DOCUMENT_START_EVENT,
+		version_directive: version_directive,
+		tag_directives:    tag_directives,
+		implicit:          implicit,
 	}
-	event.document_start.version_directive = version_directive_copy
-	event.document_start.tag_directives = tag_directives_copy
-	event.document_start.implicit = implicit
 	return true
 }
 
 // Create DOCUMENT-END.
 func yaml_document_end_event_initialize(event *yaml_event_t, implicit bool) bool {
 	*event = yaml_event_t{
-		typ: yaml_DOCUMENT_END_EVENT,
+		typ:      yaml_DOCUMENT_END_EVENT,
+		implicit: implicit,
 	}
-	event.document_end.implicit = implicit
 	return true
 }
 
@@ -336,56 +314,28 @@ func yaml_document_end_event_initialize(event *yaml_event_t, implicit bool) bool
 //}
 
 // Create SCALAR.
-func yaml_scalar_event_initialize(event *yaml_event_t, anchor, tag, value []byte,
-	plain_implicit, quoted_implicit bool, style yaml_scalar_style_t) bool {
-	var anchor_copy, tag_copy, value_copy []byte
-
-	// [Go] These copies are probably not necessary in Go, where
-	// ownership of data is more flexible due to garbage collection.
-	if len(anchor) > 0 {
-		//if !yaml_check_utf8(anchor) { return false }
-		anchor_copy = append([]byte(nil), anchor...)
-	}
-	if len(tag) > 0 {
-		//if !yaml_check_utf8(tag) { return false }
-		tag_copy = append([]byte(nil), tag...)
-	}
-	//if !yaml_check_utf8(value) { return false }
-	value_copy = append([]byte(nil), value...)
-
+func yaml_scalar_event_initialize(event *yaml_event_t, anchor, tag, value []byte, plain_implicit, quoted_implicit bool, style yaml_scalar_style_t) bool {
 	*event = yaml_event_t{
-		typ: yaml_SCALAR_EVENT,
+		typ:             yaml_SCALAR_EVENT,
+		anchor:          anchor,
+		tag:             tag,
+		value:           value,
+		implicit:        plain_implicit,
+		quoted_implicit: quoted_implicit,
+		style:           yaml_style_t(style),
 	}
-	event.scalar.anchor = anchor_copy
-	event.scalar.tag = tag_copy
-	event.scalar.value = value_copy
-	event.scalar.plain_implicit = plain_implicit
-	event.scalar.quoted_implicit = quoted_implicit
-	event.scalar.style = style
 	return true
 }
 
 // Create SEQUENCE-START.
 func yaml_sequence_start_event_initialize(event *yaml_event_t, anchor, tag []byte, implicit bool, style yaml_sequence_style_t) bool {
-	// [Go] These copies are probably not necessary in Go, where
-	// ownership of data is more flexible due to garbage collection.
-	var anchor_copy, tag_copy []byte
-	if len(anchor) > 0 {
-		//if !yaml_check_utf8(anchor) { return false }
-		anchor_copy = append([]byte(nil), anchor...)
-	}
-	if len(tag) > 0 {
-		//if !yaml_check_utf8(tag) { return false }
-		tag_copy = append([]byte(nil), tag...)
-	}
-
 	*event = yaml_event_t{
-		typ: yaml_SEQUENCE_START_EVENT,
+		typ:      yaml_SEQUENCE_START_EVENT,
+		anchor:   anchor,
+		tag:      tag,
+		implicit: implicit,
+		style:    yaml_style_t(style),
 	}
-	event.sequence_start.anchor = anchor_copy
-	event.sequence_start.tag = tag_copy
-	event.sequence_start.implicit = implicit
-	event.sequence_start.style = style
 	return true
 }
 
@@ -399,25 +349,13 @@ func yaml_sequence_end_event_initialize(event *yaml_event_t) bool {
 
 // Create MAPPING-START.
 func yaml_mapping_start_event_initialize(event *yaml_event_t, anchor, tag []byte, implicit bool, style yaml_mapping_style_t) bool {
-	// [Go] These copies are probably not necessary in Go, where
-	// ownership of data is more flexible due to garbage collection.
-	var anchor_copy, tag_copy []byte
-	if len(anchor) > 0 {
-		//if !yaml_check_utf8(anchor) { return false }
-		anchor_copy = append([]byte(nil), anchor...)
-	}
-	if len(tag) > 0 {
-		//if !yaml_check_utf8(tag) { return false }
-		tag_copy = append([]byte(nil), tag...)
-	}
-
 	*event = yaml_event_t{
-		typ: yaml_MAPPING_START_EVENT,
+		typ:      yaml_MAPPING_START_EVENT,
+		anchor:   anchor,
+		tag:      tag,
+		implicit: implicit,
+		style:    yaml_style_t(style),
 	}
-	event.mapping_start.anchor = anchor_copy
-	event.mapping_start.tag = tag_copy
-	event.mapping_start.implicit = implicit
-	event.mapping_start.style = style
 	return true
 }
 

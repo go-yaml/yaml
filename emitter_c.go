@@ -274,7 +274,7 @@ func yaml_emitter_emit_stream_start(emitter *yaml_emitter_t, event *yaml_event_t
 		return yaml_emitter_set_emitter_error(emitter, "expected STREAM-START")
 	}
 	if emitter.encoding == yaml_ANY_ENCODING {
-		emitter.encoding = event.stream_start.encoding
+		emitter.encoding = event.encoding
 		if emitter.encoding == yaml_ANY_ENCODING {
 			emitter.encoding = yaml_UTF8_ENCODING
 		}
@@ -312,14 +312,14 @@ func yaml_emitter_emit_document_start(emitter *yaml_emitter_t, event *yaml_event
 
 	if event.typ == yaml_DOCUMENT_START_EVENT {
 
-		if event.document_start.version_directive != nil {
-			if !yaml_emitter_analyze_version_directive(emitter, event.document_start.version_directive) {
+		if event.version_directive != nil {
+			if !yaml_emitter_analyze_version_directive(emitter, event.version_directive) {
 				return false
 			}
 		}
 
-		for i := 0; i < len(event.document_start.tag_directives); i++ {
-			tag_directive := &event.document_start.tag_directives[i]
+		for i := 0; i < len(event.tag_directives); i++ {
+			tag_directive := &event.tag_directives[i]
 			if !yaml_emitter_analyze_tag_directive(emitter, tag_directive) {
 				return false
 			}
@@ -335,12 +335,12 @@ func yaml_emitter_emit_document_start(emitter *yaml_emitter_t, event *yaml_event
 			}
 		}
 
-		implicit := event.document_start.implicit
+		implicit := event.implicit
 		if !first || emitter.canonical {
 			implicit = false
 		}
 
-		if emitter.open_ended && (event.document_start.version_directive != nil || len(event.document_start.tag_directives) > 0) {
+		if emitter.open_ended && (event.version_directive != nil || len(event.tag_directives) > 0) {
 			if !yaml_emitter_write_indicator(emitter, []byte("..."), true, false, false) {
 				return false
 			}
@@ -349,7 +349,7 @@ func yaml_emitter_emit_document_start(emitter *yaml_emitter_t, event *yaml_event
 			}
 		}
 
-		if event.document_start.version_directive != nil {
+		if event.version_directive != nil {
 			implicit = false
 			if !yaml_emitter_write_indicator(emitter, []byte("%YAML"), true, false, false) {
 				return false
@@ -362,10 +362,10 @@ func yaml_emitter_emit_document_start(emitter *yaml_emitter_t, event *yaml_event
 			}
 		}
 
-		if len(event.document_start.tag_directives) > 0 {
+		if len(event.tag_directives) > 0 {
 			implicit = false
-			for i := 0; i < len(event.document_start.tag_directives); i++ {
-				tag_directive := &event.document_start.tag_directives[i]
+			for i := 0; i < len(event.tag_directives); i++ {
+				tag_directive := &event.tag_directives[i]
 				if !yaml_emitter_write_indicator(emitter, []byte("%TAG"), true, false, false) {
 					return false
 				}
@@ -435,7 +435,7 @@ func yaml_emitter_emit_document_end(emitter *yaml_emitter_t, event *yaml_event_t
 	if !yaml_emitter_write_indent(emitter) {
 		return false
 	}
-	if !event.document_end.implicit {
+	if !event.implicit {
 		// [Go] Allocate the slice elsewhere.
 		if !yaml_emitter_write_indicator(emitter, []byte("..."), true, false, false) {
 			return false
@@ -711,8 +711,7 @@ func yaml_emitter_emit_sequence_start(emitter *yaml_emitter_t, event *yaml_event
 	if !yaml_emitter_process_tag(emitter) {
 		return false
 	}
-	if emitter.flow_level > 0 || emitter.canonical ||
-		event.sequence_start.style == yaml_FLOW_SEQUENCE_STYLE ||
+	if emitter.flow_level > 0 || emitter.canonical || event.sequence_style() == yaml_FLOW_SEQUENCE_STYLE ||
 		yaml_emitter_check_empty_sequence(emitter) {
 		emitter.state = yaml_EMIT_FLOW_SEQUENCE_FIRST_ITEM_STATE
 	} else {
@@ -729,8 +728,7 @@ func yaml_emitter_emit_mapping_start(emitter *yaml_emitter_t, event *yaml_event_
 	if !yaml_emitter_process_tag(emitter) {
 		return false
 	}
-	if emitter.flow_level > 0 || emitter.canonical ||
-		event.mapping_start.style == yaml_FLOW_MAPPING_STYLE ||
+	if emitter.flow_level > 0 || emitter.canonical || event.mapping_style() == yaml_FLOW_MAPPING_STYLE ||
 		yaml_emitter_check_empty_mapping(emitter) {
 		emitter.state = yaml_EMIT_FLOW_MAPPING_FIRST_KEY_STATE
 	} else {
@@ -800,11 +798,11 @@ func yaml_emitter_check_simple_key(emitter *yaml_emitter_t) bool {
 func yaml_emitter_select_scalar_style(emitter *yaml_emitter_t, event *yaml_event_t) bool {
 
 	no_tag := len(emitter.tag_data.handle) == 0 && len(emitter.tag_data.suffix) == 0
-	if no_tag && !event.scalar.plain_implicit && !event.scalar.quoted_implicit {
+	if no_tag && !event.implicit && !event.quoted_implicit {
 		return yaml_emitter_set_emitter_error(emitter, "neither tag nor implicit flags are specified")
 	}
 
-	style := event.scalar.style
+	style := event.scalar_style()
 	if style == yaml_ANY_SCALAR_STYLE {
 		style = yaml_PLAIN_SCALAR_STYLE
 	}
@@ -823,7 +821,7 @@ func yaml_emitter_select_scalar_style(emitter *yaml_emitter_t, event *yaml_event
 		if len(emitter.scalar_data.value) == 0 && (emitter.flow_level > 0 || emitter.simple_key_context) {
 			style = yaml_SINGLE_QUOTED_SCALAR_STYLE
 		}
-		if no_tag && !event.scalar.plain_implicit {
+		if no_tag && !event.implicit {
 			style = yaml_SINGLE_QUOTED_SCALAR_STYLE
 		}
 	}
@@ -838,7 +836,7 @@ func yaml_emitter_select_scalar_style(emitter *yaml_emitter_t, event *yaml_event
 		}
 	}
 
-	if no_tag && !event.scalar.quoted_implicit && style != yaml_PLAIN_SCALAR_STYLE {
+	if no_tag && !event.quoted_implicit && style != yaml_PLAIN_SCALAR_STYLE {
 		emitter.tag_data.handle = []byte{'!'}
 	}
 	emitter.scalar_data.style = style
@@ -1141,45 +1139,45 @@ func yaml_emitter_analyze_event(emitter *yaml_emitter_t, event *yaml_event_t) bo
 
 	switch event.typ {
 	case yaml_ALIAS_EVENT:
-		if !yaml_emitter_analyze_anchor(emitter, event.alias.anchor, true) {
+		if !yaml_emitter_analyze_anchor(emitter, event.anchor, true) {
 			return false
 		}
 
 	case yaml_SCALAR_EVENT:
-		if len(event.scalar.anchor) > 0 {
-			if !yaml_emitter_analyze_anchor(emitter, event.scalar.anchor, false) {
+		if len(event.anchor) > 0 {
+			if !yaml_emitter_analyze_anchor(emitter, event.anchor, false) {
 				return false
 			}
 		}
-		if len(event.scalar.tag) > 0 && (emitter.canonical || (!event.scalar.plain_implicit && !event.scalar.quoted_implicit)) {
-			if !yaml_emitter_analyze_tag(emitter, event.scalar.tag) {
+		if len(event.tag) > 0 && (emitter.canonical || (!event.implicit && !event.quoted_implicit)) {
+			if !yaml_emitter_analyze_tag(emitter, event.tag) {
 				return false
 			}
 		}
-		if !yaml_emitter_analyze_scalar(emitter, event.scalar.value) {
+		if !yaml_emitter_analyze_scalar(emitter, event.value) {
 			return false
 		}
 
 	case yaml_SEQUENCE_START_EVENT:
-		if len(event.sequence_start.anchor) > 0 {
-			if !yaml_emitter_analyze_anchor(emitter, event.sequence_start.anchor, false) {
+		if len(event.anchor) > 0 {
+			if !yaml_emitter_analyze_anchor(emitter, event.anchor, false) {
 				return false
 			}
 		}
-		if len(event.sequence_start.tag) > 0 && (emitter.canonical || !event.sequence_start.implicit) {
-			if !yaml_emitter_analyze_tag(emitter, event.sequence_start.tag) {
+		if len(event.tag) > 0 && (emitter.canonical || !event.implicit) {
+			if !yaml_emitter_analyze_tag(emitter, event.tag) {
 				return false
 			}
 		}
 
 	case yaml_MAPPING_START_EVENT:
-		if len(event.mapping_start.anchor) > 0 {
-			if !yaml_emitter_analyze_anchor(emitter, event.mapping_start.anchor, false) {
+		if len(event.anchor) > 0 {
+			if !yaml_emitter_analyze_anchor(emitter, event.anchor, false) {
 				return false
 			}
 		}
-		if len(event.mapping_start.tag) > 0 && (emitter.canonical || !event.mapping_start.implicit) {
-			if !yaml_emitter_analyze_tag(emitter, event.mapping_start.tag) {
+		if len(event.tag) > 0 && (emitter.canonical || !event.implicit) {
+			if !yaml_emitter_analyze_tag(emitter, event.tag) {
 				return false
 			}
 		}

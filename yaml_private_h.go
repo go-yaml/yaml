@@ -2,14 +2,14 @@ package goyaml
 
 const (
 	// The size of the input raw buffer.
-	input_raw_buffer_size = 16384
+	input_raw_buffer_size = 512
 
 	// The size of the input buffer.
 	// It should be possible to decode the whole raw buffer.
 	input_buffer_size = input_raw_buffer_size * 3
 
 	// The size of the output buffer.
-	output_buffer_size = 16384
+	output_buffer_size = 128
 
 	// The size of the output raw buffer.
 	// It should be possible to encode the whole output buffer.

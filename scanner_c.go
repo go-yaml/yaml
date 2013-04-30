@@ -990,8 +990,8 @@ func yaml_parser_fetch_stream_start(parser *yaml_parser_t) bool {
 		typ:        yaml_STREAM_START_TOKEN,
 		start_mark: parser.mark,
 		end_mark:   parser.mark,
+		encoding:   parser.encoding,
 	}
-	token.stream_start.encoding = parser.encoding
 	yaml_insert_token(parser, -1, &token)
 	return true
 }
@@ -1494,7 +1494,7 @@ func yaml_parser_scan_directive(parser *yaml_parser_t, token *yaml_token_t) bool
 	// Is it a YAML directive?
 	if bytes.Equal(name, []byte("YAML")) {
 		// Scan the VERSION directive value.
-		var major, minor int
+		var major, minor int8
 		if !yaml_parser_scan_version_directive_value(parser, start_mark, &major, &minor) {
 			return false
 		}
@@ -1505,9 +1505,9 @@ func yaml_parser_scan_directive(parser *yaml_parser_t, token *yaml_token_t) bool
 			typ:        yaml_VERSION_DIRECTIVE_TOKEN,
 			start_mark: start_mark,
 			end_mark:   end_mark,
+			major:      major,
+			minor:      minor,
 		}
-		token.version_directive.major = major
-		token.version_directive.minor = minor
 
 		// Is it a TAG directive?
 	} else if bytes.Equal(name, []byte("TAG")) {
@@ -1523,9 +1523,9 @@ func yaml_parser_scan_directive(parser *yaml_parser_t, token *yaml_token_t) bool
 			typ:        yaml_TAG_DIRECTIVE_TOKEN,
 			start_mark: start_mark,
 			end_mark:   end_mark,
+			value:      handle,
+			prefix:     prefix,
 		}
-		token.tag_directive.handle = handle
-		token.tag_directive.prefix = prefix
 
 		// Unknown directive.
 	} else {
@@ -1619,7 +1619,7 @@ func yaml_parser_scan_directive_name(parser *yaml_parser_t, start_mark yaml_mark
 // Scope:
 //      %YAML   1.1     # a comment \n
 //           ^^^^^^
-func yaml_parser_scan_version_directive_value(parser *yaml_parser_t, start_mark yaml_mark_t, major, minor *int) bool {
+func yaml_parser_scan_version_directive_value(parser *yaml_parser_t, start_mark yaml_mark_t, major, minor *int8) bool {
 	// Eat whitespaces.
 	if !cache(parser, 1) {
 		return false
@@ -1651,7 +1651,7 @@ func yaml_parser_scan_version_directive_value(parser *yaml_parser_t, start_mark 
 	return true
 }
 
-const max_number_length = 9
+const max_number_length = 2
 
 // Scan the version number of VERSION-DIRECTIVE.
 //
@@ -1660,13 +1660,13 @@ const max_number_length = 9
 //              ^
 //      %YAML   1.1     # a comment \n
 //                ^
-func yaml_parser_scan_version_directive_number(parser *yaml_parser_t, start_mark yaml_mark_t, number *int) bool {
+func yaml_parser_scan_version_directive_number(parser *yaml_parser_t, start_mark yaml_mark_t, number *int8) bool {
 
 	// Repeat while the next character is digit.
 	if !cache(parser, 1) {
 		return false
 	}
-	var value, length int
+	var value, length int8
 	for is_digit(parser.buffer, parser.buffer_pos) {
 		// Check if the number is too long.
 		length++
@@ -1674,7 +1674,7 @@ func yaml_parser_scan_version_directive_number(parser *yaml_parser_t, start_mark
 			return yaml_parser_set_scanner_error(parser, "while scanning a %YAML directive",
 				start_mark, "found extremely long version number")
 		}
-		value = value*10 + as_digit(parser.buffer, parser.buffer_pos)
+		value = value*10 + int8(as_digit(parser.buffer, parser.buffer_pos))
 		skip(parser)
 		if !cache(parser, 1) {
 			return false
@@ -1804,12 +1804,7 @@ func yaml_parser_scan_anchor(parser *yaml_parser_t, token *yaml_token_t, typ yam
 		typ:        typ,
 		start_mark: start_mark,
 		end_mark:   end_mark,
-	}
-	// [Go] Just use a single field instead.
-	if typ == yaml_ANCHOR_TOKEN {
-		token.anchor.value = s
-	} else {
-		token.alias.value = s
+		value:      s,
 	}
 
 	return true
@@ -1897,9 +1892,9 @@ func yaml_parser_scan_tag(parser *yaml_parser_t, token *yaml_token_t) bool {
 		typ:        yaml_TAG_TOKEN,
 		start_mark: start_mark,
 		end_mark:   end_mark,
+		value:      handle,
+		suffix:     suffix,
 	}
-	token.tag.handle = handle
-	token.tag.suffix = suffix
 	return true
 }
 
@@ -2241,14 +2236,12 @@ func yaml_parser_scan_block_scalar(parser *yaml_parser_t, token *yaml_token_t, l
 		typ:        yaml_SCALAR_TOKEN,
 		start_mark: start_mark,
 		end_mark:   end_mark,
+		value:      s,
+		style:      yaml_LITERAL_SCALAR_STYLE,
 	}
-	token.scalar.value = s
-	if literal {
-		token.scalar.style = yaml_LITERAL_SCALAR_STYLE
-	} else {
-		token.scalar.style = yaml_FOLDED_SCALAR_STYLE
+	if !literal {
+		token.style = yaml_FOLDED_SCALAR_STYLE
 	}
-
 	return true
 }
 
@@ -2566,12 +2559,11 @@ func yaml_parser_scan_flow_scalar(parser *yaml_parser_t, token *yaml_token_t, si
 		typ:        yaml_SCALAR_TOKEN,
 		start_mark: start_mark,
 		end_mark:   end_mark,
+		value:      s,
+		style:      yaml_SINGLE_QUOTED_SCALAR_STYLE,
 	}
-	token.scalar.value = s
-	if single {
-		token.scalar.style = yaml_SINGLE_QUOTED_SCALAR_STYLE
-	} else {
-		token.scalar.style = yaml_DOUBLE_QUOTED_SCALAR_STYLE
+	if !single {
+		token.style = yaml_DOUBLE_QUOTED_SCALAR_STYLE
 	}
 	return true
 }
@@ -2726,9 +2718,9 @@ func yaml_parser_scan_plain_scalar(parser *yaml_parser_t, token *yaml_token_t) b
 		typ:        yaml_SCALAR_TOKEN,
 		start_mark: start_mark,
 		end_mark:   end_mark,
+		value:      s,
+		style:      yaml_PLAIN_SCALAR_STYLE,
 	}
-	token.scalar.value = s
-	token.scalar.style = yaml_PLAIN_SCALAR_STYLE
 
 	// Note that we change the 'simple_key_allowed' flag.
 	if leading_blanks {

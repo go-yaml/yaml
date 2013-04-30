@@ -6,8 +6,8 @@ import (
 
 // The version directive data.
 type yaml_version_directive_t struct {
-	major int // The major version number.
-	minor int // The minor version number.
+	major int8 // The major version number.
+	minor int8 // The minor version number.
 }
 
 // The tag directive data.
@@ -65,7 +65,9 @@ type yaml_mark_t struct {
 
 // Node Styles
 
-type yaml_scalar_style_t int
+type yaml_style_t int8
+
+type yaml_scalar_style_t yaml_style_t
 
 // Scalar styles.
 const (
@@ -79,7 +81,7 @@ const (
 	yaml_FOLDED_SCALAR_STYLE        // The folded scalar style.
 )
 
-type yaml_sequence_style_t int
+type yaml_sequence_style_t yaml_style_t
 
 // Sequence styles.
 const (
@@ -90,7 +92,7 @@ const (
 	yaml_FLOW_SEQUENCE_STYLE  // The flow sequence style.
 )
 
-type yaml_mapping_style_t int
+type yaml_mapping_style_t yaml_style_t
 
 // Mapping styles.
 const (
@@ -190,64 +192,35 @@ func (tt yaml_token_type_t) String() string {
 
 // The token structure.
 type yaml_token_t struct {
-
 	// The token type.
 	typ yaml_token_type_t
 
-	// The token data.
+	// The start/end of the token.
+	start_mark, end_mark yaml_mark_t
 
-	// [Go] These structs should all be flattened onto the outer
-	// struct, as many of them are naturally shared among the various
-	// token types. This will reduce the impact of the lack of a union.
+	// The stream encoding (for yaml_STREAM_START_TOKEN).
+	encoding yaml_encoding_t
 
-	// The stream start (for yaml_STREAM_START_TOKEN).
-	stream_start struct {
-		encoding yaml_encoding_t // The stream encoding.
-	}
+	// The alias/anchor/scalar value or tag/tag directive handle
+	// (for yaml_ALIAS_TOKEN, yaml_ANCHOR_TOKEN, yaml_SCALAR_TOKEN, yaml_TAG_TOKEN, yaml_TAG_DIRECTIVE_TOKEN).
+	value []byte
 
-	// The alias (for yaml_ALIAS_TOKEN).
-	alias struct {
-		value []byte // The alias value.
-	}
+	// The tag suffix (for yaml_TAG_TOKEN).
+	suffix []byte
 
-	// The anchor (for yaml_ANCHOR_TOKEN).
-	anchor struct {
-		value []byte // The anchor value.
-	}
+	// The tag directive prefix (for yaml_TAG_DIRECTIVE_TOKEN).
+	prefix []byte
 
-	// The tag (for yaml_TAG_TOKEN).
-	tag struct {
-		handle []byte // The tag handle.
-		suffix []byte // The tag suffix.
-	}
+	// The scalar style (for yaml_SCALAR_TOKEN).
+	style yaml_scalar_style_t
 
-	// The scalar value (for yaml_SCALAR_TOKEN).
-	scalar struct {
-		value []byte              // The scalar value.
-		style yaml_scalar_style_t // The scalar style.
-	}
-
-	// The version directive (for yaml_VERSION_DIRECTIVE_TOKEN).
-	version_directive struct {
-		major int // The major version number.
-		minor int // The minor version number.
-	}
-
-	// The tag directive (for yaml_TAG_DIRECTIVE_TOKEN).
-	tag_directive struct {
-		handle []byte // The tag handle.
-		prefix []byte // The tag prefix.
-	}
-
-	// The beginning of the token.
-	start_mark yaml_mark_t
-	// The end of the token.
-	end_mark yaml_mark_t
+	// The version directive major/minor (for yaml_VERSION_DIRECTIVE_TOKEN).
+	major, minor int8
 }
 
 // Events
 
-type yaml_event_type_t int
+type yaml_event_type_t int8
 
 // Event types.
 const (
@@ -272,63 +245,41 @@ type yaml_event_t struct {
 	// The event type.
 	typ yaml_event_type_t
 
-	// The event data.
+	// The start and end of the event.
+	start_mark, end_mark yaml_mark_t
 
-	// The stream parameters (for yaml_STREAM_START_EVENT).
-	stream_start struct {
-		encoding yaml_encoding_t // The document encoding.
-	}
+	// The document encoding (for yaml_STREAM_START_EVENT).
+	encoding yaml_encoding_t
 
-	// The document parameters (for yaml_DOCUMENT_START_EVENT).
-	document_start struct {
-		version_directive *yaml_version_directive_t // The version directive.
+	// The version directive (for yaml_DOCUMENT_START_EVENT).
+	version_directive *yaml_version_directive_t
 
-		// The list of tag directives.
-		tag_directives []yaml_tag_directive_t
-		implicit       bool // Is the document indicator implicit?
-	}
+	// The list of tag directives (for yaml_DOCUMENT_START_EVENT).
+	tag_directives []yaml_tag_directive_t
 
-	// The document end parameters (for yaml_DOCUMENT_END_EVENT).
-	document_end struct {
-		implicit bool // Is the document end indicator implicit?
-	}
+	// The anchor (for yaml_SCALAR_EVENT, yaml_SEQUENCE_START_EVENT, yaml_MAPPING_START_EVENT, yaml_ALIAS_EVENT).
+	anchor []byte
 
-	// The alias parameters (for yaml_ALIAS_EVENT).
-	alias struct {
-		anchor []byte // The anchor.
-	}
+	// The tag (for yaml_SCALAR_EVENT, yaml_SEQUENCE_START_EVENT, yaml_MAPPING_START_EVENT).
+	tag []byte
 
-	// The scalar parameters (for yaml_SCALAR_EVENT).
-	scalar struct {
-		anchor          []byte              // The anchor.
-		tag             []byte              // The tag.
-		value           []byte              // The scalar value.
-		length          int                 // The length of the scalar value.
-		plain_implicit  bool                // Is the tag optional for the plain style?
-		quoted_implicit bool                // Is the tag optional for any non-plain style?
-		style           yaml_scalar_style_t // The scalar style.
-	}
+	// The scalar value (for yaml_SCALAR_EVENT).
+	value []byte
 
-	// The sequence parameters (for yaml_SEQUENCE_START_EVENT).
-	sequence_start struct {
-		anchor   []byte                // The anchor.
-		tag      []byte                // The tag.
-		implicit bool                  // Is the tag optional?
-		style    yaml_sequence_style_t // The sequence style.
-	}
+	// Is the document start/end indicator implicit, or the tag optional?
+	// (for yaml_DOCUMENT_START_EVENT, yaml_DOCUMENT_END_EVENT, yaml_SEQUENCE_START_EVENT, yaml_MAPPING_START_EVENT, yaml_SCALAR_EVENT).
+	implicit bool
 
-	// The mapping parameters (for yaml_MAPPING_START_EVENT).
-	mapping_start struct {
-		anchor   []byte               // The anchor.
-		tag      []byte               // The tag.
-		implicit bool                 // Is the tag optional?
-		style    yaml_mapping_style_t // The mapping style.
-	}
+	// Is the tag optional for any non-plain style? (for yaml_SCALAR_EVENT).
+	quoted_implicit bool
 
-	start_mark yaml_mark_t // The beginning of the event.
-	end_mark   yaml_mark_t // The end of the event.
-
+	// The style (for yaml_SCALAR_EVENT, yaml_SEQUENCE_START_EVENT, yaml_MAPPING_START_EVENT).
+	style yaml_style_t
 }
+
+func (e *yaml_event_t) scalar_style() yaml_scalar_style_t     { return yaml_scalar_style_t(e.style) }
+func (e *yaml_event_t) sequence_style() yaml_sequence_style_t { return yaml_sequence_style_t(e.style) }
+func (e *yaml_event_t) mapping_style() yaml_mapping_style_t   { return yaml_mapping_style_t(e.style) }
 
 // Nodes
 
@@ -420,9 +371,8 @@ type yaml_document_t struct {
 	start_implicit int // Is the document start indicator implicit?
 	end_implicit   int // Is the document end indicator implicit?
 
-	start_mark yaml_mark_t // The beginning of the document.
-	end_mark   yaml_mark_t // The end of the document.
-
+	// The start/end of the document.
+	start_mark, end_mark yaml_mark_t
 }
 
 // The prototype of a read handler.

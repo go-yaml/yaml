@@ -134,9 +134,9 @@ func yaml_parser_update_buffer(parser *yaml_parser_t, length int) bool {
 		first = false
 
 		// Decode the raw buffer.
+	inner:
 		for parser.raw_buffer_pos != len(parser.raw_buffer) {
-			var value, value2 rune
-			var incomplete bool
+			var value rune
 			var width int
 
 			raw_unread := len(parser.raw_buffer) - parser.raw_buffer_pos
@@ -187,8 +187,7 @@ func yaml_parser_update_buffer(parser *yaml_parser_t, length int) bool {
 							"incomplete UTF-8 octet sequence",
 							parser.offset, -1)
 					}
-					incomplete = true
-					break
+					break inner
 				}
 
 				// Decode the leading octet.
@@ -278,8 +277,7 @@ func yaml_parser_update_buffer(parser *yaml_parser_t, length int) bool {
 							"incomplete UTF-16 character",
 							parser.offset, -1)
 					}
-					incomplete = true
-					break
+					break inner
 				}
 
 				// Get the character.
@@ -304,12 +302,11 @@ func yaml_parser_update_buffer(parser *yaml_parser_t, length int) bool {
 								"incomplete UTF-16 surrogate pair",
 								parser.offset, -1)
 						}
-						incomplete = true
-						break
+						break inner
 					}
 
 					// Get the next character.
-					value2 = rune(parser.raw_buffer[parser.raw_buffer_pos+low+2]) +
+					value2 := rune(parser.raw_buffer[parser.raw_buffer_pos+low+2]) +
 						(rune(parser.raw_buffer[parser.raw_buffer_pos+high+2]) << 8)
 
 					// Check for a low surrogate area.
@@ -327,11 +324,6 @@ func yaml_parser_update_buffer(parser *yaml_parser_t, length int) bool {
 
 			default:
 				panic("impossible")
-			}
-
-			// Check if the raw buffer contains enough bytes to form a character.
-			if incomplete {
-				break
 			}
 
 			// Check if the character is in the allowed range:

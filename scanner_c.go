@@ -512,8 +512,30 @@ func skip_line(parser *yaml_parser_t) {
 
 // Copy a character to a string buffer and advance pointers.
 func read(parser *yaml_parser_t, s *[]byte) bool {
-	w := width(parser.buffer[0])
-	*s = append(*s, parser.buffer[parser.buffer_pos:parser.buffer_pos+w]...)
+	//w := width(parser.buffer[parser.buffer_pos])
+	b := parser.buffer[parser.buffer_pos]
+	w := 0
+	switch {
+	case b&0x80 == 0x00:
+		w = 1
+	case b&0xE0 == 0xC0:
+		w = 2
+	case b&0xF0 == 0xE0:
+		w = 3
+	case b&0xF8 == 0xF0:
+		w = 4
+	default:
+		panic("invalid character sequence")
+	}
+	if len(*s) == 0 {
+		*s = make([]byte, 0, 32)
+	}
+	if w == 1 && len(*s)+w <= cap(*s) {
+		*s = (*s)[:len(*s)+1]
+		(*s)[len(*s)-1] = parser.buffer[parser.buffer_pos]
+	} else {
+		*s = append(*s, parser.buffer[parser.buffer_pos:parser.buffer_pos+w]...)
+	}
 	parser.buffer_pos += w
 	parser.mark.index++
 	parser.mark.column++
@@ -798,6 +820,9 @@ func yaml_parser_fetch_next_token(parser *yaml_parser_t) bool {
 	//
 	// The last rule is more restrictive than the specification requires.
 	// [Go] Make this logic more reasonable.
+	//switch parser.buffer[parser.buffer_pos] {
+	//case '-', '?', ':', ',', '?', '-', ',', ':', ']', '[', '}', '{', '&', '#', '!', '*', '>', '|', '"', '\'', '@', '%', '-', '`':
+	//}
 	if !(is_blankz(parser.buffer, parser.buffer_pos) || parser.buffer[parser.buffer_pos] == '-' ||
 		parser.buffer[parser.buffer_pos] == '?' || parser.buffer[parser.buffer_pos] == ':' ||
 		parser.buffer[parser.buffer_pos] == ',' || parser.buffer[parser.buffer_pos] == '[' ||
@@ -2311,7 +2336,7 @@ func yaml_parser_scan_flow_scalar(parser *yaml_parser_t, token *yaml_token_t, si
 	var s, leading_break, trailing_breaks, whitespaces []byte
 	for {
 		// Check that there are no document indicators at the beginning of the line.
-		if !cache(parser, 4) {
+		if !cache(parser, 7) {
 			return false
 		}
 
@@ -2336,9 +2361,9 @@ func yaml_parser_scan_flow_scalar(parser *yaml_parser_t, token *yaml_token_t, si
 		}
 
 		// Consume non-blank characters.
-		if !cache(parser, 2) {
-			return false
-		}
+		//if !cache(parser, 2) {
+		//	return false
+		//}
 		leading_blanks := false
 		for !is_blankz(parser.buffer, parser.buffer_pos) {
 			if single && parser.buffer[parser.buffer_pos] == '\'' && parser.buffer[parser.buffer_pos+1] == '\'' {

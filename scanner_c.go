@@ -481,8 +481,9 @@ import (
 //
 
 // Ensure that the buffer contains the required number of characters.
-// Return 1 on success, 0 on failure (reader error or memory error).
+// Return true on success, false on failure (reader error or memory error).
 func cache(parser *yaml_parser_t, length int) bool {
+	// [Go] This was inlined: !cache(A, B) -> unread < B && !update(A, B)
 	return parser.unread >= length || yaml_parser_update_buffer(parser, length)
 }
 
@@ -673,7 +674,7 @@ func yaml_parser_fetch_more_tokens(parser *yaml_parser_t) bool {
 // The dispatcher for token fetchers.
 func yaml_parser_fetch_next_token(parser *yaml_parser_t) bool {
 	// Ensure that the buffer is initialized.
-	if !cache(parser, 1) {
+	if parser.unread < 1 && !yaml_parser_update_buffer(parser, 1) {
 		return false
 	}
 
@@ -699,7 +700,7 @@ func yaml_parser_fetch_next_token(parser *yaml_parser_t) bool {
 
 	// Ensure that the buffer contains at least 4 characters.  4 is the length
 	// of the longest indicators ('--- ' and '... ').
-	if !cache(parser, 4) {
+	if parser.unread < 4 && !yaml_parser_update_buffer(parser, 4) {
 		return false
 	}
 
@@ -1445,7 +1446,7 @@ func yaml_parser_scan_to_next_token(parser *yaml_parser_t) bool {
 	// Until the next token is not found.
 	for {
 		// Allow the BOM mark to start a line.
-		if !cache(parser, 1) {
+		if parser.unread < 1 && !yaml_parser_update_buffer(parser, 1) {
 			return false
 		}
 		if parser.mark.column == 0 && is_bom(parser.buffer, parser.buffer_pos) {
@@ -1457,13 +1458,13 @@ func yaml_parser_scan_to_next_token(parser *yaml_parser_t) bool {
 		//  - in the flow context
 		//  - in the block context, but not at the beginning of the line or
 		//  after '-', '?', or ':' (complex value).
-		if !cache(parser, 1) {
+		if parser.unread < 1 && !yaml_parser_update_buffer(parser, 1) {
 			return false
 		}
 
 		for parser.buffer[parser.buffer_pos] == ' ' || ((parser.flow_level > 0 || !parser.simple_key_allowed) && parser.buffer[parser.buffer_pos] == '\t') {
 			skip(parser)
-			if !cache(parser, 1) {
+			if parser.unread < 1 && !yaml_parser_update_buffer(parser, 1) {
 				return false
 			}
 		}
@@ -1472,7 +1473,7 @@ func yaml_parser_scan_to_next_token(parser *yaml_parser_t) bool {
 		if parser.buffer[parser.buffer_pos] == '#' {
 			for !is_breakz(parser.buffer, parser.buffer_pos) {
 				skip(parser)
-				if !cache(parser, 1) {
+				if parser.unread < 1 && !yaml_parser_update_buffer(parser, 1) {
 					return false
 				}
 			}
@@ -1480,7 +1481,7 @@ func yaml_parser_scan_to_next_token(parser *yaml_parser_t) bool {
 
 		// If it is a line break, eat it.
 		if is_break(parser.buffer, parser.buffer_pos) {
-			if !cache(parser, 2) {
+			if parser.unread < 2 && !yaml_parser_update_buffer(parser, 2) {
 				return false
 			}
 			skip_line(parser)
@@ -1560,13 +1561,13 @@ func yaml_parser_scan_directive(parser *yaml_parser_t, token *yaml_token_t) bool
 	}
 
 	// Eat the rest of the line including any comments.
-	if !cache(parser, 1) {
+	if parser.unread < 1 && !yaml_parser_update_buffer(parser, 1) {
 		return false
 	}
 
 	for is_blank(parser.buffer, parser.buffer_pos) {
 		skip(parser)
-		if !cache(parser, 1) {
+		if parser.unread < 1 && !yaml_parser_update_buffer(parser, 1) {
 			return false
 		}
 	}
@@ -1574,7 +1575,7 @@ func yaml_parser_scan_directive(parser *yaml_parser_t, token *yaml_token_t) bool
 	if parser.buffer[parser.buffer_pos] == '#' {
 		for !is_breakz(parser.buffer, parser.buffer_pos) {
 			skip(parser)
-			if !cache(parser, 1) {
+			if parser.unread < 1 && !yaml_parser_update_buffer(parser, 1) {
 				return false
 			}
 		}
@@ -1589,7 +1590,7 @@ func yaml_parser_scan_directive(parser *yaml_parser_t, token *yaml_token_t) bool
 
 	// Eat a line break.
 	if is_break(parser.buffer, parser.buffer_pos) {
-		if !cache(parser, 2) {
+		if parser.unread < 2 && !yaml_parser_update_buffer(parser, 2) {
 			return false
 		}
 		skip_line(parser)
@@ -1608,7 +1609,7 @@ func yaml_parser_scan_directive(parser *yaml_parser_t, token *yaml_token_t) bool
 //
 func yaml_parser_scan_directive_name(parser *yaml_parser_t, start_mark yaml_mark_t, name *[]byte) bool {
 	// Consume the directive name.
-	if !cache(parser, 1) {
+	if parser.unread < 1 && !yaml_parser_update_buffer(parser, 1) {
 		return false
 	}
 
@@ -1617,7 +1618,7 @@ func yaml_parser_scan_directive_name(parser *yaml_parser_t, start_mark yaml_mark
 		if !read(parser, &s) {
 			return false
 		}
-		if !cache(parser, 1) {
+		if parser.unread < 1 && !yaml_parser_update_buffer(parser, 1) {
 			return false
 		}
 	}
@@ -1646,12 +1647,12 @@ func yaml_parser_scan_directive_name(parser *yaml_parser_t, start_mark yaml_mark
 //           ^^^^^^
 func yaml_parser_scan_version_directive_value(parser *yaml_parser_t, start_mark yaml_mark_t, major, minor *int8) bool {
 	// Eat whitespaces.
-	if !cache(parser, 1) {
+	if parser.unread < 1 && !yaml_parser_update_buffer(parser, 1) {
 		return false
 	}
 	for is_blank(parser.buffer, parser.buffer_pos) {
 		skip(parser)
-		if !cache(parser, 1) {
+		if parser.unread < 1 && !yaml_parser_update_buffer(parser, 1) {
 			return false
 		}
 	}
@@ -1688,7 +1689,7 @@ const max_number_length = 2
 func yaml_parser_scan_version_directive_number(parser *yaml_parser_t, start_mark yaml_mark_t, number *int8) bool {
 
 	// Repeat while the next character is digit.
-	if !cache(parser, 1) {
+	if parser.unread < 1 && !yaml_parser_update_buffer(parser, 1) {
 		return false
 	}
 	var value, length int8
@@ -1701,7 +1702,7 @@ func yaml_parser_scan_version_directive_number(parser *yaml_parser_t, start_mark
 		}
 		value = value*10 + int8(as_digit(parser.buffer, parser.buffer_pos))
 		skip(parser)
-		if !cache(parser, 1) {
+		if parser.unread < 1 && !yaml_parser_update_buffer(parser, 1) {
 			return false
 		}
 	}
@@ -1725,13 +1726,13 @@ func yaml_parser_scan_tag_directive_value(parser *yaml_parser_t, start_mark yaml
 	var handle_value, prefix_value []byte
 
 	// Eat whitespaces.
-	if !cache(parser, 1) {
+	if parser.unread < 1 && !yaml_parser_update_buffer(parser, 1) {
 		return false
 	}
 
 	for is_blank(parser.buffer, parser.buffer_pos) {
 		skip(parser)
-		if !cache(parser, 1) {
+		if parser.unread < 1 && !yaml_parser_update_buffer(parser, 1) {
 			return false
 		}
 	}
@@ -1742,7 +1743,7 @@ func yaml_parser_scan_tag_directive_value(parser *yaml_parser_t, start_mark yaml
 	}
 
 	// Expect a whitespace.
-	if !cache(parser, 1) {
+	if parser.unread < 1 && !yaml_parser_update_buffer(parser, 1) {
 		return false
 	}
 	if !is_blank(parser.buffer, parser.buffer_pos) {
@@ -1754,7 +1755,7 @@ func yaml_parser_scan_tag_directive_value(parser *yaml_parser_t, start_mark yaml
 	// Eat whitespaces.
 	for is_blank(parser.buffer, parser.buffer_pos) {
 		skip(parser)
-		if !cache(parser, 1) {
+		if parser.unread < 1 && !yaml_parser_update_buffer(parser, 1) {
 			return false
 		}
 	}
@@ -1765,7 +1766,7 @@ func yaml_parser_scan_tag_directive_value(parser *yaml_parser_t, start_mark yaml
 	}
 
 	// Expect a whitespace or line break.
-	if !cache(parser, 1) {
+	if parser.unread < 1 && !yaml_parser_update_buffer(parser, 1) {
 		return false
 	}
 	if !is_blankz(parser.buffer, parser.buffer_pos) {
@@ -1787,7 +1788,7 @@ func yaml_parser_scan_anchor(parser *yaml_parser_t, token *yaml_token_t, typ yam
 	skip(parser)
 
 	// Consume the value.
-	if !cache(parser, 1) {
+	if parser.unread < 1 && !yaml_parser_update_buffer(parser, 1) {
 		return false
 	}
 
@@ -1795,7 +1796,7 @@ func yaml_parser_scan_anchor(parser *yaml_parser_t, token *yaml_token_t, typ yam
 		if !read(parser, &s) {
 			return false
 		}
-		if !cache(parser, 1) {
+		if parser.unread < 1 && !yaml_parser_update_buffer(parser, 1) {
 			return false
 		}
 	}
@@ -1845,7 +1846,7 @@ func yaml_parser_scan_tag(parser *yaml_parser_t, token *yaml_token_t) bool {
 	start_mark := parser.mark
 
 	// Check if the tag is in the canonical form.
-	if !cache(parser, 2) {
+	if parser.unread < 2 && !yaml_parser_update_buffer(parser, 2) {
 		return false
 	}
 
@@ -1901,7 +1902,7 @@ func yaml_parser_scan_tag(parser *yaml_parser_t, token *yaml_token_t) bool {
 	}
 
 	// Check the character which ends the tag.
-	if !cache(parser, 1) {
+	if parser.unread < 1 && !yaml_parser_update_buffer(parser, 1) {
 		return false
 	}
 	if !is_blankz(parser.buffer, parser.buffer_pos) {
@@ -1926,7 +1927,7 @@ func yaml_parser_scan_tag(parser *yaml_parser_t, token *yaml_token_t) bool {
 // Scan a tag handle.
 func yaml_parser_scan_tag_handle(parser *yaml_parser_t, directive bool, start_mark yaml_mark_t, handle *[]byte) bool {
 	// Check the initial '!' character.
-	if !cache(parser, 1) {
+	if parser.unread < 1 && !yaml_parser_update_buffer(parser, 1) {
 		return false
 	}
 	if parser.buffer[parser.buffer_pos] != '!' {
@@ -1943,14 +1944,14 @@ func yaml_parser_scan_tag_handle(parser *yaml_parser_t, directive bool, start_ma
 	}
 
 	// Copy all subsequent alphabetical and numerical characters.
-	if !cache(parser, 1) {
+	if parser.unread < 1 && !yaml_parser_update_buffer(parser, 1) {
 		return false
 	}
 	for is_alpha(parser.buffer, parser.buffer_pos) {
 		if !read(parser, &s) {
 			return false
 		}
-		if !cache(parser, 1) {
+		if parser.unread < 1 && !yaml_parser_update_buffer(parser, 1) {
 			return false
 		}
 	}
@@ -1987,7 +1988,7 @@ func yaml_parser_scan_tag_uri(parser *yaml_parser_t, directive bool, head []byte
 	}
 
 	// Scan the tag.
-	if !cache(parser, 1) {
+	if parser.unread < 1 && !yaml_parser_update_buffer(parser, 1) {
 		return false
 	}
 
@@ -2018,7 +2019,7 @@ func yaml_parser_scan_tag_uri(parser *yaml_parser_t, directive bool, head []byte
 				return false
 			}
 		}
-		if !cache(parser, 1) {
+		if parser.unread < 1 && !yaml_parser_update_buffer(parser, 1) {
 			return false
 		}
 	}
@@ -2040,7 +2041,7 @@ func yaml_parser_scan_uri_escapes(parser *yaml_parser_t, directive bool, start_m
 	w := 1024
 	for w > 0 {
 		// Check for a URI-escaped octet.
-		if !cache(parser, 3) {
+		if parser.unread < 3 && !yaml_parser_update_buffer(parser, 3) {
 			return false
 		}
 
@@ -2086,7 +2087,7 @@ func yaml_parser_scan_block_scalar(parser *yaml_parser_t, token *yaml_token_t, l
 	skip(parser)
 
 	// Scan the additional block scalar indicators.
-	if !cache(parser, 1) {
+	if parser.unread < 1 && !yaml_parser_update_buffer(parser, 1) {
 		return false
 	}
 
@@ -2102,7 +2103,7 @@ func yaml_parser_scan_block_scalar(parser *yaml_parser_t, token *yaml_token_t, l
 		skip(parser)
 
 		// Check for an indentation indicator.
-		if !cache(parser, 1) {
+		if parser.unread < 1 && !yaml_parser_update_buffer(parser, 1) {
 			return false
 		}
 		if is_digit(parser.buffer, parser.buffer_pos) {
@@ -2129,7 +2130,7 @@ func yaml_parser_scan_block_scalar(parser *yaml_parser_t, token *yaml_token_t, l
 		increment = as_digit(parser.buffer, parser.buffer_pos)
 		skip(parser)
 
-		if !cache(parser, 1) {
+		if parser.unread < 1 && !yaml_parser_update_buffer(parser, 1) {
 			return false
 		}
 		if parser.buffer[parser.buffer_pos] == '+' || parser.buffer[parser.buffer_pos] == '-' {
@@ -2143,19 +2144,19 @@ func yaml_parser_scan_block_scalar(parser *yaml_parser_t, token *yaml_token_t, l
 	}
 
 	// Eat whitespaces and comments to the end of the line.
-	if !cache(parser, 1) {
+	if parser.unread < 1 && !yaml_parser_update_buffer(parser, 1) {
 		return false
 	}
 	for is_blank(parser.buffer, parser.buffer_pos) {
 		skip(parser)
-		if !cache(parser, 1) {
+		if parser.unread < 1 && !yaml_parser_update_buffer(parser, 1) {
 			return false
 		}
 	}
 	if parser.buffer[parser.buffer_pos] == '#' {
 		for !is_breakz(parser.buffer, parser.buffer_pos) {
 			skip(parser)
-			if !cache(parser, 1) {
+			if parser.unread < 1 && !yaml_parser_update_buffer(parser, 1) {
 				return false
 			}
 		}
@@ -2170,7 +2171,7 @@ func yaml_parser_scan_block_scalar(parser *yaml_parser_t, token *yaml_token_t, l
 
 	// Eat a line break.
 	if is_break(parser.buffer, parser.buffer_pos) {
-		if !cache(parser, 2) {
+		if parser.unread < 2 && !yaml_parser_update_buffer(parser, 2) {
 			return false
 		}
 		skip_line(parser)
@@ -2195,7 +2196,7 @@ func yaml_parser_scan_block_scalar(parser *yaml_parser_t, token *yaml_token_t, l
 	}
 
 	// Scan the block scalar content.
-	if !cache(parser, 1) {
+	if parser.unread < 1 && !yaml_parser_update_buffer(parser, 1) {
 		return false
 	}
 	var leading_blank, trailing_blank bool
@@ -2228,13 +2229,13 @@ func yaml_parser_scan_block_scalar(parser *yaml_parser_t, token *yaml_token_t, l
 			if !read(parser, &s) {
 				return false
 			}
-			if !cache(parser, 1) {
+			if parser.unread < 1 && !yaml_parser_update_buffer(parser, 1) {
 				return false
 			}
 		}
 
 		// Consume the line break.
-		if !cache(parser, 2) {
+		if parser.unread < 2 && !yaml_parser_update_buffer(parser, 2) {
 			return false
 		}
 
@@ -2279,12 +2280,12 @@ func yaml_parser_scan_block_scalar_breaks(parser *yaml_parser_t, indent *int, br
 	max_indent := 0
 	for {
 		// Eat the intendation spaces.
-		if !cache(parser, 1) {
+		if parser.unread < 1 && !yaml_parser_update_buffer(parser, 1) {
 			return false
 		}
 		for (*indent == 0 || parser.mark.column < *indent) && is_space(parser.buffer, parser.buffer_pos) {
 			skip(parser)
-			if !cache(parser, 1) {
+			if parser.unread < 1 && !yaml_parser_update_buffer(parser, 1) {
 				return false
 			}
 		}
@@ -2304,7 +2305,7 @@ func yaml_parser_scan_block_scalar_breaks(parser *yaml_parser_t, indent *int, br
 		}
 
 		// Consume the line break.
-		if !cache(parser, 2) {
+		if parser.unread < 2 && !yaml_parser_update_buffer(parser, 2) {
 			return false
 		}
 		if !read_line(parser, breaks) {
@@ -2336,7 +2337,7 @@ func yaml_parser_scan_flow_scalar(parser *yaml_parser_t, token *yaml_token_t, si
 	var s, leading_break, trailing_breaks, whitespaces []byte
 	for {
 		// Check that there are no document indicators at the beginning of the line.
-		if !cache(parser, 7) {
+		if parser.unread < 4 && !yaml_parser_update_buffer(parser, 4) {
 			return false
 		}
 
@@ -2361,9 +2362,6 @@ func yaml_parser_scan_flow_scalar(parser *yaml_parser_t, token *yaml_token_t, si
 		}
 
 		// Consume non-blank characters.
-		//if !cache(parser, 2) {
-		//	return false
-		//}
 		leading_blanks := false
 		for !is_blankz(parser.buffer, parser.buffer_pos) {
 			if single && parser.buffer[parser.buffer_pos] == '\'' && parser.buffer[parser.buffer_pos+1] == '\'' {
@@ -2381,7 +2379,7 @@ func yaml_parser_scan_flow_scalar(parser *yaml_parser_t, token *yaml_token_t, si
 
 			} else if !single && parser.buffer[parser.buffer_pos] == '\\' && is_break(parser.buffer, parser.buffer_pos+1) {
 				// It is an escaped line break.
-				if !cache(parser, 3) {
+				if parser.unread < 3 && !yaml_parser_update_buffer(parser, 3) {
 					return false
 				}
 				skip(parser)
@@ -2455,7 +2453,7 @@ func yaml_parser_scan_flow_scalar(parser *yaml_parser_t, token *yaml_token_t, si
 					var value int
 
 					// Scan the character value.
-					if !cache(parser, code_length) {
+					if parser.unread < code_length && !yaml_parser_update_buffer(parser, code_length) {
 						return false
 					}
 					for k := 0; k < code_length; k++ {
@@ -2500,7 +2498,7 @@ func yaml_parser_scan_flow_scalar(parser *yaml_parser_t, token *yaml_token_t, si
 					return false
 				}
 			}
-			if !cache(parser, 2) {
+			if parser.unread < 2 && !yaml_parser_update_buffer(parser, 2) {
 				return false
 			}
 		}
@@ -2517,7 +2515,7 @@ func yaml_parser_scan_flow_scalar(parser *yaml_parser_t, token *yaml_token_t, si
 		}
 
 		// Consume blank characters.
-		if !cache(parser, 1) {
+		if parser.unread < 1 && !yaml_parser_update_buffer(parser, 1) {
 			return false
 		}
 
@@ -2532,7 +2530,7 @@ func yaml_parser_scan_flow_scalar(parser *yaml_parser_t, token *yaml_token_t, si
 					skip(parser)
 				}
 			} else {
-				if !cache(parser, 2) {
+				if parser.unread < 2 && !yaml_parser_update_buffer(parser, 2) {
 					return false
 				}
 
@@ -2549,7 +2547,7 @@ func yaml_parser_scan_flow_scalar(parser *yaml_parser_t, token *yaml_token_t, si
 					}
 				}
 			}
-			if !cache(parser, 1) {
+			if parser.unread < 1 && !yaml_parser_update_buffer(parser, 1) {
 				return false
 			}
 		}
@@ -2606,7 +2604,7 @@ func yaml_parser_scan_plain_scalar(parser *yaml_parser_t, token *yaml_token_t) b
 	// Consume the content of the plain scalar.
 	for {
 		// Check for a document indicator.
-		if !cache(parser, 4) {
+		if parser.unread < 4 && !yaml_parser_update_buffer(parser, 4) {
 			return false
 		}
 		if parser.mark.column == 0 &&
@@ -2676,7 +2674,7 @@ func yaml_parser_scan_plain_scalar(parser *yaml_parser_t, token *yaml_token_t) b
 			}
 
 			end_mark = parser.mark
-			if !cache(parser, 2) {
+			if parser.unread < 2 && !yaml_parser_update_buffer(parser, 2) {
 				return false
 			}
 		}
@@ -2687,7 +2685,7 @@ func yaml_parser_scan_plain_scalar(parser *yaml_parser_t, token *yaml_token_t) b
 		}
 
 		// Consume blank characters.
-		if !cache(parser, 1) {
+		if parser.unread < 1 && !yaml_parser_update_buffer(parser, 1) {
 			return false
 		}
 
@@ -2710,7 +2708,7 @@ func yaml_parser_scan_plain_scalar(parser *yaml_parser_t, token *yaml_token_t) b
 					skip(parser)
 				}
 			} else {
-				if !cache(parser, 2) {
+				if parser.unread < 2 && !yaml_parser_update_buffer(parser, 2) {
 					return false
 				}
 
@@ -2727,7 +2725,7 @@ func yaml_parser_scan_plain_scalar(parser *yaml_parser_t, token *yaml_token_t) b
 					}
 				}
 			}
-			if !cache(parser, 1) {
+			if parser.unread < 1 && !yaml_parser_update_buffer(parser, 1) {
 				return false
 			}
 		}

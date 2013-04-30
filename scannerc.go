@@ -512,59 +512,59 @@ func skip_line(parser *yaml_parser_t) {
 }
 
 // Copy a character to a string buffer and advance pointers.
-func read(parser *yaml_parser_t, s *[]byte) bool {
+func read(parser *yaml_parser_t, s []byte) []byte {
 	w := width(parser.buffer[parser.buffer_pos])
 	if w == 0 {
 		panic("invalid character sequence")
 	}
-	if len(*s) == 0 {
-		*s = make([]byte, 0, 32)
+	if len(s) == 0 {
+		s = make([]byte, 0, 32)
 	}
-	if w == 1 && len(*s)+w <= cap(*s) {
-		*s = (*s)[:len(*s)+1]
-		(*s)[len(*s)-1] = parser.buffer[parser.buffer_pos]
+	if w == 1 && len(s)+w <= cap(s) {
+		s = s[:len(s)+1]
+		s[len(s)-1] = parser.buffer[parser.buffer_pos]
 		parser.buffer_pos++
 	} else {
-		*s = append(*s, parser.buffer[parser.buffer_pos:parser.buffer_pos+w]...)
+		s = append(s, parser.buffer[parser.buffer_pos:parser.buffer_pos+w]...)
 		parser.buffer_pos += w
 	}
 	parser.mark.index++
 	parser.mark.column++
 	parser.unread--
-	return true
+	return s
 }
 
 // Copy a line break character to a string buffer and advance pointers.
-func read_line(parser *yaml_parser_t, s *[]byte) bool {
+func read_line(parser *yaml_parser_t, s []byte) []byte {
 	buf := parser.buffer
 	pos := parser.buffer_pos
 	switch {
 	case buf[pos] == '\r' && buf[pos+1] == '\n':
 		// CR LF . LF
-		*s = append(*s, '\n')
+		s = append(s, '\n')
 		parser.buffer_pos += 2
 		parser.mark.index++
 		parser.unread--
 	case buf[pos] == '\r' || buf[pos] == '\n':
 		// CR|LF . LF
-		*s = append(*s, '\n')
+		s = append(s, '\n')
 		parser.buffer_pos += 1
 	case buf[pos] == '\xC2' && buf[pos+1] == '\x85':
 		// NEL . LF
-		*s = append(*s, '\n')
+		s = append(s, '\n')
 		parser.buffer_pos += 2
 	case buf[pos] == '\xE2' && buf[pos+1] == '\x80' && (buf[pos+2] == '\xA8' || buf[pos+2] == '\xA9'):
 		// LS|PS . LS|PS
-		*s = append(*s, buf[parser.buffer_pos:pos+3]...)
+		s = append(s, buf[parser.buffer_pos:pos+3]...)
 		parser.buffer_pos += 3
 	default:
-		return true
+		return s
 	}
 	parser.mark.index++
 	parser.mark.column = 0
 	parser.mark.line++
 	parser.unread--
-	return true
+	return s
 }
 
 // Get the next token.
@@ -1605,9 +1605,7 @@ func yaml_parser_scan_directive_name(parser *yaml_parser_t, start_mark yaml_mark
 
 	var s []byte
 	for is_alpha(parser.buffer, parser.buffer_pos) {
-		if !read(parser, &s) {
-			return false
-		}
+		s = read(parser, s)
 		if parser.unread < 1 && !yaml_parser_update_buffer(parser, 1) {
 			return false
 		}
@@ -1783,9 +1781,7 @@ func yaml_parser_scan_anchor(parser *yaml_parser_t, token *yaml_token_t, typ yam
 	}
 
 	for is_alpha(parser.buffer, parser.buffer_pos) {
-		if !read(parser, &s) {
-			return false
-		}
+		s = read(parser, s)
 		if parser.unread < 1 && !yaml_parser_update_buffer(parser, 1) {
 			return false
 		}
@@ -1929,18 +1925,14 @@ func yaml_parser_scan_tag_handle(parser *yaml_parser_t, directive bool, start_ma
 	var s []byte
 
 	// Copy the '!' character.
-	if !read(parser, &s) {
-		return false
-	}
+	s = read(parser, s)
 
 	// Copy all subsequent alphabetical and numerical characters.
 	if parser.unread < 1 && !yaml_parser_update_buffer(parser, 1) {
 		return false
 	}
 	for is_alpha(parser.buffer, parser.buffer_pos) {
-		if !read(parser, &s) {
-			return false
-		}
+		s = read(parser, s)
 		if parser.unread < 1 && !yaml_parser_update_buffer(parser, 1) {
 			return false
 		}
@@ -1948,9 +1940,7 @@ func yaml_parser_scan_tag_handle(parser *yaml_parser_t, directive bool, start_ma
 
 	// Check if the trailing character is '!' and copy it.
 	if parser.buffer[parser.buffer_pos] == '!' {
-		if !read(parser, &s) {
-			return false
-		}
+		s = read(parser, s)
 	} else {
 		// It's either the '!' tag or not really a tag handle.  If it's a %TAG
 		// directive, it's an error.  If it's a tag token, it must be a part of URI.
@@ -2005,9 +1995,7 @@ func yaml_parser_scan_tag_uri(parser *yaml_parser_t, directive bool, head []byte
 				return false
 			}
 		} else {
-			if !read(parser, &s) {
-				return false
-			}
+			s = read(parser, s)
 		}
 		if parser.unread < 1 && !yaml_parser_update_buffer(parser, 1) {
 			return false
@@ -2216,9 +2204,7 @@ func yaml_parser_scan_block_scalar(parser *yaml_parser_t, token *yaml_token_t, l
 
 		// Consume the current line.
 		for !is_breakz(parser.buffer, parser.buffer_pos) {
-			if !read(parser, &s) {
-				return false
-			}
+			s = read(parser, s)
 			if parser.unread < 1 && !yaml_parser_update_buffer(parser, 1) {
 				return false
 			}
@@ -2229,9 +2215,7 @@ func yaml_parser_scan_block_scalar(parser *yaml_parser_t, token *yaml_token_t, l
 			return false
 		}
 
-		if !read_line(parser, &leading_break) {
-			return false
-		}
+		leading_break = read_line(parser, leading_break)
 
 		// Eat the following intendation spaces and line breaks.
 		if !yaml_parser_scan_block_scalar_breaks(parser, &indent, &trailing_breaks, start_mark, &end_mark) {
@@ -2298,9 +2282,8 @@ func yaml_parser_scan_block_scalar_breaks(parser *yaml_parser_t, indent *int, br
 		if parser.unread < 2 && !yaml_parser_update_buffer(parser, 2) {
 			return false
 		}
-		if !read_line(parser, breaks) {
-			return false
-		}
+		// [Go] Should really be returning breaks instead.
+		*breaks = read_line(parser, *breaks)
 		*end_mark = parser.mark
 	}
 
@@ -2484,9 +2467,7 @@ func yaml_parser_scan_flow_scalar(parser *yaml_parser_t, token *yaml_token_t, si
 				}
 			} else {
 				// It is a non-escaped non-blank character.
-				if !read(parser, &s) {
-					return false
-				}
+				s = read(parser, s)
 			}
 			if parser.unread < 2 && !yaml_parser_update_buffer(parser, 2) {
 				return false
@@ -2513,9 +2494,7 @@ func yaml_parser_scan_flow_scalar(parser *yaml_parser_t, token *yaml_token_t, si
 			if is_blank(parser.buffer, parser.buffer_pos) {
 				// Consume a space or a tab character.
 				if !leading_blanks {
-					if !read(parser, &whitespaces) {
-						return false
-					}
+					whitespaces = read(parser, whitespaces)
 				} else {
 					skip(parser)
 				}
@@ -2527,14 +2506,10 @@ func yaml_parser_scan_flow_scalar(parser *yaml_parser_t, token *yaml_token_t, si
 				// Check if it is a first line break.
 				if !leading_blanks {
 					whitespaces = whitespaces[:0]
-					if !read_line(parser, &leading_break) {
-						return false
-					}
+					leading_break = read_line(parser, leading_break)
 					leading_blanks = true
 				} else {
-					if !read_line(parser, &trailing_breaks) {
-						return false
-					}
+					trailing_breaks = read_line(parser, trailing_breaks)
 				}
 			}
 			if parser.unread < 1 && !yaml_parser_update_buffer(parser, 1) {
@@ -2659,9 +2634,7 @@ func yaml_parser_scan_plain_scalar(parser *yaml_parser_t, token *yaml_token_t) b
 			}
 
 			// Copy the character.
-			if !read(parser, &s) {
-				return false
-			}
+			s = read(parser, s)
 
 			end_mark = parser.mark
 			if parser.unread < 2 && !yaml_parser_update_buffer(parser, 2) {
@@ -2691,9 +2664,7 @@ func yaml_parser_scan_plain_scalar(parser *yaml_parser_t, token *yaml_token_t) b
 
 				// Consume a space or a tab character.
 				if !leading_blanks {
-					if !read(parser, &whitespaces) {
-						return false
-					}
+					whitespaces = read(parser, whitespaces)
 				} else {
 					skip(parser)
 				}
@@ -2705,14 +2676,10 @@ func yaml_parser_scan_plain_scalar(parser *yaml_parser_t, token *yaml_token_t) b
 				// Check if it is a first line break.
 				if !leading_blanks {
 					whitespaces = whitespaces[:0]
-					if !read_line(parser, &leading_break) {
-						return false
-					}
+					leading_break = read_line(parser, leading_break)
 					leading_blanks = true
 				} else {
-					if !read_line(parser, &trailing_breaks) {
-						return false
-					}
+					trailing_breaks = read_line(parser, trailing_breaks)
 				}
 			}
 			if parser.unread < 1 && !yaml_parser_update_buffer(parser, 1) {

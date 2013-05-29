@@ -1,16 +1,8 @@
 package goyaml
 
-// #cgo LDFLAGS: -lm -lpthread
-// #cgo windows CFLAGS: -DYAML_DECLARE_STATIC=1 -Dstrdup=_strdup
-// #cgo CFLAGS: -I. -DHAVE_CONFIG_H=1
-//
-// #include "helpers.h"
-import "C"
-
 import (
 	"reflect"
 	"strconv"
-	"unsafe"
 )
 
 const (
@@ -31,22 +23,18 @@ type node struct {
 	anchors      map[string]*node
 }
 
-func stry(s *C.yaml_char_t) string {
-	return C.GoString((*C.char)(unsafe.Pointer(s)))
-}
-
 // ----------------------------------------------------------------------------
 // Parser, produces a node tree out of a libyaml event stream.
 
 type parser struct {
-	parser C.yaml_parser_t
-	event  C.yaml_event_t
+	parser yaml_parser_t
+	event  yaml_event_t
 	doc    *node
 }
 
 func newParser(b []byte) *parser {
 	p := parser{}
-	if C.yaml_parser_initialize(&p.parser) == 0 {
+	if !yaml_parser_initialize(&p.parser) {
 		panic("Failed to initialize YAML emitter")
 	}
 
@@ -54,35 +42,31 @@ func newParser(b []byte) *parser {
 		b = []byte{'\n'}
 	}
 
-	// How unsafe is this really?  Will this break if the GC becomes compacting?
-	// Probably not, otherwise that would likely break &parse below as well.
-	input := (*C.uchar)(unsafe.Pointer(&b[0]))
-	C.yaml_parser_set_input_string(&p.parser, input, (C.size_t)(len(b)))
+	yaml_parser_set_input_string(&p.parser, b)
 
 	p.skip()
-	if p.event._type != C.YAML_STREAM_START_EVENT {
-		panic("Expected stream start event, got " +
-			strconv.Itoa(int(p.event._type)))
+	if p.event.typ != yaml_STREAM_START_EVENT {
+		panic("Expected stream start event, got " + strconv.Itoa(int(p.event.typ)))
 	}
 	p.skip()
 	return &p
 }
 
 func (p *parser) destroy() {
-	if p.event._type != C.YAML_NO_EVENT {
-		C.yaml_event_delete(&p.event)
+	if p.event.typ != yaml_NO_EVENT {
+		yaml_event_delete(&p.event)
 	}
-	C.yaml_parser_delete(&p.parser)
+	yaml_parser_delete(&p.parser)
 }
 
 func (p *parser) skip() {
-	if p.event._type != C.YAML_NO_EVENT {
-		if p.event._type == C.YAML_STREAM_END_EVENT {
+	if p.event.typ != yaml_NO_EVENT {
+		if p.event.typ == yaml_STREAM_END_EVENT {
 			panic("Attempted to go past the end of stream. Corrupted value?")
 		}
-		C.yaml_event_delete(&p.event)
+		yaml_event_delete(&p.event)
 	}
-	if C.yaml_parser_parse(&p.parser, &p.event) == 0 {
+	if !yaml_parser_parse(&p.parser, &p.event) {
 		p.fail()
 	}
 }
@@ -91,54 +75,56 @@ func (p *parser) fail() {
 	var where string
 	var line int
 	if p.parser.problem_mark.line != 0 {
-		line = int(C.int(p.parser.problem_mark.line))
+		line = p.parser.problem_mark.line
 	} else if p.parser.context_mark.line != 0 {
-		line = int(C.int(p.parser.context_mark.line))
+		line = p.parser.context_mark.line
 	}
 	if line != 0 {
 		where = "line " + strconv.Itoa(line) + ": "
 	}
 	var msg string
-	if p.parser.problem != nil {
-		msg = C.GoString(p.parser.problem)
+	if len(p.parser.problem) > 0 {
+		msg = p.parser.problem
 	} else {
 		msg = "Unknown problem parsing YAML content"
 	}
 	panic(where + msg)
 }
 
-func (p *parser) anchor(n *node, anchor *C.yaml_char_t) {
+func (p *parser) anchor(n *node, anchor []byte) {
 	if anchor != nil {
-		p.doc.anchors[stry(anchor)] = n
+		p.doc.anchors[string(anchor)] = n
 	}
 }
 
 func (p *parser) parse() *node {
-	switch p.event._type {
-	case C.YAML_SCALAR_EVENT:
+	switch p.event.typ {
+	case yaml_SCALAR_EVENT:
 		return p.scalar()
-	case C.YAML_ALIAS_EVENT:
+	case yaml_ALIAS_EVENT:
 		return p.alias()
-	case C.YAML_MAPPING_START_EVENT:
+	case yaml_MAPPING_START_EVENT:
 		return p.mapping()
-	case C.YAML_SEQUENCE_START_EVENT:
+	case yaml_SEQUENCE_START_EVENT:
 		return p.sequence()
-	case C.YAML_DOCUMENT_START_EVENT:
+	case yaml_DOCUMENT_START_EVENT:
 		return p.document()
-	case C.YAML_STREAM_END_EVENT:
+	case yaml_STREAM_END_EVENT:
 		// Happens when attempting to decode an empty buffer.
 		return nil
 	default:
 		panic("Attempted to parse unknown event: " +
-			strconv.Itoa(int(p.event._type)))
+			strconv.Itoa(int(p.event.typ)))
 	}
 	panic("Unreachable")
 }
 
 func (p *parser) node(kind int) *node {
-	return &node{kind: kind,
-		line:   int(C.int(p.event.start_mark.line)),
-		column: int(C.int(p.event.start_mark.column))}
+	return &node{
+		kind:   kind,
+		line:   p.event.start_mark.line,
+		column: p.event.start_mark.column,
+	}
 }
 
 func (p *parser) document() *node {
@@ -147,38 +133,36 @@ func (p *parser) document() *node {
 	p.doc = n
 	p.skip()
 	n.children = append(n.children, p.parse())
-	if p.event._type != C.YAML_DOCUMENT_END_EVENT {
+	if p.event.typ != yaml_DOCUMENT_END_EVENT {
 		panic("Expected end of document event but got " +
-			strconv.Itoa(int(p.event._type)))
+			strconv.Itoa(int(p.event.typ)))
 	}
 	p.skip()
 	return n
 }
 
 func (p *parser) alias() *node {
-	alias := C.event_alias(&p.event)
 	n := p.node(aliasNode)
-	n.value = stry(alias.anchor)
+	n.value = string(p.event.anchor)
 	p.skip()
 	return n
 }
 
 func (p *parser) scalar() *node {
-	scalar := C.event_scalar(&p.event)
 	n := p.node(scalarNode)
-	n.value = stry(scalar.value)
-	n.tag = stry(scalar.tag)
-	n.implicit = (scalar.plain_implicit != 0)
-	p.anchor(n, scalar.anchor)
+	n.value = string(p.event.value)
+	n.tag = string(p.event.tag)
+	n.implicit = p.event.implicit
+	p.anchor(n, p.event.anchor)
 	p.skip()
 	return n
 }
 
 func (p *parser) sequence() *node {
 	n := p.node(sequenceNode)
-	p.anchor(n, C.event_sequence_start(&p.event).anchor)
+	p.anchor(n, p.event.anchor)
 	p.skip()
-	for p.event._type != C.YAML_SEQUENCE_END_EVENT {
+	for p.event.typ != yaml_SEQUENCE_END_EVENT {
 		n.children = append(n.children, p.parse())
 	}
 	p.skip()
@@ -187,9 +171,9 @@ func (p *parser) sequence() *node {
 
 func (p *parser) mapping() *node {
 	n := p.node(mappingNode)
-	p.anchor(n, C.event_mapping_start(&p.event).anchor)
+	p.anchor(n, p.event.anchor)
 	p.skip()
-	for p.event._type != C.YAML_MAPPING_END_EVENT {
+	for p.event.typ != yaml_MAPPING_END_EVENT {
 		n.children = append(n.children, p.parse(), p.parse())
 	}
 	p.skip()

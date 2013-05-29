@@ -12,105 +12,194 @@ import (
 var marshalIntTest = 123
 
 var marshalTests = []struct {
-	data  string
 	value interface{}
+	data  string
 }{
-	{"{}\n", &struct{}{}},
-	{"v: hi\n", map[string]string{"v": "hi"}},
-	{"v: hi\n", map[string]interface{}{"v": "hi"}},
-	{"v: \"true\"\n", map[string]string{"v": "true"}},
-	{"v: \"false\"\n", map[string]string{"v": "false"}},
-	{"v: true\n", map[string]interface{}{"v": true}},
-	{"v: false\n", map[string]interface{}{"v": false}},
-	{"v: 10\n", map[string]interface{}{"v": 10}},
-	{"v: -10\n", map[string]interface{}{"v": -10}},
-	{"v: 42\n", map[string]uint{"v": 42}},
-	{"v: 4294967296\n", map[string]interface{}{"v": int64(4294967296)}},
-	{"v: 4294967296\n", map[string]int64{"v": int64(4294967296)}},
-	{"v: 4294967296\n", map[string]uint64{"v": 4294967296}},
-	{"v: \"10\"\n", map[string]interface{}{"v": "10"}},
-	{"v: 0.1\n", map[string]interface{}{"v": 0.1}},
-	{"v: 0.1\n", map[string]interface{}{"v": float64(0.1)}},
-	{"v: -0.1\n", map[string]interface{}{"v": -0.1}},
-	{"v: .inf\n", map[string]interface{}{"v": math.Inf(+1)}},
-	{"v: -.inf\n", map[string]interface{}{"v": math.Inf(-1)}},
-	{"v: .nan\n", map[string]interface{}{"v": math.NaN()}},
-	{"v: null\n", map[string]interface{}{"v": nil}},
-	{"v: \"\"\n", map[string]interface{}{"v": ""}},
-	{"v:\n- A\n- B\n", map[string][]string{"v": []string{"A", "B"}}},
-	{"v:\n- A\n- 1\n", map[string][]interface{}{"v": []interface{}{"A", 1}}},
-	{"a:\n  b: c\n",
-		map[string]interface{}{"a": map[interface{}]interface{}{"b": "c"}}},
+	{
+		&struct{}{},
+		"{}\n",
+	}, {
+		map[string]string{"v": "hi"},
+		"v: hi\n",
+	}, {
+		map[string]interface{}{"v": "hi"},
+		"v: hi\n",
+	}, {
+		map[string]string{"v": "true"},
+		"v: \"true\"\n",
+	}, {
+		map[string]string{"v": "false"},
+		"v: \"false\"\n",
+	}, {
+		map[string]interface{}{"v": true},
+		"v: true\n",
+	}, {
+		map[string]interface{}{"v": false},
+		"v: false\n",
+	}, {
+		map[string]interface{}{"v": 10},
+		"v: 10\n",
+	}, {
+		map[string]interface{}{"v": -10},
+		"v: -10\n",
+	}, {
+		map[string]uint{"v": 42},
+		"v: 42\n",
+	}, {
+		map[string]interface{}{"v": int64(4294967296)},
+		"v: 4294967296\n",
+	}, {
+		map[string]int64{"v": int64(4294967296)},
+		"v: 4294967296\n",
+	}, {
+		map[string]uint64{"v": 4294967296},
+		"v: 4294967296\n",
+	}, {
+		map[string]interface{}{"v": "10"},
+		"v: \"10\"\n",
+	}, {
+		map[string]interface{}{"v": 0.1},
+		"v: 0.1\n",
+	}, {
+		map[string]interface{}{"v": float64(0.1)},
+		"v: 0.1\n",
+	}, {
+		map[string]interface{}{"v": -0.1},
+		"v: -0.1\n",
+	}, {
+		map[string]interface{}{"v": math.Inf(+1)},
+		"v: .inf\n",
+	}, {
+		map[string]interface{}{"v": math.Inf(-1)},
+		"v: -.inf\n",
+	}, {
+		map[string]interface{}{"v": math.NaN()},
+		"v: .nan\n",
+	}, {
+		map[string]interface{}{"v": nil},
+		"v: null\n",
+	}, {
+		map[string]interface{}{"v": ""},
+		"v: \"\"\n",
+	}, {
+		map[string][]string{"v": []string{"A", "B"}},
+		"v:\n- A\n- B\n",
+	}, {
+		map[string][]string{"v": []string{"A", "B\nC"}},
+		"v:\n- A\n- 'B\n\n  C'\n",
+	}, {
+		map[string][]interface{}{"v": []interface{}{"A", 1, map[string][]int{"B": []int{2, 3}}}},
+		"v:\n- A\n- 1\n- B:\n  - 2\n  - 3\n",
+	}, {
+		map[string]interface{}{"a": map[interface{}]interface{}{"b": "c"}},
+		"a:\n  b: c\n",
+	},
 
 	// Simple values.
-	{"123\n", &marshalIntTest},
+	{
+		&marshalIntTest,
+		"123\n",
+	},
 
 	// Structures
-	{"hello: world\n", &struct{ Hello string }{"world"}},
-	{"a:\n  b: c\n", &struct {
-		A struct {
-			B string
-		}
-	}{struct{ B string }{"c"}}},
-	{"a:\n  b: c\n", &struct {
-		A *struct {
-			B string
-		}
-	}{&struct{ B string }{"c"}}},
-	{"a: null\n", &struct {
-		A *struct {
-			B string
-		}
-	}{}},
-	{"a: 1\n", &struct{ A int }{1}},
-	{"a:\n- 1\n- 2\n", &struct{ A []int }{[]int{1, 2}}},
-	{"a: 1\n", &struct {
-		B int "a"
-	}{1}},
-	{"a: true\n", &struct{ A bool }{true}},
-
-	// Conditional flag
-	{"a: 1\n", &struct {
-		A int "a,omitempty"
-		B int "b,omitempty"
-	}{1, 0}},
-	{"{}\n", &struct {
-		A int "a,omitempty"
-		B int "b,omitempty"
-	}{0, 0}},
-	{"{}\n", &struct {
-		A *struct{ X int } "a,omitempty"
-		B int              "b,omitempty"
-	}{nil, 0}},
-
-	// Flow flag
-	{"a: [1, 2]\n", &struct {
-		A []int "a,flow"
-	}{[]int{1, 2}}},
-	{"a: {b: c}\n",
-		&struct {
-			A map[string]string "a,flow"
-		}{map[string]string{"b": "c"}}},
-	{"a: {b: c}\n",
+	{
+		&struct{ Hello string }{"world"},
+		"hello: world\n",
+	}, {
 		&struct {
 			A struct {
 				B string
+			}
+		}{struct{ B string }{"c"}},
+		"a:\n  b: c\n",
+	}, {
+		&struct {
+			A *struct {
+				B string
+			}
+		}{&struct{ B string }{"c"}},
+		"a:\n  b: c\n",
+	}, {
+		&struct {
+			A *struct {
+				B string
+			}
+		}{},
+		"a: null\n",
+	}, {
+		&struct{ A int }{1},
+		"a: 1\n",
+	}, {
+		&struct{ A []int }{[]int{1, 2}},
+		"a:\n- 1\n- 2\n",
+	}, {
+		&struct {
+			B int "a"
+		}{1},
+		"a: 1\n",
+	}, {
+		&struct{ A bool }{true},
+		"a: true\n",
+	},
+
+	// Conditional flag
+	{
+		&struct {
+			A int "a,omitempty"
+			B int "b,omitempty"
+		}{1, 0},
+		"a: 1\n",
+	}, {
+		&struct {
+			A int "a,omitempty"
+			B int "b,omitempty"
+		}{0, 0},
+		"{}\n",
+	}, {
+		&struct {
+			A *struct{ X int } "a,omitempty"
+			B int              "b,omitempty"
+		}{nil, 0},
+		"{}\n",
+	},
+
+	// Flow flag
+	{
+		&struct {
+			A []int "a,flow"
+		}{[]int{1, 2}},
+		"a: [1, 2]\n",
+	}, {
+		&struct {
+			A map[string]string "a,flow"
+		}{map[string]string{"b": "c", "d": "e"}},
+		"a: {b: c, d: e}\n",
+	}, {
+		&struct {
+			A struct {
+				B, D string
 			} "a,flow"
-		}{struct{ B string }{"c"}}},
+		}{struct{ B, D string }{"c", "e"}},
+		"a: {b: c, d: e}\n",
+	},
 
 	// Unexported field
-	{"a: 1\n",
+	{
 		&struct {
 			u int
 			A int
-		}{0, 1}},
+		}{0, 1},
+		"a: 1\n",
+	},
 
 	// Ignored field
-	{"a: 1\n",
+	{
 		&struct {
 			A int
 			B int "-"
-		}{1, 2}},
+		}{1, 2},
+		"a: 1\n",
+	},
 }
 
 func (s *S) TestMarshal(c *C) {

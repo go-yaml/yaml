@@ -1,7 +1,6 @@
 package goyaml_test
 
 import (
-	"io/ioutil"
 	. "launchpad.net/gocheck"
 	"launchpad.net/goyaml"
 	"math"
@@ -438,31 +437,31 @@ func (s *S) TestUnmarshalWithFalseSetterIgnoresValue(c *C) {
 	c.Assert(m["ghi"].value, Equals, 3)
 }
 
-var data []byte
-func init() {
-	var err error
-	data, err = ioutil.ReadFile("/tmp/file.yaml")
-	if err != nil {
-		panic(err)
-	}
-}
-
-func (s *S) BenchmarkUnmarshal(c *C) {
-	var err error
-	for i := 0; i < c.N; i++ {
-		var v map[string]interface{}
-		err = goyaml.Unmarshal(data, &v)
-	}
-	if err != nil {
-		panic(err)
-	}
-}
-
-func (s *S) BenchmarkMarshal(c *C) {
-	var v map[string]interface{}
-	goyaml.Unmarshal(data, &v)
-	c.ResetTimer()
-	for i := 0; i < c.N; i++ {
-		goyaml.Marshal(&v)
-	}
-}
+//var data []byte
+//func init() {
+//	var err error
+//	data, err = ioutil.ReadFile("/tmp/file.yaml")
+//	if err != nil {
+//		panic(err)
+//	}
+//}
+//
+//func (s *S) BenchmarkUnmarshal(c *C) {
+//	var err error
+//	for i := 0; i < c.N; i++ {
+//		var v map[string]interface{}
+//		err = goyaml.Unmarshal(data, &v)
+//	}
+//	if err != nil {
+//		panic(err)
+//	}
+//}
+//
+//func (s *S) BenchmarkMarshal(c *C) {
+//	var v map[string]interface{}
+//	goyaml.Unmarshal(data, &v)
+//	c.ResetTimer()
+//	for i := 0; i < c.N; i++ {
+//		goyaml.Marshal(&v)
+//	}
+//}

@@ -200,6 +200,15 @@ var marshalTests = []struct {
 		}{1, 2},
 		"a: 1\n",
 	},
+
+	// Struct inlining
+	{
+		&struct {
+			A int
+			C struct{ B int } `yaml:",inline"`
+		}{1, struct{ B int }{2}},
+		"a: 1\nb: 2\n",
+	},
 }
 
 func (s *S) TestMarshal(c *C) {

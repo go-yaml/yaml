@@ -445,7 +445,13 @@ func (d *decoder) mappingStruct(n *node, out reflect.Value) (good bool) {
 			continue
 		}
 		if info, ok := fieldsMap[name.String()]; ok {
-			d.unmarshal(n.children[i+1], out.Field(info.Num))
+			var field reflect.Value
+			if info.Inline == nil {
+				field = out.Field(info.Num)
+			} else {
+				field = out.FieldByIndex(info.Inline)
+			}
+			d.unmarshal(n.children[i+1], field)
 		}
 	}
 	return true

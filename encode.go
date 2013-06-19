@@ -109,13 +109,18 @@ func (e *encoder) mapv(tag string, in reflect.Value) {
 }
 
 func (e *encoder) structv(tag string, in reflect.Value) {
-	fields, err := getStructFields(in.Type())
+	sinfo, err := getStructInfo(in.Type())
 	if err != nil {
 		panic(err)
 	}
 	e.mappingv(tag, func() {
-		for _, info := range fields.List {
-			value := in.Field(info.Num)
+		for _, info := range sinfo.FieldsList {
+			var value reflect.Value
+			if info.Inline == nil {
+				value = in.Field(info.Num)
+			} else {
+				value = in.FieldByIndex(info.Inline)
+			}
 			if info.OmitEmpty && isZero(value) {
 				continue
 			}

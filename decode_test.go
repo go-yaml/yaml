@@ -332,6 +332,24 @@ var unmarshalTests = []struct {
 			"Generic line break (glyphed)\n" +
 			"Line separator\u2028Paragraph separator\u2029",
 	},
+
+	// Struct inlining
+	{
+		"a: 1\nb: 2\nc: 3\n",
+		&struct {
+			A int
+			C inlineB `yaml:",inline"`
+		}{1, inlineB{2, inlineC{3}}},
+	},
+}
+
+type inlineB struct {
+	B       int
+	inlineC `yaml:",inline"`
+}
+
+type inlineC struct {
+	C int
 }
 
 func (s *S) TestUnmarshal(c *C) {

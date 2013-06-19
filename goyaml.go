@@ -1,12 +1,4 @@
-//
-// goyaml - YAML support for the Go language
-//
-//   https://wiki.ubuntu.com/goyaml
-//
-// Copyright (c) 2011 Canonical Ltd.
-//
-// Written by Gustavo Niemeyer <gustavo.niemeyer@canonical.com>
-//
+// Package goyaml implements YAML support for the Go language.
 package goyaml
 
 import (
@@ -74,15 +66,19 @@ type Getter interface {
 // tag value may be used to tweak the name. Everything before the first
 // comma in the field tag will be used as the name. The values following
 // the comma are used to tweak the marshalling process (see Marshal).
+// Conflicting names result in a runtime error.
 //
 // For example:
 //
 //     type T struct {
-//         F int "a,omitempty"
+//         F int `yaml:"a,omitempty"`
 //         B int
 //     }
 //     var T t
 //     goyaml.Unmarshal([]byte("a: 1\nb: 2"), &t)
+//
+// See the documentation of Marshal for the format of tags and a list of
+// supported tag options.
 //
 func Unmarshal(in []byte, out interface{}) (err error) {
 	defer handleErr(&err)
@@ -104,9 +100,8 @@ func Unmarshal(in []byte, out interface{}) (err error) {
 // The lowercased field name is used as the key for each exported field,
 // but this behavior may be changed using the respective field tag.
 // The tag may also contain flags to tweak the marshalling behavior for
-// the field. The tag formats accepted are:
-//
-//     "[<key>][,<flag1>[,<flag2>]]"
+// the field. Conflicting names result in a runtime error. The tag format
+// accepted is:
 //
 //     `(...) yaml:"[<key>][,<flag1>[,<flag2>]]" (...)`
 //
@@ -118,6 +113,10 @@ func Unmarshal(in []byte, out interface{}) (err error) {
 //
 //     flow         Marshal using a flow style (useful for structs,
 //                  sequences and maps.
+//
+//     inline       Inline the struct it's applied to, so its fields
+//                  are processed as if they were part of the outer
+//                  struct.
 //
 // In addition, if the key is "-", the field is ignored.
 //
@@ -131,7 +130,7 @@ func Unmarshal(in []byte, out interface{}) (err error) {
 //     goyaml.Marshal(&T{F: 1}} // Returns "a: 1\nb: 0\n"
 //
 func Marshal(in interface{}) (out []byte, err error) {
-	//defer handleErr(&err)
+	defer handleErr(&err)
 	e := newEncoder()
 	defer e.destroy()
 	e.marshal("", reflect.ValueOf(in))
@@ -145,9 +144,15 @@ func Marshal(in interface{}) (out []byte, err error) {
 
 // The code in this section was copied from gobson.
 
-type structFields struct {
-	Map  map[string]fieldInfo
-	List []fieldInfo
+// structInfo holds details for the serialization of fields of
+// a given struct.
+type structInfo struct {
+	FieldsMap  map[string]fieldInfo
+	FieldsList []fieldInfo
+
+	// InlineMap is the number of the field in the struct that
+	// contains an ,inline map, or -1 if there's none.
+	InlineMap int
 }
 
 type fieldInfo struct {
@@ -155,9 +160,12 @@ type fieldInfo struct {
 	Num       int
 	OmitEmpty bool
 	Flow      bool
+
+	// Inline holds the field index if the field is part of an inlined struct.
+	Inline []int
 }
 
-var fieldMap = make(map[reflect.Type]*structFields)
+var structMap = make(map[reflect.Type]*structInfo)
 var fieldMapMutex sync.RWMutex
 
 type externalPanic string
@@ -166,17 +174,18 @@ func (e externalPanic) String() string {
 	return string(e)
 }
 
-func getStructFields(st reflect.Type) (*structFields, error) {
+func getStructInfo(st reflect.Type) (*structInfo, error) {
 	fieldMapMutex.RLock()
-	fields, found := fieldMap[st]
+	sinfo, found := structMap[st]
 	fieldMapMutex.RUnlock()
 	if found {
-		return fields, nil
+		return sinfo, nil
 	}
 
 	n := st.NumField()
 	fieldsMap := make(map[string]fieldInfo)
-	fieldsList := make([]fieldInfo, n)
+	fieldsList := make([]fieldInfo, 0, n)
+	inlineMap := -1
 	for i := 0; i != n; i++ {
 		field := st.Field(i)
 		if field.PkgPath != "" {
@@ -193,24 +202,7 @@ func getStructFields(st reflect.Type) (*structFields, error) {
 			continue
 		}
 
-		// XXX Drop this after a few releases.
-		if s := strings.Index(tag, "/"); s >= 0 {
-			recommend := tag[:s]
-			for _, c := range tag[s+1:] {
-				switch c {
-				case 'c':
-					recommend += ",omitempty"
-				case 'f':
-					recommend += ",flow"
-				default:
-					msg := fmt.Sprintf("Unsupported flag %q in tag %q of type %s", string([]byte{uint8(c)}), tag, st)
-					panic(externalPanic(msg))
-				}
-			}
-			msg := fmt.Sprintf("Replace tag %q in field %s of type %s by %q", tag, field.Name, st, recommend)
-			panic(externalPanic(msg))
-		}
-
+		inline := false
 		fields := strings.Split(tag, ",")
 		if len(fields) > 1 {
 			for _, flag := range fields[1:] {
@@ -219,12 +211,49 @@ func getStructFields(st reflect.Type) (*structFields, error) {
 					info.OmitEmpty = true
 				case "flow":
 					info.Flow = true
+				case "inline":
+					inline = true
 				default:
 					msg := fmt.Sprintf("Unsupported flag %q in tag %q of type %s", flag, tag, st)
 					panic(externalPanic(msg))
 				}
 			}
 			tag = fields[0]
+		}
+
+		if inline {
+			switch field.Type.Kind() {
+			//case reflect.Map:
+			//	if inlineMap >= 0 {
+			//		return nil, errors.New("Multiple ,inline maps in struct " + st.String())
+			//	}
+			//	if field.Type.Key() != reflect.TypeOf("") {
+			//		return nil, errors.New("Option ,inline needs a map with string keys in struct " + st.String())
+			//	}
+			//	inlineMap = info.Num
+			case reflect.Struct:
+				sinfo, err := getStructInfo(field.Type)
+				if err != nil {
+					return nil, err
+				}
+				for _, finfo := range sinfo.FieldsList {
+					if _, found := fieldsMap[finfo.Key]; found {
+						msg := "Duplicated key '" + finfo.Key + "' in struct " + st.String()
+						return nil, errors.New(msg)
+					}
+					if finfo.Inline == nil {
+						finfo.Inline = []int{i, finfo.Num}
+					} else {
+						finfo.Inline = append([]int{i}, finfo.Inline...)
+					}
+					fieldsMap[finfo.Key] = finfo
+					fieldsList = append(fieldsList, finfo)
+				}
+			default:
+				//panic("Option ,inline needs a struct value or map field")
+				panic("Option ,inline needs a struct value field")
+			}
+			continue
 		}
 
 		if tag != "" {
@@ -238,16 +267,16 @@ func getStructFields(st reflect.Type) (*structFields, error) {
 			return nil, errors.New(msg)
 		}
 
-		fieldsList[len(fieldsMap)] = info
+		fieldsList = append(fieldsList, info)
 		fieldsMap[info.Key] = info
 	}
 
-	fields = &structFields{fieldsMap, fieldsList[:len(fieldsMap)]}
+	sinfo = &structInfo{fieldsMap, fieldsList, inlineMap}
 
 	fieldMapMutex.Lock()
-	fieldMap[st] = fields
+	structMap[st] = sinfo
 	fieldMapMutex.Unlock()
-	return fields, nil
+	return sinfo, nil
 }
 
 func isZero(v reflect.Value) bool {

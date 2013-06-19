@@ -433,18 +433,17 @@ func (d *decoder) mapping(n *node, out reflect.Value) (good bool) {
 }
 
 func (d *decoder) mappingStruct(n *node, out reflect.Value) (good bool) {
-	fields, err := getStructFields(out.Type())
+	sinfo, err := getStructInfo(out.Type())
 	if err != nil {
 		panic(err)
 	}
 	name := settableValueOf("")
-	fieldsMap := fields.Map
 	l := len(n.children)
 	for i := 0; i < l; i += 2 {
 		if !d.unmarshal(n.children[i], name) {
 			continue
 		}
-		if info, ok := fieldsMap[name.String()]; ok {
+		if info, ok := sinfo.FieldsMap[name.String()]; ok {
 			var field reflect.Value
 			if info.Inline == nil {
 				field = out.Field(info.Num)

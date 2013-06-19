@@ -205,9 +205,9 @@ var marshalTests = []struct {
 	{
 		&struct {
 			A int
-			C struct{ B int } `yaml:",inline"`
-		}{1, struct{ B int }{2}},
-		"a: 1\nb: 2\n",
+			C inlineB `yaml:",inline"`
+		}{1, inlineB{2, inlineC{3}}},
+		"a: 1\nb: 2\nc: 3\n",
 	},
 }
 
@@ -219,17 +219,25 @@ func (s *S) TestMarshal(c *C) {
 	}
 }
 
-//var unmarshalErrorTests = []struct{data, error string}{
-//    {"v: !!float 'error'", "Can't decode !!str 'error' as a !!float"},
-//}
-//
-//func (s *S) TestUnmarshalErrors(c *C) {
-//    for _, item := range unmarshalErrorTests {
-//        var value interface{}
-//        err := goyaml.Unmarshal([]byte(item.data), &value)
-//        c.Assert(err, Matches, item.error)
-//    }
-//}
+var marshalErrorTests = []struct {
+	value interface{}
+	error string
+}{
+	{
+		&struct {
+			B       int
+			inlineB ",inline"
+		}{1, inlineB{2, inlineC{3}}},
+		`Duplicated key 'b' in struct struct \{ B int; .*`,
+	},
+}
+
+func (s *S) TestMarshalErrors(c *C) {
+	for _, item := range marshalErrorTests {
+		_, err := goyaml.Marshal(item.value)
+		c.Assert(err, ErrorMatches, item.error)
+	}
+}
 
 var marshalTaggedIfaceTest interface{} = &struct{ A string }{"B"}
 

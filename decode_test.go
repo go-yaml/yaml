@@ -320,12 +320,21 @@ var unmarshalTests = []struct {
 
 	// Struct inlining
 	{
-		"a: 1\nb: 2\n",
+		"a: 1\nb: 2\nc: 3\n",
 		&struct {
 			A int
-			C struct{ B int } `yaml:",inline"`
-		}{1, struct{ B int }{2}},
+			C inlineB `yaml:",inline"`
+		}{1, inlineB{2, inlineC{3}}},
 	},
+}
+
+type inlineB struct {
+	B int
+	inlineC `yaml:",inline"`
+}
+
+type inlineC struct {
+	C int
 }
 
 func (s *S) TestUnmarshal(c *C) {

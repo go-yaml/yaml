@@ -2520,7 +2520,7 @@ func yaml_parser_scan_flow_scalar(parser *yaml_parser_t, token *yaml_token_t, si
 		// Join the whitespaces or fold line breaks.
 		if leading_blanks {
 			// Do we need to fold line breaks?
-			if leading_break[0] == '\n' {
+			if len(leading_break) > 0 && leading_break[0] == '\n' {
 				if len(trailing_breaks) == 0 {
 					s = append(s, ' ')
 				} else {

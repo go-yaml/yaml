@@ -300,7 +300,7 @@ var unmarshalTests = []struct {
 		&struct{ B []int }{[]int{1, 2}},
 	},
 
-	// BUG #1133337
+	// Bug #1133337
 	{
 		"foo: ''",
 		map[string]*string{"foo": new(string)},
@@ -317,22 +317,46 @@ var unmarshalTests = []struct {
 			B int "-"
 		}{1, 0},
 	},
+
+	// Bug #1191981
+	{
+		"" +
+			"%YAML 1.1\n" +
+			"--- !!str\n" +
+			`"Generic line break (no glyph)\n\` + "\n" +
+			` Generic line break (glyphed)\n\` + "\n" +
+			` Line separator\u2028\` + "\n" +
+			` Paragraph separator\u2029"` + "\n",
+		"" +
+			"Generic line break (no glyph)\n" +
+			"Generic line break (glyphed)\n" +
+			"Line separator\u2028Paragraph separator\u2029",
+	},
 }
 
 func (s *S) TestUnmarshal(c *C) {
 	for i, item := range unmarshalTests {
 		t := reflect.ValueOf(item.value).Type()
 		var value interface{}
-		if t.Kind() == reflect.Map {
+		switch t.Kind() {
+		case reflect.Map:
 			value = reflect.MakeMap(t).Interface()
-		} else {
+		case reflect.String:
+			t := reflect.ValueOf(item.value).Type()
+			v := reflect.New(t)
+			value = v.Interface()
+		default:
 			pt := reflect.ValueOf(item.value).Type()
 			pv := reflect.New(pt.Elem())
 			value = pv.Interface()
 		}
 		err := goyaml.Unmarshal([]byte(item.data), value)
 		c.Assert(err, IsNil, Commentf("Item #%d", i))
-		c.Assert(value, DeepEquals, item.value)
+		if t.Kind() == reflect.String {
+			c.Assert(*value.(*string), Equals, item.value, Commentf("Item #%d", i))
+		} else {
+			c.Assert(value, DeepEquals, item.value, Commentf("Item #%d", i))
+		}
 	}
 }
 

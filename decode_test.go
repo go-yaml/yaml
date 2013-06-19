@@ -344,7 +344,7 @@ var unmarshalTests = []struct {
 }
 
 type inlineB struct {
-	B int
+	B       int
 	inlineC `yaml:",inline"`
 }
 

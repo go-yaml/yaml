@@ -162,7 +162,7 @@ type fieldInfo struct {
 	Flow      bool
 
 	// Inline holds the field index if the field is part of an inlined struct.
-	Inline    []int
+	Inline []int
 }
 
 var structMap = make(map[reflect.Type]*structInfo)

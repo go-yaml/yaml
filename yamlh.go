@@ -97,7 +97,7 @@ type yaml_mapping_style_t yaml_style_t
 // Mapping styles.
 const (
 	// Let the emitter choose the style.
-	YAML_ANY_MAPPING_STYLE yaml_mapping_style_t = iota
+	yaml_ANY_MAPPING_STYLE yaml_mapping_style_t = iota
 
 	yaml_BLOCK_MAPPING_STYLE // The block mapping style.
 	yaml_FLOW_MAPPING_STYLE  // The flow mapping style.

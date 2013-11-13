@@ -315,6 +315,11 @@ func (d *decoder) scalar(n *node, out reflect.Value) (good bool) {
 				out.SetInt(resolved)
 				good = true
 			}
+		case float64:
+			if resolved < 1<<63-1 && !out.OverflowInt(int64(resolved)) {
+				out.SetInt(int64(resolved))
+				good = true
+			}
 		}
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
 		switch resolved := resolved.(type) {
@@ -328,6 +333,11 @@ func (d *decoder) scalar(n *node, out reflect.Value) (good bool) {
 				out.SetUint(uint64(resolved))
 				good = true
 			}
+		case float64:
+			if resolved < 1<<64-1 && !out.OverflowUint(uint64(resolved)) {
+				out.SetUint(uint64(resolved))
+				good = true
+			}
 		}
 	case reflect.Bool:
 		switch resolved := resolved.(type) {
@@ -337,6 +347,12 @@ func (d *decoder) scalar(n *node, out reflect.Value) (good bool) {
 		}
 	case reflect.Float32, reflect.Float64:
 		switch resolved := resolved.(type) {
+		case int:
+			out.SetFloat(float64(resolved))
+			good = true
+		case int64:
+			out.SetFloat(float64(resolved))
+			good = true
 		case float64:
 			out.SetFloat(resolved)
 			good = true

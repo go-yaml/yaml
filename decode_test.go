@@ -224,6 +224,15 @@ var unmarshalTests = []struct {
 		"a: 1",
 		&struct{ A int }{1},
 	}, {
+		"a: 1",
+		&struct{ A float64 }{1},
+	}, {
+		"a: 1.0",
+		&struct{ A int }{1},
+	}, {
+		"a: 1.0",
+		&struct{ A uint }{1},
+	}, {
 		"a: [1, 2]",
 		&struct{ A []int }{[]int{1, 2}},
 	}, {

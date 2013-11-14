@@ -93,6 +93,9 @@ var marshalTests = []struct {
 	}, {
 		map[string]interface{}{"a": map[interface{}]interface{}{"b": "c"}},
 		"a:\n  b: c\n",
+	}, {
+		map[string]interface{}{"a": "-"},
+		"a: '-'\n",
 	},
 
 	// Simple values.

@@ -393,6 +393,7 @@ var unmarshalErrorTests = []struct {
 	{"v:\n- [A,", "YAML error: line 2: did not find expected node content"},
 	{"a: *b\n", "YAML error: Unknown anchor 'b' referenced"},
 	{"a: &a\n  b: *a\n", "YAML error: Anchor 'a' value contains itself"},
+	{"value: -", "YAML error: block sequence entries are not allowed in this context"},
 }
 
 func (s *S) TestUnmarshalErrors(c *C) {

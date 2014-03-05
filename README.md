@@ -3,14 +3,12 @@
 This package is a pure port of the [libyaml](http://pyyaml.org/wiki/LibYAML)
 C library for the Go language.
 
-Import path
------------
+The import path for the package is gonuts.org/v1/yaml. To install it, run:
 
-The yaml package should be imported as:
+    go get gonuts.org/v1/yaml
 
-  * [gonuts.org/v1/yaml](https://gonuts.org/v1/yaml)
+If opened in a browser, the import path leads to the API documentation:
 
-This URL works with "go get", and it leads to the package documentation
-if opened with a browser.
+  * [https://gonuts.org/v1/yaml](https://gonuts.org/v1/yaml)
 
 The package API for yaml v1 will remain stable as described in [gonuts.org](https://gonuts.org).

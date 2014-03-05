@@ -1,8 +1,8 @@
-package goyaml_test
+package yaml_test
 
 import (
 	. "launchpad.net/gocheck"
-	"launchpad.net/goyaml"
+	"gonuts.org/v1/yaml"
 	"math"
 	"reflect"
 )
@@ -377,7 +377,7 @@ func (s *S) TestUnmarshal(c *C) {
 			pv := reflect.New(pt.Elem())
 			value = pv.Interface()
 		}
-		err := goyaml.Unmarshal([]byte(item.data), value)
+		err := yaml.Unmarshal([]byte(item.data), value)
 		c.Assert(err, IsNil, Commentf("Item #%d", i))
 		if t.Kind() == reflect.String {
 			c.Assert(*value.(*string), Equals, item.value, Commentf("Item #%d", i))
@@ -389,7 +389,7 @@ func (s *S) TestUnmarshal(c *C) {
 
 func (s *S) TestUnmarshalNaN(c *C) {
 	value := map[string]interface{}{}
-	err := goyaml.Unmarshal([]byte("notanum: .NaN"), &value)
+	err := yaml.Unmarshal([]byte("notanum: .NaN"), &value)
 	c.Assert(err, IsNil)
 	c.Assert(math.IsNaN(value["notanum"].(float64)), Equals, true)
 }
@@ -408,7 +408,7 @@ var unmarshalErrorTests = []struct {
 func (s *S) TestUnmarshalErrors(c *C) {
 	for _, item := range unmarshalErrorTests {
 		var value interface{}
-		err := goyaml.Unmarshal([]byte(item.data), &value)
+		err := yaml.Unmarshal([]byte(item.data), &value)
 		c.Assert(err, ErrorMatches, item.error, Commentf("Partial unmarshal: %#v", value))
 	}
 }
@@ -449,7 +449,7 @@ type typeWithSetterField struct {
 func (s *S) TestUnmarshalWithSetter(c *C) {
 	for _, item := range setterTests {
 		obj := &typeWithSetterField{}
-		err := goyaml.Unmarshal([]byte(item.data), obj)
+		err := yaml.Unmarshal([]byte(item.data), obj)
 		c.Assert(err, IsNil)
 		c.Assert(obj.Field, NotNil,
 			Commentf("Pointer not initialized (%#v)", item.value))
@@ -460,7 +460,7 @@ func (s *S) TestUnmarshalWithSetter(c *C) {
 
 func (s *S) TestUnmarshalWholeDocumentWithSetter(c *C) {
 	obj := &typeWithSetter{}
-	err := goyaml.Unmarshal([]byte(setterTests[0].data), obj)
+	err := yaml.Unmarshal([]byte(setterTests[0].data), obj)
 	c.Assert(err, IsNil)
 	c.Assert(obj.tag, Equals, setterTests[0].tag)
 	value, ok := obj.value.(map[interface{}]interface{})
@@ -478,7 +478,7 @@ func (s *S) TestUnmarshalWithFalseSetterIgnoresValue(c *C) {
 
 	m := map[string]*typeWithSetter{}
 	data := "{abc: 1, def: 2, ghi: 3, jkl: 4}"
-	err := goyaml.Unmarshal([]byte(data), m)
+	err := yaml.Unmarshal([]byte(data), m)
 	c.Assert(err, IsNil)
 	c.Assert(m["abc"], NotNil)
 	c.Assert(m["def"], IsNil)
@@ -502,7 +502,7 @@ func (s *S) TestUnmarshalWithFalseSetterIgnoresValue(c *C) {
 //	var err error
 //	for i := 0; i < c.N; i++ {
 //		var v map[string]interface{}
-//		err = goyaml.Unmarshal(data, &v)
+//		err = yaml.Unmarshal(data, &v)
 //	}
 //	if err != nil {
 //		panic(err)
@@ -511,9 +511,9 @@ func (s *S) TestUnmarshalWithFalseSetterIgnoresValue(c *C) {
 //
 //func (s *S) BenchmarkMarshal(c *C) {
 //	var v map[string]interface{}
-//	goyaml.Unmarshal(data, &v)
+//	yaml.Unmarshal(data, &v)
 //	c.ResetTimer()
 //	for i := 0; i < c.N; i++ {
-//		goyaml.Marshal(&v)
+//		yaml.Marshal(&v)
 //	}
 //}

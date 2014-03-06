@@ -20,23 +20,23 @@ features are not hard to add, and will be introduced as necessary.
 Installation and usage
 ----------------------
 
-The import path for the package is *gonuts.org/v1/yaml*.
+The import path for the package is *gopkg.in/v1/yaml*.
 
 To install it, run:
 
-    go get gonuts.org/v1/yaml
+    go get gopkg.in/v1/yaml
 
 API documentation
 -----------------
 
 If opened in a browser, the import path itself leads to the API documentation:
 
-  * [https://gonuts.org/v1/yaml](https://gonuts.org/v1/yaml)
+  * [https://gopkg.in/v1/yaml](https://gopkg.in/v1/yaml)
 
 API stability
 -------------
 
-The package API for yaml v1 will remain stable as described in [gonuts.org](https://gonuts.org).
+The package API for yaml v1 will remain stable as described in [gopkg.in](https://gopkg.in).
 
 
 License
@@ -55,7 +55,7 @@ import (
         "fmt"
         "log"
 
-        "gonuts.org/v1/yaml"
+        "gopkg.in/v1/yaml"
 )
 
 var data = `

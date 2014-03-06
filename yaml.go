@@ -148,7 +148,7 @@ func Marshal(in interface{}) (out []byte, err error) {
 // --------------------------------------------------------------------------
 // Maintain a mapping of keys to structure field indexes
 
-// The code in this section was copied from gobson.
+// The code in this section was copied from mgo/bson.
 
 // structInfo holds details for the serialization of fields of
 // a given struct.

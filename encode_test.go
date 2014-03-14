@@ -3,7 +3,7 @@ package yaml_test
 import (
 	"fmt"
 	. "launchpad.net/gocheck"
-	"gonuts.org/v1/yaml"
+	"gopkg.in/v1/yaml"
 	"math"
 	"strconv"
 	"strings"

@@ -113,13 +113,8 @@ func resolve(tag string, in string) (rtag string, out interface{}) {
 
 	case 'D', 'S':
 		// Int, float, or timestamp.
-		for i := 0; i != len(in); i++ {
-			if in[i] == '_' {
-				in = strings.Replace(in, "_", "", -1)
-				break
-			}
-		}
-		intv, err := strconv.ParseInt(in, 0, 64)
+		plain := strings.Replace(in, "_", "", -1)
+		intv, err := strconv.ParseInt(plain, 0, 64)
 		if err == nil {
 			if intv == int64(int(intv)) {
 				return "!!int", int(intv)
@@ -127,17 +122,17 @@ func resolve(tag string, in string) (rtag string, out interface{}) {
 				return "!!int", intv
 			}
 		}
-		floatv, err := strconv.ParseFloat(in, 64)
+		floatv, err := strconv.ParseFloat(plain, 64)
 		if err == nil {
 			return "!!float", floatv
 		}
-		if strings.HasPrefix(in, "0b") {
-			intv, err := strconv.ParseInt(in[2:], 2, 64)
+		if strings.HasPrefix(plain, "0b") {
+			intv, err := strconv.ParseInt(plain[2:], 2, 64)
 			if err == nil {
 				return "!!int", int(intv)
 			}
-		} else if strings.HasPrefix(in, "-0b") {
-			intv, err := strconv.ParseInt(in[3:], 2, 64)
+		} else if strings.HasPrefix(plain, "-0b") {
+			intv, err := strconv.ParseInt(plain[3:], 2, 64)
 			if err == nil {
 				return "!!int", -int(intv)
 			}

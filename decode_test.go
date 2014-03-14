@@ -350,6 +350,20 @@ var unmarshalTests = []struct {
 			C inlineB `yaml:",inline"`
 		}{1, inlineB{2, inlineC{3}}},
 	},
+
+	// bug 1243827
+	{
+		"a: -b_c",
+		map[string]interface{}{"a": "-b_c"},
+	},
+	{
+		"a: +b_c",
+		map[string]interface{}{"a": "+b_c"},
+	},
+	{
+		"a: 50cent_of_dollar",
+		map[string]interface{}{"a": "50cent_of_dollar"},
+	},
 }
 
 type inlineB struct {

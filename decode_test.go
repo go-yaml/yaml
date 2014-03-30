@@ -2,7 +2,7 @@ package yaml_test
 
 import (
 	. "launchpad.net/gocheck"
-	"gopkg.in/v1/yaml"
+	"gopkg.in/yaml.v1"
 	"math"
 	"reflect"
 )

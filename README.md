@@ -20,18 +20,18 @@ features are not hard to add, and will be introduced as necessary.
 Installation and usage
 ----------------------
 
-The import path for the package is *gopkg.in/v1/yaml*.
+The import path for the package is *gopkg.in/yaml.v1*.
 
 To install it, run:
 
-    go get gopkg.in/v1/yaml
+    go get gopkg.in/yaml.v1
 
 API documentation
 -----------------
 
 If opened in a browser, the import path itself leads to the API documentation:
 
-  * [https://gopkg.in/v1/yaml](https://gopkg.in/v1/yaml)
+  * [https://gopkg.in/yaml.v1](https://gopkg.in/yaml.v1)
 
 API stability
 -------------
@@ -55,7 +55,7 @@ import (
         "fmt"
         "log"
 
-        "gopkg.in/v1/yaml"
+        "gopkg.in/yaml.v1"
 )
 
 var data = `

@@ -1,10 +1,11 @@
 package yaml_test
 
 import (
-	. "launchpad.net/gocheck"
+	. "gopkg.in/check.v1"
 	"gopkg.in/yaml.v1"
 	"math"
 	"reflect"
+	"time"
 )
 
 var unmarshalIntTest = 123
@@ -363,6 +364,12 @@ var unmarshalTests = []struct {
 	{
 		"a: 50cent_of_dollar",
 		map[string]interface{}{"a": "50cent_of_dollar"},
+	},
+
+	// Duration
+	{
+		"a: 3s",
+		map[string]time.Duration{"a": 3 * time.Second},
 	},
 }
 

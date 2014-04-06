@@ -4,6 +4,7 @@ import (
 	"reflect"
 	"sort"
 	"strconv"
+	"time"
 )
 
 type encoder struct {
@@ -85,7 +86,11 @@ func (e *encoder) marshal(tag string, in reflect.Value) {
 	case reflect.String:
 		e.stringv(tag, in)
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-		e.intv(tag, in)
+		if in.Type() == durationType {
+			e.stringv(tag, reflect.ValueOf(in.Interface().(time.Duration).String()))
+		} else {
+			e.intv(tag, in)
+		}
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
 		e.uintv(tag, in)
 	case reflect.Float32, reflect.Float64:

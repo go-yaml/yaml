@@ -3,6 +3,7 @@ package yaml
 import (
 	"reflect"
 	"strconv"
+	"time"
 )
 
 const (
@@ -279,6 +280,8 @@ func (d *decoder) alias(n *node, out reflect.Value) (good bool) {
 	return good
 }
 
+var durationType = reflect.TypeOf(time.Duration(0))
+
 func (d *decoder) scalar(n *node, out reflect.Value) (good bool) {
 	var tag string
 	var resolved interface{}
@@ -320,6 +323,14 @@ func (d *decoder) scalar(n *node, out reflect.Value) (good bool) {
 			if resolved < 1<<63-1 && !out.OverflowInt(int64(resolved)) {
 				out.SetInt(int64(resolved))
 				good = true
+			}
+		case string:
+			if out.Type() == durationType {
+				d, err := time.ParseDuration(resolved)
+				if err == nil {
+					out.SetInt(int64(d))
+					good = true
+				}
 			}
 		}
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:

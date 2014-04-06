@@ -2,11 +2,12 @@ package yaml_test
 
 import (
 	"fmt"
-	. "launchpad.net/gocheck"
 	"gopkg.in/yaml.v1"
+	. "gopkg.in/check.v1"
 	"math"
 	"strconv"
 	"strings"
+	"time"
 )
 
 var marshalIntTest = 123
@@ -211,6 +212,12 @@ var marshalTests = []struct {
 			C inlineB `yaml:",inline"`
 		}{1, inlineB{2, inlineC{3}}},
 		"a: 1\nb: 2\nc: 3\n",
+	},
+
+	// Duration
+	{
+		map[string]time.Duration{"a": 3 * time.Second},
+		"a: 3s\n",
 	},
 }
 

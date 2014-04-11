@@ -283,12 +283,13 @@ func (d *decoder) scalar(n *node, out reflect.Value) (good bool) {
 	var tag string
 	var resolved interface{}
 	if n.tag == "" && !n.implicit {
+		tag = "!!str"
 		resolved = n.value
 	} else {
 		tag, resolved = resolve(n.tag, n.value)
-		if set := d.setter(tag, &out, &good); set != nil {
-			defer set()
-		}
+	}
+	if set := d.setter(tag, &out, &good); set != nil {
+		defer set()
 	}
 	switch out.Kind() {
 	case reflect.String:

@@ -435,6 +435,8 @@ var setterTests = []struct {
 	{"_: [1,A]", "!!seq", []interface{}{1, "A"}},
 	{"_: 10", "!!int", 10},
 	{"_: null", "!!null", nil},
+	{`_: BAR!`, "!!str", "BAR!"},
+	{`_: "BAR!"`, "!!str", "BAR!"},
 	{"_: !!foo 'BAR!'", "!!foo", "BAR!"},
 }
 
@@ -491,7 +493,7 @@ func (s *S) TestUnmarshalWithFalseSetterIgnoresValue(c *C) {
 	}()
 
 	m := map[string]*typeWithSetter{}
-	data := "{abc: 1, def: 2, ghi: 3, jkl: 4}"
+	data := `{abc: 1, def: 2, ghi: 3, jkl: 4}`
 	err := yaml.Unmarshal([]byte(data), m)
 	c.Assert(err, IsNil)
 	c.Assert(m["abc"], NotNil)

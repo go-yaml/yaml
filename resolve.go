@@ -45,6 +45,7 @@ func init() {
 		{math.Inf(+1), "!!float", []string{".inf", ".Inf", ".INF"}},
 		{math.Inf(+1), "!!float", []string{"+.inf", "+.Inf", "+.INF"}},
 		{math.Inf(-1), "!!float", []string{"-.inf", "-.Inf", "-.INF"}},
+		{"<<", "!!merge", []string{"<<"}},
 	}
 
 	m := resolveMap
@@ -138,9 +139,6 @@ func resolve(tag string, in string) (rtag string, out interface{}) {
 			}
 		}
 	// XXX Handle timestamps here.
-
-	case '<':
-		// XXX Handle merge (<<) here.
 
 	default:
 		panic("resolveTable item not yet handled: " +

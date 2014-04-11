@@ -505,6 +505,98 @@ func (s *S) TestUnmarshalWithFalseSetterIgnoresValue(c *C) {
 	c.Assert(m["ghi"].value, Equals, 3)
 }
 
+// From http://yaml.org/type/merge.html
+var mergeTests = `
+anchors:
+  - &CENTER { "x": 1, "y": 2 }
+  - &LEFT   { "x": 0, "y": 2 }
+  - &BIG    { "r": 10 }
+  - &SMALL  { "r": 1 }
+
+# All the following maps are equal:
+
+plain:
+  # Explicit keys
+  "x": 1
+  "y": 2
+  "r": 10
+  label: center/big
+
+mergeOne:
+  # Merge one map
+  << : *CENTER
+  "r": 10
+  label: center/big
+
+mergeMultiple:
+  # Merge multiple maps
+  << : [ *CENTER, *BIG ]
+  label: center/big
+
+override:
+  # Override
+  << : [ *BIG, *LEFT, *SMALL ]
+  "x": 1
+  label: center/big
+
+shortTag:
+  # Explicit short merge tag
+  !!merge "<<" : [ *CENTER, *BIG ]
+  label: center/big
+
+longTag:
+  # Explicit merge long tag
+  !<tag:yaml.org,2002:merge> "<<" : [ *CENTER, *BIG ]
+  label: center/big
+
+inlineMap:
+  # Inlined map 
+  << : {"x": 1, "y": 2, "r": 10}
+  label: center/big
+
+inlineSequenceMap:
+  # Inlined map in sequence
+  << : [ *CENTER, {"r": 10} ]
+  label: center/big
+`
+
+func (s *S) TestMerge(c *C) {
+	var want = map[interface{}]interface{}{
+		"x":     1,
+		"y":     2,
+		"r":     10,
+		"label": "center/big",
+	}
+
+	var m map[string]interface{}
+	err := yaml.Unmarshal([]byte(mergeTests), &m)
+	c.Assert(err, IsNil)
+	for name, test := range m {
+		if name == "anchors" {
+			continue
+		}
+		c.Assert(test, DeepEquals, want, Commentf("test %q failed", name))
+	}
+}
+
+func (s *S) TestMergeStruct(c *C) {
+	type Data struct {
+		X, Y, R int
+		Label   string
+	}
+	want := Data{1, 2, 10, "center/big"}
+
+	var m map[string]Data
+	err := yaml.Unmarshal([]byte(mergeTests), &m)
+	c.Assert(err, IsNil)
+	for name, test := range m {
+		if name == "anchors" {
+			continue
+		}
+		c.Assert(test, Equals, want, Commentf("test %q failed", name))
+	}
+}
+
 //var data []byte
 //func init() {
 //	var err error

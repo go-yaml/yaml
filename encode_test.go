@@ -7,6 +7,7 @@ import (
 	"math"
 	"strconv"
 	"strings"
+	"time"
 )
 
 var marshalIntTest = 123
@@ -15,6 +16,10 @@ var marshalTests = []struct {
 	value interface{}
 	data  string
 }{
+	{
+		map[string]time.Time{"v": time.Date(2009, time.November, 10, 23, 0, 0, 0, time.UTC)},
+		"v: 2009-11-10T23:00:00Z\n",
+	},
 	{
 		&struct{}{},
 		"{}\n",

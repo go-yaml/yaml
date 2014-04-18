@@ -4,6 +4,7 @@ import (
 	"reflect"
 	"sort"
 	"strconv"
+	"time"
 )
 
 type encoder struct {
@@ -79,7 +80,12 @@ func (e *encoder) marshal(tag string, in reflect.Value) {
 			e.marshal(tag, in.Elem())
 		}
 	case reflect.Struct:
-		e.structv(tag, in)
+		switch in.Interface().(type) {
+		case time.Time:
+			e.timev(tag, in)
+		default:
+			e.structv(tag, in)
+		}
 	case reflect.Slice:
 		e.slicev(tag, in)
 	case reflect.String:
@@ -171,6 +177,12 @@ func (e *encoder) stringv(tag string, in reflect.Value) {
 		style = yaml_PLAIN_SCALAR_STYLE
 	}
 	e.emitScalar(s, "", tag, style)
+}
+
+func (e *encoder) timev(tag string, in reflect.Value) {
+	t := in.Interface().(time.Time)
+	s := t.Format(time.RFC3339Nano)
+	e.emitScalar(s, "", tag, yaml_PLAIN_SCALAR_STYLE)
 }
 
 func (e *encoder) boolv(tag string, in reflect.Value) {

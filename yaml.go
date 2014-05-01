@@ -42,7 +42,7 @@ type Setter interface {
 	SetYAML(tag string, value interface{}) bool
 }
 
-// The Setter interface is implemented by types to do their own custom
+// The Getter interface is implemented by types to do their own custom
 // marshalling into a YAML tag and value.
 type Getter interface {
 	GetYAML() (tag string, value interface{})

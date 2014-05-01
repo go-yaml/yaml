@@ -212,6 +212,16 @@ func newDecoder() *decoder {
 //   returned to call SetYAML() with the value of *out once it's defined.
 //
 func (d *decoder) setter(tag string, out *reflect.Value, good *bool) (set func()) {
+	if (*out).Kind() != reflect.Ptr && (*out).CanAddr() {
+		setter, _ := (*out).Addr().Interface().(Setter)
+		if setter != nil {
+			var arg interface{}
+			*out = reflect.ValueOf(&arg).Elem()
+			return func() {
+				*good = setter.SetYAML(tag, arg)
+			}
+		}
+	}
 	again := true
 	for again {
 		again = false

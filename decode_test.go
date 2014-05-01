@@ -465,17 +465,31 @@ func (o *typeWithSetter) SetYAML(tag string, value interface{}) (ok bool) {
 	return true
 }
 
-type typeWithSetterField struct {
+type setterPointerType struct {
 	Field *typeWithSetter "_"
 }
 
-func (s *S) TestUnmarshalWithSetter(c *C) {
+type setterValueType struct {
+	Field typeWithSetter "_"
+}
+
+func (s *S) TestUnmarshalWithPointerSetter(c *C) {
 	for _, item := range setterTests {
-		obj := &typeWithSetterField{}
+		obj := &setterPointerType{}
 		err := yaml.Unmarshal([]byte(item.data), obj)
 		c.Assert(err, IsNil)
-		c.Assert(obj.Field, NotNil,
-			Commentf("Pointer not initialized (%#v)", item.value))
+		c.Assert(obj.Field, NotNil, Commentf("Pointer not initialized (%#v)", item.value))
+		c.Assert(obj.Field.tag, Equals, item.tag)
+		c.Assert(obj.Field.value, DeepEquals, item.value)
+	}
+}
+
+func (s *S) TestUnmarshalWithValueSetter(c *C) {
+	for _, item := range setterTests {
+		obj := &setterValueType{}
+		err := yaml.Unmarshal([]byte(item.data), obj)
+		c.Assert(err, IsNil)
+		c.Assert(obj.Field, NotNil, Commentf("Pointer not initialized (%#v)", item.value))
 		c.Assert(obj.Field.tag, Equals, item.tag)
 		c.Assert(obj.Field.value, DeepEquals, item.value)
 	}

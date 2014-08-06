@@ -78,7 +78,7 @@ type Getter interface {
 //         F int `yaml:"a,omitempty"`
 //         B int
 //     }
-//     var T t
+//     var t T
 //     yaml.Unmarshal([]byte("a: 1\nb: 2"), &t)
 //
 // See the documentation of Marshal for the format of tags and a list of

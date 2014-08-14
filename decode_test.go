@@ -371,6 +371,12 @@ var unmarshalTests = []struct {
 		"a: 3s",
 		map[string]time.Duration{"a": 3 * time.Second},
 	},
+
+	// Issue #24. 
+	{
+		"a: <foo>",
+		map[string]string{"a": "<foo>"},
+	},
 }
 
 type inlineB struct {

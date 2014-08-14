@@ -219,6 +219,12 @@ var marshalTests = []struct {
 		map[string]time.Duration{"a": 3 * time.Second},
 		"a: 3s\n",
 	},
+
+	// Issue #24. 
+	{
+		map[string]string{"a": "<foo>"},
+		"a: <foo>\n",
+	},
 }
 
 func (s *S) TestMarshal(c *C) {

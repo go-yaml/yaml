@@ -27,7 +27,6 @@ func init() {
 		t[int(c)] = 'M' // In map
 	}
 	t[int('.')] = '.' // Float (potentially in map)
-	t[int('<')] = '<' // Merge
 
 	var resolveMapList = []struct {
 		v   interface{}

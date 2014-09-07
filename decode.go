@@ -71,6 +71,7 @@ func (p *parser) destroy() {
 		yaml_event_delete(&p.event)
 	}
 	yaml_parser_delete(&p.parser)
+	stringIndexIndexes = make(map[int]int)
 }
 
 func (p *parser) skip() {

@@ -1,8 +1,7 @@
-package yaml_test
+package yaml
 
 import (
 	"fmt"
-	"gopkg.in/yaml.v1"
 	. "gopkg.in/check.v1"
 	"math"
 	"strconv"

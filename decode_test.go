@@ -1,8 +1,7 @@
-package yaml_test
+package yaml
 
 import (
 	. "gopkg.in/check.v1"
-	"gopkg.in/yaml.v1"
 	"math"
 	"reflect"
 	"time"
@@ -370,6 +369,12 @@ var unmarshalTests = []struct {
 	{
 		"a: 3s",
 		map[string]time.Duration{"a": 3 * time.Second},
+	},
+
+	// StringIndex
+	{
+		"a: 1\nb: 2\nc: 3\n",
+		map[StringIndex]int{{{"a", 0}, 1}, {{"b", 1}, 2}, {{"c", 2}, 3}},
 	},
 }
 

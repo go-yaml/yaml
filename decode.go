@@ -24,6 +24,19 @@ type node struct {
 	anchors      map[string]*node
 }
 
+// Type StringIndex is a useful type in combination with map[]
+// Golang doesn't store the order within a map[] type. Use
+// map[yaml.StringIndex]interface{} i.e. in order to be able
+// to access the index later.
+type StringIndex struct {
+	Value string
+	Index int
+}
+
+// stringIndexIndexes holds indexes related to their column, this allows
+// for multiple map[yaml.StringIndex]
+var stringIndexIndexes = make(map[int]int) // map[column]index
+
 // ----------------------------------------------------------------------------
 // Parser, produces a node tree out of a libyaml event stream.
 
@@ -304,6 +317,16 @@ func (d *decoder) scalar(n *node, out reflect.Value) (good bool) {
 	if set := d.setter(tag, &out, &good); set != nil {
 		defer set()
 	}
+
+	if out.Type() == reflect.TypeOf(StringIndex{}) {
+		stringIndexIndexes[n.column] += 1
+		out.Set(reflect.ValueOf(StringIndex{
+			Value: n.value,
+			Index: stringIndexIndexes[n.column] - 1,
+		}))
+		return true
+	}
+
 	switch out.Kind() {
 	case reflect.String:
 		if resolved != nil {
@@ -516,7 +539,7 @@ func (d *decoder) merge(n *node, out reflect.Value) {
 		d.unmarshal(n, out)
 	case sequenceNode:
 		// Step backwards as earlier nodes take precedence.
-		for i := len(n.children)-1; i >= 0; i-- {
+		for i := len(n.children) - 1; i >= 0; i-- {
 			ni := n.children[i]
 			if ni.kind == aliasNode {
 				an, ok := d.doc.anchors[ni.value]

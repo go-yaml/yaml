@@ -372,7 +372,7 @@ var unmarshalTests = []struct {
 		map[string]time.Duration{"a": 3 * time.Second},
 	},
 
-	// Issue #24. 
+	// Issue #24.
 	{
 		"a: <foo>",
 		map[string]string{"a": "<foo>"},

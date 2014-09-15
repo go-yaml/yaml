@@ -56,6 +56,10 @@ func (e *encoder) must(ok bool) {
 
 func (e *encoder) marshal(tag string, in reflect.Value) {
 	var value interface{}
+	if !in.IsValid() {
+		e.nilv()
+		return
+	}
 	if getter, ok := in.Interface().(Getter); ok {
 		tag, value = getter.GetYAML()
 		if value == nil {

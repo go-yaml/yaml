@@ -2,8 +2,8 @@ package yaml_test
 
 import (
 	"fmt"
-	"gopkg.in/yaml.v1"
 	. "gopkg.in/check.v1"
+	"gopkg.in/yaml.v1"
 	"math"
 	"strconv"
 	"strings"
@@ -17,6 +17,9 @@ var marshalTests = []struct {
 	data  string
 }{
 	{
+		nil,
+		"null\n",
+	}, {
 		&struct{}{},
 		"{}\n",
 	}, {
@@ -220,7 +223,7 @@ var marshalTests = []struct {
 		"a: 3s\n",
 	},
 
-	// Issue #24. 
+	// Issue #24.
 	{
 		map[string]string{"a": "<foo>"},
 		"a: <foo>\n",

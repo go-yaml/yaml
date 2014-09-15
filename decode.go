@@ -516,7 +516,7 @@ func (d *decoder) merge(n *node, out reflect.Value) {
 		d.unmarshal(n, out)
 	case sequenceNode:
 		// Step backwards as earlier nodes take precedence.
-		for i := len(n.children)-1; i >= 0; i-- {
+		for i := len(n.children) - 1; i >= 0; i-- {
 			ni := n.children[i]
 			if ni.kind == aliasNode {
 				an, ok := d.doc.anchors[ni.value]

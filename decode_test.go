@@ -377,6 +377,12 @@ var unmarshalTests = []struct {
 		"a: <foo>",
 		map[string]string{"a": "<foo>"},
 	},
+
+	// Base 60 floats are obsolete and unsupported.
+	{
+		"a: 1:1\n",
+		map[string]string{"a": "1:1"},
+	},
 }
 
 type inlineB struct {

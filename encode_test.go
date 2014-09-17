@@ -220,10 +220,17 @@ var marshalTests = []struct {
 		"a: 3s\n",
 	},
 
-	// Issue #24. 
+	// Issue #24: bug in map merging logic.
 	{
 		map[string]string{"a": "<foo>"},
 		"a: <foo>\n",
+	},
+
+	// Issue #34: marshal unsupported base 60 floats quoted for compatibility
+	// with old YAML 1.1 parsers.
+	{
+		map[string]string{"a": "1:1"},
+		"a: \"1:1\"\n",
 	},
 }
 

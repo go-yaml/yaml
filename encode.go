@@ -2,8 +2,10 @@ package yaml
 
 import (
 	"reflect"
+	"regexp"
 	"sort"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -167,10 +169,32 @@ func (e *encoder) slicev(tag string, in reflect.Value) {
 	e.emit()
 }
 
+// isBase60 returns whether s is in base 60 notation as defined in YAML 1.1.
+//
+// The base 60 float notation in YAML 1.1 is a terrible idea and is unsupported
+// in YAML 1.2 and by this package, but these should be marshalled quoted for
+// the time being for compatibility with other parsers.
+func isBase60(s string) (result bool) {
+	// Fast path.
+	if s == "" {
+		return false
+	}
+	c := s[0]
+	if !(c == '+' || c == '-' || c >= '0' && c <= '9') || strings.IndexByte(s, ':') < 0 {
+		return false
+	}
+	// Do the full match.
+	return base64re.MatchString(s)
+}
+
+// From http://yaml.org/type/float.html, except the regular expression there
+// is bogus. In practice parsers do not enforce the "\.[0-9_]*" suffix.
+var base64re = regexp.MustCompile(`^[-+]?[0-9][0-9_]*(?::[0-5]?[0-9])+(?:\.[0-9_]*)?$`)
+
 func (e *encoder) stringv(tag string, in reflect.Value) {
 	var style yaml_scalar_style_t
 	s := in.String()
-	if rtag, _ := resolve("", s); rtag != "!!str" {
+	if rtag, _ := resolve("", s); rtag != "!!str" || isBase60(s) {
 		style = yaml_DOUBLE_QUOTED_SCALAR_STYLE
 	} else {
 		style = yaml_PLAIN_SCALAR_STYLE

@@ -2,8 +2,8 @@ package yaml_test
 
 import (
 	"fmt"
-	"gopkg.in/yaml.v1"
 	. "gopkg.in/check.v1"
+	"gopkg.in/yaml.v1"
 	"math"
 	"strconv"
 	"strings"
@@ -245,20 +245,24 @@ func (s *S) TestMarshal(c *C) {
 var marshalErrorTests = []struct {
 	value interface{}
 	error string
-}{
-	{
-		&struct {
-			B       int
-			inlineB ",inline"
-		}{1, inlineB{2, inlineC{3}}},
-		`Duplicated key 'b' in struct struct \{ B int; .*`,
-	},
-}
+	panic string
+}{{
+	&struct {
+		B       int
+		inlineB ",inline"
+	}{1, inlineB{2, inlineC{3}}},
+	"",
+	`Duplicated key 'b' in struct struct \{ B int; .*`,
+}}
 
 func (s *S) TestMarshalErrors(c *C) {
 	for _, item := range marshalErrorTests {
-		_, err := yaml.Marshal(item.value)
-		c.Assert(err, ErrorMatches, item.error)
+		if item.panic != "" {
+			c.Assert(func() { yaml.Marshal(item.value) }, PanicMatches, item.panic)
+		} else {
+			_, err := yaml.Marshal(item.value)
+			c.Assert(err, ErrorMatches, item.error)
+		}
 	}
 }
 

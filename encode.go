@@ -52,7 +52,7 @@ func (e *encoder) must(ok bool) {
 		if msg == "" {
 			msg = "Unknown problem generating YAML content"
 		}
-		panic(msg)
+		fail(msg)
 	}
 }
 
@@ -100,7 +100,7 @@ func (e *encoder) marshal(tag string, in reflect.Value) {
 	case reflect.Bool:
 		e.boolv(tag, in)
 	default:
-		panic("Can't marshal type yet: " + in.Type().String())
+		panic("Can't marshal type: " + in.Type().String())
 	}
 }
 

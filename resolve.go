@@ -80,7 +80,7 @@ func resolve(tag string, in string) (rtag string, out interface{}) {
 
 	defer func() {
 		if tag != "" && tag != rtag {
-			panic("Can't decode " + rtag + " '" + in + "' as a " + tag)
+			fail("Can't decode " + rtag + " '" + in + "' as a " + tag)
 		}
 	}()
 

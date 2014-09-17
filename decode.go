@@ -63,7 +63,7 @@ func (p *parser) destroy() {
 func (p *parser) skip() {
 	if p.event.typ != yaml_NO_EVENT {
 		if p.event.typ == yaml_STREAM_END_EVENT {
-			panic("Attempted to go past the end of stream. Corrupted value?")
+			fail("Attempted to go past the end of stream. Corrupted value?")
 		}
 		yaml_event_delete(&p.event)
 	}
@@ -89,7 +89,7 @@ func (p *parser) fail() {
 	} else {
 		msg = "Unknown problem parsing YAML content"
 	}
-	panic(where + msg)
+	fail(where + msg)
 }
 
 func (p *parser) anchor(n *node, anchor []byte) {
@@ -114,10 +114,9 @@ func (p *parser) parse() *node {
 		// Happens when attempting to decode an empty buffer.
 		return nil
 	default:
-		panic("Attempted to parse unknown event: " +
-			strconv.Itoa(int(p.event.typ)))
+		panic("Attempted to parse unknown event: " + strconv.Itoa(int(p.event.typ)))
 	}
-	panic("Unreachable")
+	panic("unreachable")
 }
 
 func (p *parser) node(kind int) *node {
@@ -135,8 +134,7 @@ func (p *parser) document() *node {
 	p.skip()
 	n.children = append(n.children, p.parse())
 	if p.event.typ != yaml_DOCUMENT_END_EVENT {
-		panic("Expected end of document event but got " +
-			strconv.Itoa(int(p.event.typ)))
+		panic("Expected end of document event but got " + strconv.Itoa(int(p.event.typ)))
 	}
 	p.skip()
 	return n
@@ -279,10 +277,10 @@ func (d *decoder) document(n *node, out reflect.Value) (good bool) {
 func (d *decoder) alias(n *node, out reflect.Value) (good bool) {
 	an, ok := d.doc.anchors[n.value]
 	if !ok {
-		panic("Unknown anchor '" + n.value + "' referenced")
+		fail("Unknown anchor '" + n.value + "' referenced")
 	}
 	if d.aliases[n.value] {
-		panic("Anchor '" + n.value + "' value contains itself")
+		fail("Anchor '" + n.value + "' value contains itself")
 	}
 	d.aliases[n.value] = true
 	good = d.unmarshal(an, out)
@@ -511,7 +509,7 @@ func (d *decoder) merge(n *node, out reflect.Value) {
 	case aliasNode:
 		an, ok := d.doc.anchors[n.value]
 		if ok && an.kind != mappingNode {
-			panic(wantMap)
+			fail(wantMap)
 		}
 		d.unmarshal(n, out)
 	case sequenceNode:
@@ -521,15 +519,15 @@ func (d *decoder) merge(n *node, out reflect.Value) {
 			if ni.kind == aliasNode {
 				an, ok := d.doc.anchors[ni.value]
 				if ok && an.kind != mappingNode {
-					panic(wantMap)
+					fail(wantMap)
 				}
 			} else if ni.kind != mappingNode {
-				panic(wantMap)
+				fail(wantMap)
 			}
 			d.unmarshal(ni, out)
 		}
 	default:
-		panic(wantMap)
+		fail(wantMap)
 	}
 }
 

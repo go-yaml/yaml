@@ -88,7 +88,11 @@ func Unmarshal(in []byte, out interface{}) (err error) {
 	defer p.destroy()
 	node := p.parse()
 	if node != nil {
-		d.unmarshal(node, reflect.ValueOf(out))
+		v := reflect.ValueOf(out)
+		if v.Kind() == reflect.Ptr && !v.IsNil() {
+			v = v.Elem()
+		}
+		d.unmarshal(node, v)
 	}
 	return nil
 }

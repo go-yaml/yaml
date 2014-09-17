@@ -316,7 +316,10 @@ var unmarshalTests = []struct {
 		map[string]*string{"foo": new(string)},
 	}, {
 		"foo: null",
-		map[string]string{},
+		map[string]string{"foo": ""},
+	}, {
+		"foo: null",
+		map[string]interface{}{"foo": nil},
 	},
 
 	// Ignored field
@@ -372,7 +375,7 @@ var unmarshalTests = []struct {
 		map[string]time.Duration{"a": 3 * time.Second},
 	},
 
-	// Issue #24. 
+	// Issue #24.
 	{
 		"a: <foo>",
 		map[string]string{"a": "<foo>"},
@@ -627,6 +630,30 @@ func (s *S) TestMergeStruct(c *C) {
 			continue
 		}
 		c.Assert(test, Equals, want, Commentf("test %q failed", name))
+	}
+}
+
+var unmarshalNullTests = []func() interface{}{
+	func() interface{} { var v interface{}; v = "v"; return &v },
+	func() interface{} { var s = "s"; return &s },
+	func() interface{} { var s = "s"; sptr := &s; return &sptr },
+	func() interface{} { var i = 1; return &i },
+	func() interface{} { var i = 1; iptr := &i; return &iptr },
+	func() interface{} { m := map[string]int{"s": 1}; return &m },
+	func() interface{} { m := map[string]int{"s": 1}; return m },
+}
+
+func (s *S) TestUnmarshalNull(c *C) {
+	for _, test := range unmarshalNullTests {
+		item := test()
+		zero := reflect.Zero(reflect.TypeOf(item).Elem()).Interface()
+		err := yaml.Unmarshal([]byte("null"), item)
+		c.Assert(err, IsNil)
+		if reflect.TypeOf(item).Kind() == reflect.Map {
+			c.Assert(reflect.ValueOf(item).Interface(), DeepEquals, reflect.MakeMap(reflect.TypeOf(item)).Interface())
+		} else {
+			c.Assert(reflect.ValueOf(item).Elem().Interface(), DeepEquals, zero)
+		}
 	}
 }
 

@@ -288,6 +288,14 @@ func (d *decoder) alias(n *node, out reflect.Value) (good bool) {
 	return good
 }
 
+var zeroValue reflect.Value
+
+func resetMap(out reflect.Value) {
+	for _, k := range out.MapKeys() {
+		out.SetMapIndex(k, zeroValue)
+	}
+}
+
 var durationType = reflect.TypeOf(time.Duration(0))
 
 func (d *decoder) scalar(n *node, out reflect.Value) (good bool) {
@@ -301,6 +309,15 @@ func (d *decoder) scalar(n *node, out reflect.Value) (good bool) {
 	}
 	if set := d.setter(tag, &out, &good); set != nil {
 		defer set()
+	}
+	if resolved == nil {
+		if out.Kind() == reflect.Map && !out.CanAddr() {
+			resetMap(out)
+		} else {
+			out.Set(reflect.Zero(out.Type()))
+		}
+		good = true
+		return
 	}
 	switch out.Kind() {
 	case reflect.String:
@@ -378,17 +395,11 @@ func (d *decoder) scalar(n *node, out reflect.Value) (good bool) {
 			good = true
 		}
 	case reflect.Ptr:
-		switch resolved.(type) {
-		case nil:
-			out.Set(reflect.Zero(out.Type()))
+		if out.Type().Elem() == reflect.TypeOf(resolved) {
+			elem := reflect.New(out.Type().Elem())
+			elem.Elem().Set(reflect.ValueOf(resolved))
+			out.Set(elem)
 			good = true
-		default:
-			if out.Type().Elem() == reflect.TypeOf(resolved) {
-				elem := reflect.New(out.Type().Elem())
-				elem.Elem().Set(reflect.ValueOf(resolved))
-				out.Set(elem)
-				good = true
-			}
 		}
 	}
 	return good

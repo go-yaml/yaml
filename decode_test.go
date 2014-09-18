@@ -5,6 +5,7 @@ import (
 	"gopkg.in/yaml.v1"
 	"math"
 	"reflect"
+	"strings"
 	"time"
 )
 
@@ -386,6 +387,18 @@ var unmarshalTests = []struct {
 		"a: 1:1\n",
 		map[string]string{"a": "1:1"},
 	},
+
+	// Binary data.
+	{
+		"a: !!binary gIGC\n",
+		map[string]string{"a": "\x80\x81\x82"},
+	}, {
+		"a: !!binary |\n  " + strings.Repeat("kJCQ", 17) + "kJ\n  CQ\n",
+		map[string]string{"a": strings.Repeat("\x90", 54)},
+	}, {
+		"a: !!binary |\n  " + strings.Repeat("A", 70) + "\n  ==\n",
+		map[string]string{"a": strings.Repeat("\x00", 52)},
+	},
 }
 
 type inlineB struct {
@@ -433,12 +446,13 @@ func (s *S) TestUnmarshalNaN(c *C) {
 var unmarshalErrorTests = []struct {
 	data, error string
 }{
-	{"v: !!float 'error'", "YAML error: Can't decode !!str 'error' as a !!float"},
+	{"v: !!float 'error'", "YAML error: cannot decode !!str `error` as a !!float"},
 	{"v: [A,", "YAML error: line 1: did not find expected node content"},
 	{"v:\n- [A,", "YAML error: line 2: did not find expected node content"},
 	{"a: *b\n", "YAML error: Unknown anchor 'b' referenced"},
 	{"a: &a\n  b: *a\n", "YAML error: Anchor 'a' value contains itself"},
 	{"value: -", "YAML error: block sequence entries are not allowed in this context"},
+	{"a: !!binary ==", "YAML error: !!binary value contains invalid base64 data"},
 }
 
 func (s *S) TestUnmarshalErrors(c *C) {

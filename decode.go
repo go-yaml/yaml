@@ -1,6 +1,7 @@
 package yaml
 
 import (
+	"encoding/base64"
 	"reflect"
 	"strconv"
 	"time"
@@ -216,7 +217,7 @@ func (d *decoder) setter(tag string, out *reflect.Value, good *bool) (set func()
 			var arg interface{}
 			*out = reflect.ValueOf(&arg).Elem()
 			return func() {
-				*good = setter.SetYAML(tag, arg)
+				*good = setter.SetYAML(shortTag(tag), arg)
 			}
 		}
 	}
@@ -224,7 +225,7 @@ func (d *decoder) setter(tag string, out *reflect.Value, good *bool) (set func()
 	for again {
 		again = false
 		setter, _ := (*out).Interface().(Setter)
-		if tag != "!!null" || setter != nil {
+		if tag != yaml_NULL_TAG || setter != nil {
 			if pv := (*out); pv.Kind() == reflect.Ptr {
 				if pv.IsNil() {
 					*out = reflect.New(pv.Type().Elem()).Elem()
@@ -240,7 +241,7 @@ func (d *decoder) setter(tag string, out *reflect.Value, good *bool) (set func()
 			var arg interface{}
 			*out = reflect.ValueOf(&arg).Elem()
 			return func() {
-				*good = setter.SetYAML(tag, arg)
+				*good = setter.SetYAML(shortTag(tag), arg)
 			}
 		}
 	}
@@ -302,10 +303,17 @@ func (d *decoder) scalar(n *node, out reflect.Value) (good bool) {
 	var tag string
 	var resolved interface{}
 	if n.tag == "" && !n.implicit {
-		tag = "!!str"
+		tag = yaml_STR_TAG
 		resolved = n.value
 	} else {
 		tag, resolved = resolve(n.tag, n.value)
+		if tag == yaml_BINARY_TAG {
+			data, err := base64.StdEncoding.DecodeString(resolved.(string))
+			if err != nil {
+				fail("!!binary value contains invalid base64 data")
+			}
+			resolved = string(data)
+		}
 	}
 	if set := d.setter(tag, &out, &good); set != nil {
 		defer set()
@@ -321,7 +329,10 @@ func (d *decoder) scalar(n *node, out reflect.Value) (good bool) {
 	}
 	switch out.Kind() {
 	case reflect.String:
-		if resolved != nil {
+		if tag == yaml_BINARY_TAG {
+			out.SetString(resolved.(string))
+			good = true
+		} else if resolved != nil {
 			out.SetString(n.value)
 			good = true
 		}
@@ -413,7 +424,7 @@ func settableValueOf(i interface{}) reflect.Value {
 }
 
 func (d *decoder) sequence(n *node, out reflect.Value) (good bool) {
-	if set := d.setter("!!seq", &out, &good); set != nil {
+	if set := d.setter(yaml_SEQ_TAG, &out, &good); set != nil {
 		defer set()
 	}
 	var iface reflect.Value
@@ -442,7 +453,7 @@ func (d *decoder) sequence(n *node, out reflect.Value) (good bool) {
 }
 
 func (d *decoder) mapping(n *node, out reflect.Value) (good bool) {
-	if set := d.setter("!!map", &out, &good); set != nil {
+	if set := d.setter(yaml_MAP_TAG, &out, &good); set != nil {
 		defer set()
 	}
 	if out.Kind() == reflect.Struct {
@@ -543,5 +554,5 @@ func (d *decoder) merge(n *node, out reflect.Value) {
 }
 
 func isMerge(n *node) bool {
-	return n.kind == scalarNode && n.value == "<<" && (n.implicit == true || n.tag == "!!merge" || n.tag == "tag:yaml.org,2002:merge")
+	return n.kind == scalarNode && n.value == "<<" && (n.implicit == true || n.tag == yaml_MERGE_TAG)
 }

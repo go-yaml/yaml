@@ -60,6 +60,7 @@ func (e *encoder) marshal(tag string, in reflect.Value) {
 	var value interface{}
 	if getter, ok := in.Interface().(Getter); ok {
 		tag, value = getter.GetYAML()
+		tag = longTag(tag)
 		if value == nil {
 			e.nilv()
 			return
@@ -174,7 +175,7 @@ func (e *encoder) slicev(tag string, in reflect.Value) {
 // The base 60 float notation in YAML 1.1 is a terrible idea and is unsupported
 // in YAML 1.2 and by this package, but these should be marshalled quoted for
 // the time being for compatibility with other parsers.
-func isBase60(s string) (result bool) {
+func isBase60Float(s string) (result bool) {
 	// Fast path.
 	if s == "" {
 		return false
@@ -184,18 +185,31 @@ func isBase60(s string) (result bool) {
 		return false
 	}
 	// Do the full match.
-	return base64re.MatchString(s)
+	return base60float.MatchString(s)
 }
 
 // From http://yaml.org/type/float.html, except the regular expression there
 // is bogus. In practice parsers do not enforce the "\.[0-9_]*" suffix.
-var base64re = regexp.MustCompile(`^[-+]?[0-9][0-9_]*(?::[0-5]?[0-9])+(?:\.[0-9_]*)?$`)
+var base60float = regexp.MustCompile(`^[-+]?[0-9][0-9_]*(?::[0-5]?[0-9])+(?:\.[0-9_]*)?$`)
 
 func (e *encoder) stringv(tag string, in reflect.Value) {
 	var style yaml_scalar_style_t
 	s := in.String()
-	if rtag, _ := resolve("", s); rtag != "!!str" || isBase60(s) {
+	rtag, rs := resolve("", s)
+	if rtag == yaml_BINARY_TAG {
+		if tag == "" || tag == yaml_STR_TAG {
+			tag = rtag
+			s = rs.(string)
+		} else if tag == yaml_BINARY_TAG {
+			fail("explicitly tagged !!binary data must be base64-encoded")
+		} else {
+			fail("cannot marshal invalid UTF-8 data as " + shortTag(tag))
+		}
+	}
+	if tag == "" && (rtag != yaml_STR_TAG || isBase60Float(s)) {
 		style = yaml_DOUBLE_QUOTED_SCALAR_STYLE
+	} else if strings.Contains(s, "\n") {
+		style = yaml_LITERAL_SCALAR_STYLE
 	} else {
 		style = yaml_PLAIN_SCALAR_STYLE
 	}
@@ -242,9 +256,6 @@ func (e *encoder) nilv() {
 
 func (e *encoder) emitScalar(value, anchor, tag string, style yaml_scalar_style_t) {
 	implicit := tag == ""
-	if !implicit {
-		style = yaml_PLAIN_SCALAR_STYLE
-	}
 	e.must(yaml_scalar_event_initialize(&e.event, []byte(anchor), []byte(tag), []byte(value), implicit, implicit, style))
 	e.emit()
 }

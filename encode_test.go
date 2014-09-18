@@ -87,7 +87,7 @@ var marshalTests = []struct {
 		"v:\n- A\n- B\n",
 	}, {
 		map[string][]string{"v": []string{"A", "B\nC"}},
-		"v:\n- A\n- 'B\n\n  C'\n",
+		"v:\n- A\n- |-\n  B\n  C\n",
 	}, {
 		map[string][]interface{}{"v": []interface{}{"A", 1, map[string][]int{"B": []int{2, 3}}}},
 		"v:\n- A\n- 1\n- B:\n  - 2\n  - 3\n",
@@ -232,6 +232,27 @@ var marshalTests = []struct {
 		map[string]string{"a": "1:1"},
 		"a: \"1:1\"\n",
 	},
+
+	// Binary data.
+	{
+		map[string]string{"a": "\x00"},
+		"a: \"\\0\"\n",
+	}, {
+		map[string]string{"a": "\x80\x81\x82"},
+		"a: !!binary gIGC\n",
+	}, {
+		map[string]string{"a": strings.Repeat("\x90", 54)},
+		"a: !!binary |\n  " + strings.Repeat("kJCQ", 17) + "kJ\n  CQ\n",
+	}, {
+		map[string]interface{}{"a": typeWithGetter{"!!str", "\x80\x81\x82"}},
+		"a: !!binary gIGC\n",
+	},
+
+	// Escaping of tags.
+	{
+		map[string]interface{}{"a": typeWithGetter{"foo!bar", 1}},
+		"a: !<foo%21bar> 1\n",
+	},
 }
 
 func (s *S) TestMarshal(c *C) {
@@ -247,12 +268,17 @@ var marshalErrorTests = []struct {
 	error string
 	panic string
 }{{
-	&struct {
+	value: &struct {
 		B       int
 		inlineB ",inline"
 	}{1, inlineB{2, inlineC{3}}},
-	"",
-	`Duplicated key 'b' in struct struct \{ B int; .*`,
+	panic: `Duplicated key 'b' in struct struct \{ B int; .*`,
+}, {
+	value: typeWithGetter{"!!binary", "\x80"},
+	error: "YAML error: explicitly tagged !!binary data must be base64-encoded",
+}, {
+	value: typeWithGetter{"!!float", "\x80"},
+	error: `YAML error: cannot marshal invalid UTF-8 data as !!float`,
 }}
 
 func (s *S) TestMarshalErrors(c *C) {

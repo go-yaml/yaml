@@ -2,6 +2,7 @@ package yaml
 
 import (
 	"encoding/base64"
+	"fmt"
 	"reflect"
 	"strconv"
 	"time"
@@ -485,6 +486,13 @@ func (d *decoder) mapping(n *node, out reflect.Value) (good bool) {
 		}
 		k := reflect.New(kt).Elem()
 		if d.unmarshal(n.children[i], k) {
+			kkind := k.Kind()
+			if kkind == reflect.Interface {
+				kkind = k.Elem().Kind()
+			}
+			if kkind == reflect.Map || kkind == reflect.Slice {
+				fail(fmt.Sprintf("invalid map key: %#v", k.Interface()))
+			}
 			e := reflect.New(et).Elem()
 			if d.unmarshal(n.children[i+1], e) {
 				out.SetMapIndex(k, e)

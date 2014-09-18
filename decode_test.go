@@ -453,6 +453,8 @@ var unmarshalErrorTests = []struct {
 	{"a: &a\n  b: *a\n", "YAML error: Anchor 'a' value contains itself"},
 	{"value: -", "YAML error: block sequence entries are not allowed in this context"},
 	{"a: !!binary ==", "YAML error: !!binary value contains invalid base64 data"},
+	{"{[.]}", `YAML error: invalid map key: \[\]interface \{\}\{"\."\}`},
+	{"{{.}}", `YAML error: invalid map key: map\[interface\ \{\}\]interface \{\}\{".":interface \{\}\(nil\)\}`},
 }
 
 func (s *S) TestUnmarshalErrors(c *C) {

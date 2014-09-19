@@ -30,6 +30,15 @@ func handleErr(err *error) {
 	}
 }
 
+// MapSlice encodes and decodes as a YAML map.
+// The order of keys is preserved when encoding and decoding.
+type MapSlice []MapItem
+
+// MapItem is an item in a MapSlice.
+type MapItem struct {
+	Key, Value interface{}
+}
+
 // The Setter interface may be implemented by types to do their own custom
 // unmarshalling of YAML values, rather than being implicitly assigned by
 // the yaml package machinery. If setting the value works, the method should

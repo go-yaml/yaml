@@ -85,7 +85,11 @@ func (e *encoder) marshal(tag string, in reflect.Value) {
 	case reflect.Struct:
 		e.structv(tag, in)
 	case reflect.Slice:
-		e.slicev(tag, in)
+		if in.Type().Elem() == mapItemType {
+			e.itemsv(tag, in)
+		} else {
+			e.slicev(tag, in)
+		}
 	case reflect.String:
 		e.stringv(tag, in)
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
@@ -112,6 +116,16 @@ func (e *encoder) mapv(tag string, in reflect.Value) {
 		for _, k := range keys {
 			e.marshal("", k)
 			e.marshal("", in.MapIndex(k))
+		}
+	})
+}
+
+func (e *encoder) itemsv(tag string, in reflect.Value) {
+	e.mappingv(tag, func() {
+		slice := in.Convert(reflect.TypeOf([]MapItem{})).Interface().([]MapItem)
+		for _, item := range slice {
+			e.marshal("", reflect.ValueOf(item.Key))
+			e.marshal("", reflect.ValueOf(item.Value))
 		}
 	})
 }

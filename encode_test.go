@@ -248,6 +248,12 @@ var marshalTests = []struct {
 		"a: !!binary gIGC\n",
 	},
 
+	// Ordered maps.
+	{
+		&yaml.MapSlice{{"b", 2}, {"a", 1}, {"d", 4}, {"c", 3}, {"sub", yaml.MapSlice{{"e", 5}}}},
+		"b: 2\na: 1\nd: 4\nc: 3\nsub:\n  e: 5\n",
+	},
+
 	// Escaping of tags.
 	{
 		map[string]interface{}{"a": typeWithGetter{"foo!bar", 1}},

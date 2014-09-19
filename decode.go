@@ -30,9 +30,9 @@ type node struct {
 // Parser, produces a node tree out of a libyaml event stream.
 
 type parser struct {
-	parser yaml_parser_t
-	event  yaml_event_t
-	doc    *node
+	parser  yaml_parser_t
+	event   yaml_event_t
+	doc     *node
 }
 
 func newParser(b []byte) *parser {
@@ -187,10 +187,13 @@ func (p *parser) mapping() *node {
 type decoder struct {
 	doc     *node
 	aliases map[string]bool
+	mapType reflect.Type
 }
 
+var defaultMapType = reflect.TypeOf(map[interface{}]interface{}{})
+
 func newDecoder() *decoder {
-	d := &decoder{}
+	d := &decoder{mapType: defaultMapType}
 	d.aliases = make(map[string]bool)
 	return d
 }
@@ -457,23 +460,35 @@ func (d *decoder) mapping(n *node, out reflect.Value) (good bool) {
 	if set := d.setter(yaml_MAP_TAG, &out, &good); set != nil {
 		defer set()
 	}
-	if out.Kind() == reflect.Struct {
+	switch out.Kind() {
+	case reflect.Struct:
 		return d.mappingStruct(n, out)
-	}
-
-	if out.Kind() == reflect.Interface {
-		// No type hints. Will have to use a generic map.
-		iface := out
-		out = settableValueOf(make(map[interface{}]interface{}))
-		iface.Set(out)
-	}
-
-	if out.Kind() != reflect.Map {
+	case reflect.Slice:
+		return d.mappingSlice(n, out)
+	case reflect.Map:
+		// okay
+	case reflect.Interface:
+		if d.mapType.Kind() == reflect.Map {
+			iface := out
+			out = reflect.MakeMap(d.mapType)
+			iface.Set(out)
+		} else {
+			slicev := reflect.New(d.mapType).Elem()
+			if !d.mappingSlice(n, slicev) {
+				return false
+			}
+			out.Set(slicev)
+			return true
+		}
+	default:
 		return false
 	}
 	outt := out.Type()
 	kt := outt.Key()
 	et := outt.Elem()
+
+	mapType := d.mapType
+	d.mapType = outt
 
 	if out.IsNil() {
 		out.Set(reflect.MakeMap(outt))
@@ -499,6 +514,42 @@ func (d *decoder) mapping(n *node, out reflect.Value) (good bool) {
 			}
 		}
 	}
+	d.mapType = mapType
+	return true
+}
+
+var mapItemType = reflect.TypeOf(MapItem{})
+
+func (d *decoder) mappingSlice(n *node, out reflect.Value) (good bool) {
+	outt := out.Type()
+	if outt.Elem() != mapItemType {
+		return false
+	}
+	if set := d.setter(yaml_MAP_TAG, &out, &good); set != nil {
+		defer set()
+	}
+
+	mapType := d.mapType
+	d.mapType = outt
+
+	var slice []MapItem
+	var l = len(n.children)
+	for i := 0; i < l; i += 2 {
+		if isMerge(n.children[i]) {
+			d.merge(n.children[i+1], out)
+			continue
+		}
+		item := MapItem{}
+		k := reflect.ValueOf(&item.Key).Elem()
+		if d.unmarshal(n.children[i], k) {
+			v := reflect.ValueOf(&item.Value).Elem()
+			if d.unmarshal(n.children[i+1], v) {
+				slice = append(slice, item)
+			}
+		}
+	}
+	out.Set(reflect.ValueOf(slice))
+	d.mapType = mapType
 	return true
 }
 
@@ -544,7 +595,7 @@ func (d *decoder) merge(n *node, out reflect.Value) {
 		d.unmarshal(n, out)
 	case sequenceNode:
 		// Step backwards as earlier nodes take precedence.
-		for i := len(n.children)-1; i >= 0; i-- {
+		for i := len(n.children) - 1; i >= 0; i-- {
 			ni := n.children[i]
 			if ni.kind == aliasNode {
 				an, ok := d.doc.anchors[ni.value]

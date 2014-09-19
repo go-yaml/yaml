@@ -200,7 +200,10 @@ var unmarshalTests = []struct {
 	// Map inside interface with no type hints.
 	{
 		"a: {b: c}",
-		map[string]interface{}{"a": map[interface{}]interface{}{"b": "c"}},
+		map[interface{}]interface{}{"a": map[interface{}]interface{}{"b": "c"}},
+	}, {
+		"a: {b: c}",
+		map[string]interface{}{"a": map[string]interface{}{"b": "c"}},
 	},
 
 	// Structs and type conversions.
@@ -399,6 +402,12 @@ var unmarshalTests = []struct {
 		"a: !!binary |\n  " + strings.Repeat("A", 70) + "\n  ==\n",
 		map[string]string{"a": strings.Repeat("\x00", 52)},
 	},
+
+	// Ordered maps.
+	{
+		"{b: 2, a: 1, d: 4, c: 3, sub: {e: 5}}",
+		&yaml.MapSlice{{"b", 2}, {"a", 1}, {"d", 4}, {"c", 3}, {"sub", yaml.MapSlice{{"e", 5}}}},
+	},
 }
 
 type inlineB struct {
@@ -418,13 +427,11 @@ func (s *S) TestUnmarshal(c *C) {
 		case reflect.Map:
 			value = reflect.MakeMap(t).Interface()
 		case reflect.String:
-			t := reflect.ValueOf(item.value).Type()
-			v := reflect.New(t)
-			value = v.Interface()
+			value = reflect.New(t).Interface()
+		case reflect.Ptr:
+			value = reflect.New(t.Elem()).Interface()
 		default:
-			pt := reflect.ValueOf(item.value).Type()
-			pv := reflect.New(pt.Elem())
-			value = pv.Interface()
+			c.Fatalf("missing case for %s", t)
 		}
 		err := yaml.Unmarshal([]byte(item.data), value)
 		c.Assert(err, IsNil, Commentf("Item #%d", i))
@@ -613,7 +620,7 @@ inlineSequenceMap:
 `
 
 func (s *S) TestMerge(c *C) {
-	var want = map[interface{}]interface{}{
+	var want = map[string]interface{}{
 		"x":     1,
 		"y":     2,
 		"r":     10,

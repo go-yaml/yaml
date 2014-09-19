@@ -2,6 +2,7 @@ package yaml
 
 import (
 	"encoding/base64"
+	"fmt"
 	"reflect"
 	"strconv"
 	"time"
@@ -187,6 +188,7 @@ type decoder struct {
 	doc     *node
 	aliases map[string]bool
 	mapType reflect.Type
+	terrors []string
 }
 
 var defaultMapType = reflect.TypeOf(map[interface{}]interface{}{})
@@ -197,15 +199,35 @@ func newDecoder() *decoder {
 	return d
 }
 
+func (d *decoder) terror(n *node, tag string, out reflect.Value) {
+	if n.tag != "" {
+		tag = n.tag
+	}
+	value := n.value
+	if tag != yaml_SEQ_TAG && tag != yaml_MAP_TAG {
+		if len(value) > 10 {
+			value = " `" + value[:7] + "...`"
+		} else {
+			value = " `" + value + "`"
+		}
+	}
+	d.terrors = append(d.terrors, fmt.Sprintf("line %d: cannot unmarshal %s%s into %s", n.line+1, shortTag(tag), value, out.Type()))
+}
+
 func (d *decoder) callUnmarshaler(n *node, u Unmarshaler) (good bool) {
+	terrlen := len(d.terrors)
 	err := u.UnmarshalYAML(func(v interface{}) (err error) {
 		defer handleErr(&err)
-		if !d.unmarshal(n, reflect.ValueOf(v)) {
-			return ErrMismatch
+		d.unmarshal(n, reflect.ValueOf(v))
+		if len(d.terrors) > terrlen {
+			issues := d.terrors[terrlen:]
+			d.terrors = d.terrors[:terrlen]
+			return &TypeError{issues}
 		}
 		return nil
 	})
-	if err == ErrMismatch {
+	if e, ok := err.(*TypeError); ok {
+		d.terrors = append(d.terrors, e.Errors...)
 		return false
 	}
 	if err != nil {
@@ -260,15 +282,15 @@ func (d *decoder) unmarshal(n *node, out reflect.Value) (good bool) {
 	}
 	switch n.kind {
 	case scalarNode:
-		return d.scalar(n, out)
+		good = d.scalar(n, out)
 	case mappingNode:
-		return d.mapping(n, out)
+		good = d.mapping(n, out)
 	case sequenceNode:
-		return d.sequence(n, out)
+		good = d.sequence(n, out)
 	default:
 		panic("internal error: unknown node kind: " + strconv.Itoa(n.kind))
 	}
-	return false
+	return good
 }
 
 func (d *decoder) document(n *node, out reflect.Value) (good bool) {
@@ -416,6 +438,9 @@ func (d *decoder) scalar(n *node, out reflect.Value) (good bool) {
 			good = true
 		}
 	}
+	if !good {
+		d.terror(n, tag, out)
+	}
 	return good
 }
 
@@ -428,13 +453,15 @@ func settableValueOf(i interface{}) reflect.Value {
 
 func (d *decoder) sequence(n *node, out reflect.Value) (good bool) {
 	var iface reflect.Value
-	if out.Kind() == reflect.Interface {
+	switch out.Kind() {
+	case reflect.Slice:
+		// okay
+	case reflect.Interface:
 		// No type hints. Will have to use a generic sequence.
 		iface = out
 		out = settableValueOf(make([]interface{}, 0))
-	}
-
-	if out.Kind() != reflect.Slice {
+	default:
+		d.terror(n, yaml_SEQ_TAG, out)
 		return false
 	}
 	et := out.Type().Elem()
@@ -474,6 +501,7 @@ func (d *decoder) mapping(n *node, out reflect.Value) (good bool) {
 			return true
 		}
 	default:
+		d.terror(n, yaml_MAP_TAG, out)
 		return false
 	}
 	outt := out.Type()
@@ -516,6 +544,7 @@ var mapItemType = reflect.TypeOf(MapItem{})
 func (d *decoder) mappingSlice(n *node, out reflect.Value) (good bool) {
 	outt := out.Type()
 	if outt.Elem() != mapItemType {
+		d.terror(n, yaml_MAP_TAG, out)
 		return false
 	}
 

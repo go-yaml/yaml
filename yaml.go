@@ -14,36 +14,6 @@ import (
 	"sync"
 )
 
-type yamlError struct {
-	err error
-}
-
-func fail(err error) {
-	panic(yamlError{err})
-}
-
-func failf(format string, args ...interface{}) {
-	panic(yamlError{fmt.Errorf("yaml: " + format, args...)})
-}
-
-func handleErr(err *error) {
-	if v := recover(); v != nil {
-		if e, ok := v.(yamlError); ok {
-			*err = e.err
-		} else {
-			panic(v)
-		}
-	}
-}
-
-// A TypeError is returned by Unmarshal when one or more fields in
-// the YAML document cannot be properly decoded.
-type TypeError struct {
-	Issues []string
-}
-
-var ErrMismatch = errors.New("type not suitable for decoded value")
-
 // MapSlice encodes and decodes as a YAML map.
 // The order of keys is preserved when encoding and decoding.
 type MapSlice []MapItem
@@ -77,17 +47,15 @@ type Marshaler interface {
 // and assigns decoded values into the out value.
 //
 // Maps and pointers (to a struct, string, int, etc) are accepted as out
-// values.  If an internal pointer within a struct is not initialized,
+// values. If an internal pointer within a struct is not initialized,
 // the yaml package will initialize it if necessary for unmarshalling
 // the provided data. The out parameter must not be nil.
 //
-// The type of the decoded values and the type of out will be considered,
-// and Unmarshal will do the best possible job to unmarshal values
-// appropriately.  It is NOT considered an error, though, to skip values
-// because they are not available in the decoded YAML, or if they are not
-// compatible with the out value. To ensure something was properly
-// unmarshaled use a map or compare against the previous value for the
-// field (usually the zero value).
+// The type of the decoded values should be compatible with the respective
+// values in out. If one or more values cannot be decoded due to a type
+// mismatches, decoding continues partially until the end of the YAML
+// content, and a *yaml.TypeError is returned with details for all
+// missed values.
 //
 // Struct fields are only unmarshalled if they are exported (have an
 // upper case first letter), and are unmarshalled using the field name
@@ -121,6 +89,9 @@ func Unmarshal(in []byte, out interface{}) (err error) {
 			v = v.Elem()
 		}
 		d.unmarshal(node, v)
+	}
+	if d.terrors != nil {
+		return &TypeError{d.terrors}
 	}
 	return nil
 }
@@ -172,6 +143,40 @@ func Marshal(in interface{}) (out []byte, err error) {
 	e.finish()
 	out = e.out
 	return
+}
+
+func handleErr(err *error) {
+	if v := recover(); v != nil {
+		if e, ok := v.(yamlError); ok {
+			*err = e.err
+		} else {
+			panic(v)
+		}
+	}
+}
+
+type yamlError struct {
+	err error
+}
+
+func fail(err error) {
+	panic(yamlError{err})
+}
+
+func failf(format string, args ...interface{}) {
+	panic(yamlError{fmt.Errorf("yaml: " + format, args...)})
+}
+
+// A TypeError is returned by Unmarshal when one or more fields in
+// the YAML document cannot be properly decoded into the requested
+// types. When this error is returned, the value is still
+// unmarshaled partially.
+type TypeError struct {
+	Errors []string
+}
+
+func (e *TypeError) Error() string {
+	return fmt.Sprintf("yaml: unmarshal errors:\n  %s", strings.Join(e.Errors, "\n  "))
 }
 
 // --------------------------------------------------------------------------

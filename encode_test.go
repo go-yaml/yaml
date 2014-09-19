@@ -299,7 +299,7 @@ func (s *S) TestMarshalTypeCache(c *C) {
 	c.Assert(string(data), Equals, "b: 0\n")
 }
 
-var getterTests = []struct {
+var marshalerTests = []struct {
 	data  string
 	value interface{}
 }{
@@ -310,21 +310,21 @@ var getterTests = []struct {
 	{"_: BAR!\n", "BAR!"},
 }
 
-type typeWithGetter struct {
+type marshalerType struct {
 	value interface{}
 }
 
-func (o typeWithGetter) MarshalYAML() (interface{}, error) {
+func (o marshalerType) MarshalYAML() (interface{}, error) {
 	return o.value, nil
 }
 
-type typeWithGetterField struct {
-	Field typeWithGetter "_"
+type marshalerValue struct {
+	Field marshalerType "_"
 }
 
-func (s *S) TestMashalWithGetter(c *C) {
-	for _, item := range getterTests {
-		obj := &typeWithGetterField{}
+func (s *S) TestMarshaler(c *C) {
+	for _, item := range marshalerTests {
+		obj := &marshalerValue{}
 		obj.Field.value = item.value
 		data, err := yaml.Marshal(obj)
 		c.Assert(err, IsNil)
@@ -332,8 +332,8 @@ func (s *S) TestMashalWithGetter(c *C) {
 	}
 }
 
-func (s *S) TestUnmarshalWholeDocumentWithGetter(c *C) {
-	obj := &typeWithGetter{}
+func (s *S) TestMarshalerWholeDocument(c *C) {
+	obj := &marshalerType{}
 	obj.value = map[string]string{"hello": "world!"}
 	data, err := yaml.Marshal(obj)
 	c.Assert(err, IsNil)

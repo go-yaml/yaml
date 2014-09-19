@@ -421,7 +421,7 @@ type inlineC struct {
 }
 
 func (s *S) TestUnmarshal(c *C) {
-	for i, item := range unmarshalTests {
+	for _, item := range unmarshalTests {
 		t := reflect.ValueOf(item.value).Type()
 		var value interface{}
 		switch t.Kind() {
@@ -435,11 +435,13 @@ func (s *S) TestUnmarshal(c *C) {
 			c.Fatalf("missing case for %s", t)
 		}
 		err := yaml.Unmarshal([]byte(item.data), value)
-		c.Assert(err, IsNil, Commentf("Item #%d", i))
+		if _, ok := err.(*yaml.TypeError); !ok {
+			c.Assert(err, IsNil)
+		}
 		if t.Kind() == reflect.String {
-			c.Assert(*value.(*string), Equals, item.value, Commentf("Item #%d", i))
+			c.Assert(*value.(*string), Equals, item.value)
 		} else {
-			c.Assert(value, DeepEquals, item.value, Commentf("Item #%d", i))
+			c.Assert(value, DeepEquals, item.value)
 		}
 	}
 }
@@ -473,7 +475,7 @@ func (s *S) TestUnmarshalErrors(c *C) {
 	}
 }
 
-var setterTests = []struct {
+var unmarshalerTests = []struct {
 	data, tag string
 	value     interface{}
 }{
@@ -486,35 +488,35 @@ var setterTests = []struct {
 	{"_: !!foo 'BAR!'", "!!foo", "BAR!"},
 }
 
-var setterResult = map[int]error{}
+var unmarshalerResult = map[int]error{}
 
-type typeWithSetter struct {
+type unmarshalerType struct {
 	value interface{}
 }
 
-func (o *typeWithSetter) UnmarshalYAML(unmarshal func(v interface{}) error) error {
+func (o *unmarshalerType) UnmarshalYAML(unmarshal func(v interface{}) error) error {
 	if err := unmarshal(&o.value); err != nil {
 		return err
 	}
 	if i, ok := o.value.(int); ok {
-		if result, ok := setterResult[i]; ok {
+		if result, ok := unmarshalerResult[i]; ok {
 			return result
 		}
 	}
 	return nil
 }
 
-type setterPointerType struct {
-	Field *typeWithSetter "_"
+type unmarshalerPointer struct {
+	Field *unmarshalerType "_"
 }
 
-type setterValueType struct {
-	Field typeWithSetter "_"
+type unmarshalerValue struct {
+	Field unmarshalerType "_"
 }
 
-func (s *S) TestUnmarshalWithPointerSetter(c *C) {
-	for _, item := range setterTests {
-		obj := &setterPointerType{}
+func (s *S) TestUnmarshalerPointerField(c *C) {
+	for _, item := range unmarshalerTests {
+		obj := &unmarshalerPointer{}
 		err := yaml.Unmarshal([]byte(item.data), obj)
 		c.Assert(err, IsNil)
 		if item.value == nil {
@@ -526,9 +528,9 @@ func (s *S) TestUnmarshalWithPointerSetter(c *C) {
 	}
 }
 
-func (s *S) TestUnmarshalWithValueSetter(c *C) {
-	for _, item := range setterTests {
-		obj := &setterValueType{}
+func (s *S) TestUnmarshalerValueField(c *C) {
+	for _, item := range unmarshalerTests {
+		obj := &unmarshalerValue{}
 		err := yaml.Unmarshal([]byte(item.data), obj)
 		c.Assert(err, IsNil)
 		c.Assert(obj.Field, NotNil, Commentf("Pointer not initialized (%#v)", item.value))
@@ -536,34 +538,82 @@ func (s *S) TestUnmarshalWithValueSetter(c *C) {
 	}
 }
 
-func (s *S) TestUnmarshalWholeDocumentWithSetter(c *C) {
-	obj := &typeWithSetter{}
-	err := yaml.Unmarshal([]byte(setterTests[0].data), obj)
+func (s *S) TestUnmarshalerWholeDocument(c *C) {
+	obj := &unmarshalerType{}
+	err := yaml.Unmarshal([]byte(unmarshalerTests[0].data), obj)
 	c.Assert(err, IsNil)
 	value, ok := obj.value.(map[interface{}]interface{})
 	c.Assert(ok, Equals, true, Commentf("value: %#v", obj.value))
-	c.Assert(value["_"], DeepEquals, setterTests[0].value)
+	c.Assert(value["_"], DeepEquals, unmarshalerTests[0].value)
 }
 
-func (s *S) TestUnmarshalWithFalseSetterIgnoresValue(c *C) {
-	setterResult[2] = yaml.ErrMismatch
-	setterResult[4] = yaml.ErrMismatch
+func (s *S) TestUnmarshalerTypeError(c *C) {
+	unmarshalerResult[2] = &yaml.TypeError{[]string{"foo"}}
+	unmarshalerResult[4] = &yaml.TypeError{[]string{"bar"}}
 	defer func() {
-		delete(setterResult, 2)
-		delete(setterResult, 4)
+		delete(unmarshalerResult, 2)
+		delete(unmarshalerResult, 4)
 	}()
 
-	m := map[string]*typeWithSetter{}
-	data := `{abc: 1, def: 2, ghi: 3, jkl: 4}`
-	err := yaml.Unmarshal([]byte(data), m)
-	c.Assert(err, IsNil)
-	c.Assert(m["abc"], NotNil)
-	c.Assert(m["def"], IsNil)
-	c.Assert(m["ghi"], NotNil)
-	c.Assert(m["jkl"], IsNil)
+	type T struct {
+		Before int
+		After  int
+		M      map[string]*unmarshalerType
+	}
+	var v T
+	data := `{before: A, m: {abc: 1, def: 2, ghi: 3, jkl: 4}, after: B}`
+	err := yaml.Unmarshal([]byte(data), &v)
+	c.Assert(err, ErrorMatches, ""+
+		"yaml: unmarshal errors:\n"+
+		"  line 1: cannot unmarshal !!str `A` into int\n"+
+		"  foo\n"+
+		"  bar\n"+
+		"  line 1: cannot unmarshal !!str `B` into int")
+	c.Assert(v.M["abc"], NotNil)
+	c.Assert(v.M["def"], IsNil)
+	c.Assert(v.M["ghi"], NotNil)
+	c.Assert(v.M["jkl"], IsNil)
 
-	c.Assert(m["abc"].value, Equals, 1)
-	c.Assert(m["ghi"].value, Equals, 3)
+	c.Assert(v.M["abc"].value, Equals, 1)
+	c.Assert(v.M["ghi"].value, Equals, 3)
+}
+
+type proxyTypeError struct{}
+
+func (v *proxyTypeError) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	var s string
+	var a int32
+	var b int64
+	if err := unmarshal(&s); err != nil {
+		panic(err)
+	}
+	if s == "a" {
+		if err := unmarshal(&b); err == nil {
+			panic("should have failed")
+		}
+		return unmarshal(&a)
+	}
+	if err := unmarshal(&a); err == nil {
+		panic("should have failed")
+	}
+	return unmarshal(&b)
+}
+
+func (s *S) TestUnmarshalerTypeErrorProxying(c *C) {
+	type T struct {
+		Before int
+		After  int
+		M      map[string]*proxyTypeError
+	}
+	var v T
+	data := `{before: A, m: {abc: a, def: b}, after: B}`
+	err := yaml.Unmarshal([]byte(data), &v)
+	c.Assert(err, ErrorMatches, ""+
+		"yaml: unmarshal errors:\n"+
+		"  line 1: cannot unmarshal !!str `A` into int\n"+
+		"  line 1: cannot unmarshal !!str `a` into int32\n"+
+		"  line 1: cannot unmarshal !!str `b` into int64\n"+
+		"  line 1: cannot unmarshal !!str `B` into int")
 }
 
 type failingUnmarshaler struct{}
@@ -582,10 +632,11 @@ func (s *S) TestUnmarshalerError(c *C) {
 // From http://yaml.org/type/merge.html
 var mergeTests = `
 anchors:
-  - &CENTER { "x": 1, "y": 2 }
-  - &LEFT   { "x": 0, "y": 2 }
-  - &BIG    { "r": 10 }
-  - &SMALL  { "r": 1 }
+  list:
+    - &CENTER { "x": 1, "y": 2 }
+    - &LEFT   { "x": 0, "y": 2 }
+    - &BIG    { "r": 10 }
+    - &SMALL  { "r": 1 }
 
 # All the following maps are equal:
 

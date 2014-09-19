@@ -50,22 +50,23 @@ func (e *encoder) must(ok bool) {
 	if !ok {
 		msg := e.emitter.problem
 		if msg == "" {
-			msg = "Unknown problem generating YAML content"
+			msg = "unknown problem generating YAML content"
 		}
-		fail(msg)
+		failf("%s", msg)
 	}
 }
 
 func (e *encoder) marshal(tag string, in reflect.Value) {
-	var value interface{}
-	if getter, ok := in.Interface().(Getter); ok {
-		tag, value = getter.GetYAML()
-		tag = longTag(tag)
-		if value == nil {
+	if m, ok := in.Interface().(Marshaler); ok {
+		v, err := m.MarshalYAML()
+		if err != nil {
+			fail(err)
+		}
+		if v == nil {
 			e.nilv()
 			return
 		}
-		in = reflect.ValueOf(value)
+		in = reflect.ValueOf(v)
 	}
 	switch in.Kind() {
 	case reflect.Interface:
@@ -105,7 +106,7 @@ func (e *encoder) marshal(tag string, in reflect.Value) {
 	case reflect.Bool:
 		e.boolv(tag, in)
 	default:
-		panic("Can't marshal type: " + in.Type().String())
+		panic("cannot marshal type: " + in.Type().String())
 	}
 }
 
@@ -215,9 +216,9 @@ func (e *encoder) stringv(tag string, in reflect.Value) {
 			tag = rtag
 			s = rs.(string)
 		} else if tag == yaml_BINARY_TAG {
-			fail("explicitly tagged !!binary data must be base64-encoded")
+			failf("explicitly tagged !!binary data must be base64-encoded")
 		} else {
-			fail("cannot marshal invalid UTF-8 data as " + shortTag(tag))
+			failf("cannot marshal invalid UTF-8 data as %s", shortTag(tag))
 		}
 	}
 	if tag == "" && (rtag != yaml_STR_TAG || isBase60Float(s)) {

@@ -2,7 +2,6 @@ package yaml
 
 import (
 	"encoding/base64"
-	"fmt"
 	"reflect"
 	"strconv"
 	"time"
@@ -38,7 +37,7 @@ type parser struct {
 func newParser(b []byte) *parser {
 	p := parser{}
 	if !yaml_parser_initialize(&p.parser) {
-		panic("Failed to initialize YAML emitter")
+		panic("failed to initialize YAML emitter")
 	}
 
 	if len(b) == 0 {
@@ -49,7 +48,7 @@ func newParser(b []byte) *parser {
 
 	p.skip()
 	if p.event.typ != yaml_STREAM_START_EVENT {
-		panic("Expected stream start event, got " + strconv.Itoa(int(p.event.typ)))
+		panic("expected stream start event, got " + strconv.Itoa(int(p.event.typ)))
 	}
 	p.skip()
 	return &p
@@ -65,7 +64,7 @@ func (p *parser) destroy() {
 func (p *parser) skip() {
 	if p.event.typ != yaml_NO_EVENT {
 		if p.event.typ == yaml_STREAM_END_EVENT {
-			fail("Attempted to go past the end of stream. Corrupted value?")
+			failf("attempted to go past the end of stream; corrupted value?")
 		}
 		yaml_event_delete(&p.event)
 	}
@@ -89,9 +88,9 @@ func (p *parser) fail() {
 	if len(p.parser.problem) > 0 {
 		msg = p.parser.problem
 	} else {
-		msg = "Unknown problem parsing YAML content"
+		msg = "unknown problem parsing YAML content"
 	}
-	fail(where + msg)
+	failf("%s%s", where, msg)
 }
 
 func (p *parser) anchor(n *node, anchor []byte) {
@@ -116,7 +115,7 @@ func (p *parser) parse() *node {
 		// Happens when attempting to decode an empty buffer.
 		return nil
 	default:
-		panic("Attempted to parse unknown event: " + strconv.Itoa(int(p.event.typ)))
+		panic("attempted to parse unknown event: " + strconv.Itoa(int(p.event.typ)))
 	}
 	panic("unreachable")
 }
@@ -136,7 +135,7 @@ func (p *parser) document() *node {
 	p.skip()
 	n.children = append(n.children, p.parse())
 	if p.event.typ != yaml_DOCUMENT_END_EVENT {
-		panic("Expected end of document event but got " + strconv.Itoa(int(p.event.typ)))
+		panic("expected end of document event but got " + strconv.Itoa(int(p.event.typ)))
 	}
 	p.skip()
 	return n
@@ -198,76 +197,78 @@ func newDecoder() *decoder {
 	return d
 }
 
-// d.setter deals with setters and pointer dereferencing and initialization.
-//
-// It's a slightly convoluted case to handle properly:
-//
-// - nil pointers should be initialized, unless being set to nil
-// - we don't know at this point yet what's the value to SetYAML() with.
-// - we can't separate pointer deref/init and setter checking, because
-//   a setter may be found while going down a pointer chain.
-//
-// Thus, here is how it takes care of it:
-//
-// - out is provided as a pointer, so that it can be replaced.
-// - when looking at a non-setter ptr, *out=ptr.Elem(), unless tag=!!null
-// - when a setter is found, *out=interface{}, and a set() function is
-//   returned to call SetYAML() with the value of *out once it's defined.
-//
-func (d *decoder) setter(tag string, out *reflect.Value, good *bool) (set func()) {
-	if (*out).Kind() != reflect.Ptr && (*out).CanAddr() {
-		setter, _ := (*out).Addr().Interface().(Setter)
-		if setter != nil {
-			var arg interface{}
-			*out = reflect.ValueOf(&arg).Elem()
-			return func() {
-				*good = setter.SetYAML(shortTag(tag), arg)
-			}
+func (d *decoder) callUnmarshaler(n *node, u Unmarshaler) (good bool) {
+	err := u.UnmarshalYAML(func(v interface{}) (err error) {
+		defer handleErr(&err)
+		if !d.unmarshal(n, reflect.ValueOf(v)) {
+			return ErrMismatch
 		}
+		return nil
+	})
+	if err == ErrMismatch {
+		return false
+	}
+	if err != nil {
+		fail(err)
+	}
+	return true
+}
+
+// d.prepare initializes and dereferences pointers and calls UnmarshalYAML
+// if a value is found to implement it.
+// It returns the initialized and dereferenced out value, whether
+// unmarshalling was already done by UnmarshalYAML, and if so whether
+// its types unmarshalled appropriately.
+//
+// If n holds a null value, prepare returns before doing anything.
+func (d *decoder) prepare(n *node, out reflect.Value) (newout reflect.Value, unmarshaled, good bool) {
+	if n.tag == yaml_NULL_TAG || n.kind == scalarNode && n.tag == "" && (n.value == "null" || n.value == "") {
+		return out, false, false
 	}
 	again := true
 	for again {
 		again = false
-		setter, _ := (*out).Interface().(Setter)
-		if tag != yaml_NULL_TAG || setter != nil {
-			if pv := (*out); pv.Kind() == reflect.Ptr {
-				if pv.IsNil() {
-					*out = reflect.New(pv.Type().Elem()).Elem()
-					pv.Set((*out).Addr())
-				} else {
-					*out = pv.Elem()
-				}
-				setter, _ = pv.Interface().(Setter)
-				again = true
+		if out.Kind() == reflect.Ptr {
+			if out.IsNil() {
+				out.Set(reflect.New(out.Type().Elem()))
+				out = out.Elem()
+			} else {
+				out = out.Elem()
 			}
+			again = true
 		}
-		if setter != nil {
-			var arg interface{}
-			*out = reflect.ValueOf(&arg).Elem()
-			return func() {
-				*good = setter.SetYAML(shortTag(tag), arg)
+		if out.CanAddr() {
+			if u, ok := out.Addr().Interface().(Unmarshaler); ok {
+				good = d.callUnmarshaler(n, u)
+				return out, true, good
 			}
 		}
 	}
-	return nil
+	return out, false, false
 }
 
 func (d *decoder) unmarshal(n *node, out reflect.Value) (good bool) {
 	switch n.kind {
 	case documentNode:
-		good = d.document(n, out)
-	case scalarNode:
-		good = d.scalar(n, out)
+		return d.document(n, out)
 	case aliasNode:
-		good = d.alias(n, out)
-	case mappingNode:
-		good = d.mapping(n, out)
-	case sequenceNode:
-		good = d.sequence(n, out)
-	default:
-		panic("Internal error: unknown node kind: " + strconv.Itoa(n.kind))
+		return d.alias(n, out)
 	}
-	return
+	out, unmarshaled, good := d.prepare(n, out)
+	if unmarshaled {
+		return good
+	}
+	switch n.kind {
+	case scalarNode:
+		return d.scalar(n, out)
+	case mappingNode:
+		return d.mapping(n, out)
+	case sequenceNode:
+		return d.sequence(n, out)
+	default:
+		panic("internal error: unknown node kind: " + strconv.Itoa(n.kind))
+	}
+	return false
 }
 
 func (d *decoder) document(n *node, out reflect.Value) (good bool) {
@@ -282,10 +283,10 @@ func (d *decoder) document(n *node, out reflect.Value) (good bool) {
 func (d *decoder) alias(n *node, out reflect.Value) (good bool) {
 	an, ok := d.doc.anchors[n.value]
 	if !ok {
-		fail("Unknown anchor '" + n.value + "' referenced")
+		failf("unknown anchor '%s' referenced", n.value)
 	}
 	if d.aliases[n.value] {
-		fail("Anchor '" + n.value + "' value contains itself")
+		failf("anchor '%s' value contains itself", n.value)
 	}
 	d.aliases[n.value] = true
 	good = d.unmarshal(an, out)
@@ -314,13 +315,10 @@ func (d *decoder) scalar(n *node, out reflect.Value) (good bool) {
 		if tag == yaml_BINARY_TAG {
 			data, err := base64.StdEncoding.DecodeString(resolved.(string))
 			if err != nil {
-				fail("!!binary value contains invalid base64 data")
+				failf("!!binary value contains invalid base64 data")
 			}
 			resolved = string(data)
 		}
-	}
-	if set := d.setter(tag, &out, &good); set != nil {
-		defer set()
 	}
 	if resolved == nil {
 		if out.Kind() == reflect.Map && !out.CanAddr() {
@@ -411,6 +409,7 @@ func (d *decoder) scalar(n *node, out reflect.Value) (good bool) {
 		}
 	case reflect.Ptr:
 		if out.Type().Elem() == reflect.TypeOf(resolved) {
+			// TODO DOes this make sense? When is out a Ptr except when decoding a nil value?
 			elem := reflect.New(out.Type().Elem())
 			elem.Elem().Set(reflect.ValueOf(resolved))
 			out.Set(elem)
@@ -428,9 +427,6 @@ func settableValueOf(i interface{}) reflect.Value {
 }
 
 func (d *decoder) sequence(n *node, out reflect.Value) (good bool) {
-	if set := d.setter(yaml_SEQ_TAG, &out, &good); set != nil {
-		defer set()
-	}
 	var iface reflect.Value
 	if out.Kind() == reflect.Interface {
 		// No type hints. Will have to use a generic sequence.
@@ -457,9 +453,6 @@ func (d *decoder) sequence(n *node, out reflect.Value) (good bool) {
 }
 
 func (d *decoder) mapping(n *node, out reflect.Value) (good bool) {
-	if set := d.setter(yaml_MAP_TAG, &out, &good); set != nil {
-		defer set()
-	}
 	switch out.Kind() {
 	case reflect.Struct:
 		return d.mappingStruct(n, out)
@@ -506,7 +499,7 @@ func (d *decoder) mapping(n *node, out reflect.Value) (good bool) {
 				kkind = k.Elem().Kind()
 			}
 			if kkind == reflect.Map || kkind == reflect.Slice {
-				fail(fmt.Sprintf("invalid map key: %#v", k.Interface()))
+				failf("invalid map key: %#v", k.Interface())
 			}
 			e := reflect.New(et).Elem()
 			if d.unmarshal(n.children[i+1], e) {
@@ -524,9 +517,6 @@ func (d *decoder) mappingSlice(n *node, out reflect.Value) (good bool) {
 	outt := out.Type()
 	if outt.Elem() != mapItemType {
 		return false
-	}
-	if set := d.setter(yaml_MAP_TAG, &out, &good); set != nil {
-		defer set()
 	}
 
 	mapType := d.mapType
@@ -582,15 +572,18 @@ func (d *decoder) mappingStruct(n *node, out reflect.Value) (good bool) {
 	return true
 }
 
+func failWantMap() {
+	failf("map merge requires map or sequence of maps as the value")
+}
+
 func (d *decoder) merge(n *node, out reflect.Value) {
-	const wantMap = "map merge requires map or sequence of maps as the value"
 	switch n.kind {
 	case mappingNode:
 		d.unmarshal(n, out)
 	case aliasNode:
 		an, ok := d.doc.anchors[n.value]
 		if ok && an.kind != mappingNode {
-			fail(wantMap)
+			failWantMap()
 		}
 		d.unmarshal(n, out)
 	case sequenceNode:
@@ -600,15 +593,15 @@ func (d *decoder) merge(n *node, out reflect.Value) {
 			if ni.kind == aliasNode {
 				an, ok := d.doc.anchors[ni.value]
 				if ok && an.kind != mappingNode {
-					fail(wantMap)
+					failWantMap()
 				}
 			} else if ni.kind != mappingNode {
-				fail(wantMap)
+				failWantMap()
 			}
 			d.unmarshal(ni, out)
 		}
 	default:
-		fail(wantMap)
+		failWantMap()
 	}
 }
 

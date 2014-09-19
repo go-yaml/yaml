@@ -14,21 +14,35 @@ import (
 	"sync"
 )
 
-type yamlError string
+type yamlError struct {
+	err error
+}
 
-func fail(msg string) {
-	panic(yamlError(msg))
+func fail(err error) {
+	panic(yamlError{err})
+}
+
+func failf(format string, args ...interface{}) {
+	panic(yamlError{fmt.Errorf("yaml: " + format, args...)})
 }
 
 func handleErr(err *error) {
-	if r := recover(); r != nil {
-		if e, ok := r.(yamlError); ok {
-			*err = errors.New("YAML error: " + string(e))
+	if v := recover(); v != nil {
+		if e, ok := v.(yamlError); ok {
+			*err = e.err
 		} else {
-			panic(r)
+			panic(v)
 		}
 	}
 }
+
+// A TypeError is returned by Unmarshal when one or more fields in
+// the YAML document cannot be properly decoded.
+type TypeError struct {
+	Issues []string
+}
+
+var ErrMismatch = errors.New("type not suitable for decoded value")
 
 // MapSlice encodes and decodes as a YAML map.
 // The order of keys is preserved when encoding and decoding.
@@ -39,19 +53,24 @@ type MapItem struct {
 	Key, Value interface{}
 }
 
-// The Setter interface may be implemented by types to do their own custom
-// unmarshalling of YAML values, rather than being implicitly assigned by
-// the yaml package machinery. If setting the value works, the method should
-// return true.  If it returns false, the value is considered unsupported
-// and is omitted from maps and slices.
-type Setter interface {
-	SetYAML(tag string, value interface{}) bool
+// The Unmarshaler interface may be implemented by types to customize their
+// behavior when being unmarshaled from a YAML document. The UnmarshalYAML
+// method receives a function that may be called to unmarshal the original
+// YAML value into a field or variable. It is safe to call the unmarshal
+// function parameter more than once if necessary.
+type Unmarshaler interface {
+	UnmarshalYAML(unmarshal func(interface{}) error) error
 }
 
-// The Getter interface is implemented by types to do their own custom
-// marshalling into a YAML tag and value.
-type Getter interface {
-	GetYAML() (tag string, value interface{})
+
+// The Marshaler interface may be implemented by types to customize their
+// behavior when being marshaled into a YAML document. The returned value
+// is marshaled in place of the original value implementing Marshaler.
+//
+// If an error is returned by MarshalYAML, the marshaling procedure stops
+// and returns with the provided error.
+type Marshaler interface {
+	MarshalYAML() (interface{}, error)
 }
 
 // Unmarshal decodes the first document found within the in byte slice

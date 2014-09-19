@@ -1,6 +1,7 @@
 package yaml_test
 
 import (
+	"errors"
 	. "gopkg.in/check.v1"
 	"gopkg.in/yaml.v1"
 	"math"
@@ -453,15 +454,15 @@ func (s *S) TestUnmarshalNaN(c *C) {
 var unmarshalErrorTests = []struct {
 	data, error string
 }{
-	{"v: !!float 'error'", "YAML error: cannot decode !!str `error` as a !!float"},
-	{"v: [A,", "YAML error: line 1: did not find expected node content"},
-	{"v:\n- [A,", "YAML error: line 2: did not find expected node content"},
-	{"a: *b\n", "YAML error: Unknown anchor 'b' referenced"},
-	{"a: &a\n  b: *a\n", "YAML error: Anchor 'a' value contains itself"},
-	{"value: -", "YAML error: block sequence entries are not allowed in this context"},
-	{"a: !!binary ==", "YAML error: !!binary value contains invalid base64 data"},
-	{"{[.]}", `YAML error: invalid map key: \[\]interface \{\}\{"\."\}`},
-	{"{{.}}", `YAML error: invalid map key: map\[interface\ \{\}\]interface \{\}\{".":interface \{\}\(nil\)\}`},
+	{"v: !!float 'error'", "yaml: cannot decode !!str `error` as a !!float"},
+	{"v: [A,", "yaml: line 1: did not find expected node content"},
+	{"v:\n- [A,", "yaml: line 2: did not find expected node content"},
+	{"a: *b\n", "yaml: unknown anchor 'b' referenced"},
+	{"a: &a\n  b: *a\n", "yaml: anchor 'a' value contains itself"},
+	{"value: -", "yaml: block sequence entries are not allowed in this context"},
+	{"a: !!binary ==", "yaml: !!binary value contains invalid base64 data"},
+	{"{[.]}", `yaml: invalid map key: \[\]interface \{\}\{"\."\}`},
+	{"{{.}}", `yaml: invalid map key: map\[interface\ \{\}\]interface \{\}\{".":interface \{\}\(nil\)\}`},
 }
 
 func (s *S) TestUnmarshalErrors(c *C) {
@@ -485,22 +486,22 @@ var setterTests = []struct {
 	{"_: !!foo 'BAR!'", "!!foo", "BAR!"},
 }
 
-var setterResult = map[int]bool{}
+var setterResult = map[int]error{}
 
 type typeWithSetter struct {
-	tag   string
 	value interface{}
 }
 
-func (o *typeWithSetter) SetYAML(tag string, value interface{}) (ok bool) {
-	o.tag = tag
-	o.value = value
-	if i, ok := value.(int); ok {
+func (o *typeWithSetter) UnmarshalYAML(unmarshal func(v interface{}) error) error {
+	if err := unmarshal(&o.value); err != nil {
+		return err
+	}
+	if i, ok := o.value.(int); ok {
 		if result, ok := setterResult[i]; ok {
 			return result
 		}
 	}
-	return true
+	return nil
 }
 
 type setterPointerType struct {
@@ -516,9 +517,12 @@ func (s *S) TestUnmarshalWithPointerSetter(c *C) {
 		obj := &setterPointerType{}
 		err := yaml.Unmarshal([]byte(item.data), obj)
 		c.Assert(err, IsNil)
-		c.Assert(obj.Field, NotNil, Commentf("Pointer not initialized (%#v)", item.value))
-		c.Assert(obj.Field.tag, Equals, item.tag)
-		c.Assert(obj.Field.value, DeepEquals, item.value)
+		if item.value == nil {
+			c.Assert(obj.Field, IsNil)
+		} else {
+			c.Assert(obj.Field, NotNil, Commentf("Pointer not initialized (%#v)", item.value))
+			c.Assert(obj.Field.value, DeepEquals, item.value)
+		}
 	}
 }
 
@@ -528,7 +532,6 @@ func (s *S) TestUnmarshalWithValueSetter(c *C) {
 		err := yaml.Unmarshal([]byte(item.data), obj)
 		c.Assert(err, IsNil)
 		c.Assert(obj.Field, NotNil, Commentf("Pointer not initialized (%#v)", item.value))
-		c.Assert(obj.Field.tag, Equals, item.tag)
 		c.Assert(obj.Field.value, DeepEquals, item.value)
 	}
 }
@@ -537,15 +540,14 @@ func (s *S) TestUnmarshalWholeDocumentWithSetter(c *C) {
 	obj := &typeWithSetter{}
 	err := yaml.Unmarshal([]byte(setterTests[0].data), obj)
 	c.Assert(err, IsNil)
-	c.Assert(obj.tag, Equals, setterTests[0].tag)
 	value, ok := obj.value.(map[interface{}]interface{})
-	c.Assert(ok, Equals, true)
+	c.Assert(ok, Equals, true, Commentf("value: %#v", obj.value))
 	c.Assert(value["_"], DeepEquals, setterTests[0].value)
 }
 
 func (s *S) TestUnmarshalWithFalseSetterIgnoresValue(c *C) {
-	setterResult[2] = false
-	setterResult[4] = false
+	setterResult[2] = yaml.ErrMismatch
+	setterResult[4] = yaml.ErrMismatch
 	defer func() {
 		delete(setterResult, 2)
 		delete(setterResult, 4)
@@ -562,6 +564,19 @@ func (s *S) TestUnmarshalWithFalseSetterIgnoresValue(c *C) {
 
 	c.Assert(m["abc"].value, Equals, 1)
 	c.Assert(m["ghi"].value, Equals, 3)
+}
+
+type failingUnmarshaler struct{}
+
+var failingErr = errors.New("failingErr")
+
+func (ft *failingUnmarshaler) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	return failingErr
+}
+
+func (s *S) TestUnmarshalerError(c *C) {
+	err := yaml.Unmarshal([]byte("a: b"), &failingUnmarshaler{})
+	c.Assert(err, Equals, failingErr)
 }
 
 // From http://yaml.org/type/merge.html

@@ -20,6 +20,7 @@ func newEncoder() (e *encoder) {
 	e = &encoder{}
 	e.must(yaml_emitter_initialize(&e.emitter))
 	yaml_emitter_set_output_string(&e.emitter, &e.out)
+	yaml_emitter_set_unicode(&e.emitter, true)
 	e.must(yaml_stream_start_event_initialize(&e.event, yaml_UTF8_ENCODING))
 	e.emit()
 	e.must(yaml_document_start_event_initialize(&e.event, nil, nil, true))

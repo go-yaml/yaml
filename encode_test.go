@@ -250,6 +250,12 @@ var marshalTests = []struct {
 		&yaml.MapSlice{{"b", 2}, {"a", 1}, {"d", 4}, {"c", 3}, {"sub", yaml.MapSlice{{"e", 5}}}},
 		"b: 2\na: 1\nd: 4\nc: 3\nsub:\n  e: 5\n",
 	},
+
+	// Encode unicode as utf-8 rather than in escaped form.
+	{
+		map[string]string{"a": "你好"},
+		"a: 你好\n",
+	},
 }
 
 func (s *S) TestMarshal(c *C) {

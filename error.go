@@ -1,5 +1,5 @@
 package error
 
 func error() {
-	`ERROR: the correct import path is gopkg.in/yaml.v1 ... `
+	`ERROR: the correct import path is gopkg.in/yaml.v2 ... `
 }

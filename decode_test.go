@@ -3,7 +3,7 @@ package yaml_test
 import (
 	"errors"
 	. "gopkg.in/check.v1"
-	"gopkg.in/yaml.v1"
+	"gopkg.in/yaml.v2"
 	"math"
 	"reflect"
 	"strings"

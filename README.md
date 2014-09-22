@@ -20,23 +20,23 @@ supported since they're a poor design and are gone in YAML 1.2.
 Installation and usage
 ----------------------
 
-The import path for the package is *gopkg.in/yaml.v1*.
+The import path for the package is *gopkg.in/yaml.v2*.
 
 To install it, run:
 
-    go get gopkg.in/yaml.v1
+    go get gopkg.in/yaml.v2
 
 API documentation
 -----------------
 
 If opened in a browser, the import path itself leads to the API documentation:
 
-  * [https://gopkg.in/yaml.v1](https://gopkg.in/yaml.v1)
+  * [https://gopkg.in/yaml.v2](https://gopkg.in/yaml.v2)
 
 API stability
 -------------
 
-The package API for yaml v1 will remain stable as described in [gopkg.in](https://gopkg.in).
+The package API for yaml v2 will remain stable as described in [gopkg.in](https://gopkg.in).
 
 
 License
@@ -55,7 +55,7 @@ import (
         "fmt"
         "log"
 
-        "gopkg.in/yaml.v1"
+        "gopkg.in/yaml.v2"
 )
 
 var data = `

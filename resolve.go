@@ -8,8 +8,6 @@ import (
 	"unicode/utf8"
 )
 
-// TODO: merge, timestamps, base 60 floats, omap.
-
 type resolveMapItem struct {
 	value interface{}
 	tag   string

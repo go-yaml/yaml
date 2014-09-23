@@ -58,6 +58,10 @@ func (e *encoder) must(ok bool) {
 }
 
 func (e *encoder) marshal(tag string, in reflect.Value) {
+	if !in.IsValid() {
+		e.nilv()
+		return
+	}
 	if m, ok := in.Interface().(Marshaler); ok {
 		v, err := m.MarshalYAML()
 		if err != nil {

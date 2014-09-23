@@ -2,12 +2,13 @@ package yaml_test
 
 import (
 	"fmt"
-	. "gopkg.in/check.v1"
-	"gopkg.in/yaml.v2"
 	"math"
 	"strconv"
 	"strings"
 	"time"
+
+	. "gopkg.in/check.v1"
+	"gopkg.in/yaml.v2"
 )
 
 var marshalIntTest = 123
@@ -17,6 +18,9 @@ var marshalTests = []struct {
 	data  string
 }{
 	{
+		nil,
+		"null\n",
+	}, {
 		&struct{}{},
 		"{}\n",
 	}, {

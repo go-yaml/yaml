@@ -202,9 +202,6 @@ var unmarshalTests = []struct {
 	{
 		"a: {b: c}",
 		map[interface{}]interface{}{"a": map[interface{}]interface{}{"b": "c"}},
-	}, {
-		"a: {b: c}",
-		map[string]interface{}{"a": map[string]interface{}{"b": "c"}},
 	},
 
 	// Structs and type conversions.
@@ -409,7 +406,21 @@ var unmarshalTests = []struct {
 		"{b: 2, a: 1, d: 4, c: 3, sub: {e: 5}}",
 		&yaml.MapSlice{{"b", 2}, {"a", 1}, {"d", 4}, {"c", 3}, {"sub", yaml.MapSlice{{"e", 5}}}},
 	},
+
+	// Issue #39.
+	{
+		"a:\n b:\n  c: d\n",
+		map[string]struct{ B interface{} }{"a": {map[interface{}]interface{}{"c": "d"}}},
+	},
+
+	// Custom map type.
+	{
+		"a: {b: c}",
+		M{"a": M{"b": "c"}},
+	},
 }
+
+type M map[interface{}]interface{}
 
 type inlineB struct {
 	B       int
@@ -686,14 +697,14 @@ inlineSequenceMap:
 `
 
 func (s *S) TestMerge(c *C) {
-	var want = map[string]interface{}{
+	var want = map[interface{}]interface{}{
 		"x":     1,
 		"y":     2,
 		"r":     10,
 		"label": "center/big",
 	}
 
-	var m map[string]interface{}
+	var m map[interface{}]interface{}
 	err := yaml.Unmarshal([]byte(mergeTests), &m)
 	c.Assert(err, IsNil)
 	for name, test := range m {

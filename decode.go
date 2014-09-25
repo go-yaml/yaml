@@ -191,7 +191,12 @@ type decoder struct {
 	terrors []string
 }
 
-var defaultMapType = reflect.TypeOf(map[interface{}]interface{}{})
+var (
+	mapItemType = reflect.TypeOf(MapItem{})
+	durationType = reflect.TypeOf(time.Duration(0))
+	defaultMapType = reflect.TypeOf(map[interface{}]interface{}{})
+	ifaceType = defaultMapType.Elem()
+)
 
 func newDecoder() *decoder {
 	d := &decoder{mapType: defaultMapType}
@@ -323,8 +328,6 @@ func resetMap(out reflect.Value) {
 		out.SetMapIndex(k, zeroValue)
 	}
 }
-
-var durationType = reflect.TypeOf(time.Duration(0))
 
 func (d *decoder) scalar(n *node, out reflect.Value) (good bool) {
 	var tag string
@@ -479,6 +482,8 @@ func (d *decoder) sequence(n *node, out reflect.Value) (good bool) {
 	return true
 }
 
+
+
 func (d *decoder) mapping(n *node, out reflect.Value) (good bool) {
 	switch out.Kind() {
 	case reflect.Struct:
@@ -509,7 +514,9 @@ func (d *decoder) mapping(n *node, out reflect.Value) (good bool) {
 	et := outt.Elem()
 
 	mapType := d.mapType
-	d.mapType = outt
+	if outt.Key() == ifaceType && outt.Elem() == ifaceType {
+		d.mapType = outt
+	}
 
 	if out.IsNil() {
 		out.Set(reflect.MakeMap(outt))
@@ -538,8 +545,6 @@ func (d *decoder) mapping(n *node, out reflect.Value) (good bool) {
 	d.mapType = mapType
 	return true
 }
-
-var mapItemType = reflect.TypeOf(MapItem{})
 
 func (d *decoder) mappingSlice(n *node, out reflect.Value) (good bool) {
 	outt := out.Type()

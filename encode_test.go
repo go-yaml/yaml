@@ -9,6 +9,7 @@ import (
 
 	. "gopkg.in/check.v1"
 	"gopkg.in/yaml.v2"
+	"net"
 )
 
 var marshalIntTest = 123
@@ -259,6 +260,12 @@ var marshalTests = []struct {
 	{
 		map[string]string{"a": "你好"},
 		"a: 你好\n",
+	},
+
+	// Support encoding.TextMarshaler.
+	{
+		map[string]net.IP{"a": net.IPv4(1, 2, 3, 4)},
+		"a: 1.2.3.4\n",
 	},
 }
 

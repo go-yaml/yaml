@@ -1,6 +1,7 @@
 package yaml
 
 import (
+	"encoding"
 	"reflect"
 	"regexp"
 	"sort"
@@ -62,7 +63,8 @@ func (e *encoder) marshal(tag string, in reflect.Value) {
 		e.nilv()
 		return
 	}
-	if m, ok := in.Interface().(Marshaler); ok {
+	iface := in.Interface()
+	if m, ok := iface.(Marshaler); ok {
 		v, err := m.MarshalYAML()
 		if err != nil {
 			fail(err)
@@ -72,6 +74,13 @@ func (e *encoder) marshal(tag string, in reflect.Value) {
 			return
 		}
 		in = reflect.ValueOf(v)
+	}
+	if m, ok := iface.(encoding.TextMarshaler); ok {
+		text, err := m.MarshalText()
+		if err != nil {
+			fail(err)
+		}
+		in = reflect.ValueOf(string(text))
 	}
 	switch in.Kind() {
 	case reflect.Interface:
@@ -100,7 +109,7 @@ func (e *encoder) marshal(tag string, in reflect.Value) {
 		e.stringv(tag, in)
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		if in.Type() == durationType {
-			e.stringv(tag, reflect.ValueOf(in.Interface().(time.Duration).String()))
+			e.stringv(tag, reflect.ValueOf(iface.(time.Duration).String()))
 		} else {
 			e.intv(tag, in)
 		}

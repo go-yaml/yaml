@@ -5,6 +5,7 @@ import (
 	. "gopkg.in/check.v1"
 	"gopkg.in/yaml.v2"
 	"math"
+	"net"
 	"reflect"
 	"strings"
 	"time"
@@ -417,6 +418,12 @@ var unmarshalTests = []struct {
 	{
 		"a: {b: c}",
 		M{"a": M{"b": "c"}},
+	},
+
+	// Support encoding.TextUnmarshaler.
+	{
+		"a: 1.2.3.4\n",
+		map[string]net.IP{"a": net.IPv4(1, 2, 3, 4)},
 	},
 }
 

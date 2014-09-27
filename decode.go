@@ -1,6 +1,7 @@
 package yaml
 
 import (
+	"encoding"
 	"encoding/base64"
 	"fmt"
 	"reflect"
@@ -258,10 +259,8 @@ func (d *decoder) prepare(n *node, out reflect.Value) (newout reflect.Value, unm
 		if out.Kind() == reflect.Ptr {
 			if out.IsNil() {
 				out.Set(reflect.New(out.Type().Elem()))
-				out = out.Elem()
-			} else {
-				out = out.Elem()
 			}
+			out = out.Elem()
 			again = true
 		}
 		if out.CanAddr() {
@@ -351,8 +350,16 @@ func (d *decoder) scalar(n *node, out reflect.Value) (good bool) {
 		} else {
 			out.Set(reflect.Zero(out.Type()))
 		}
-		good = true
-		return
+		return true
+	}
+	if s, ok := resolved.(string); ok && out.CanAddr() {
+		if u, ok := out.Addr().Interface().(encoding.TextUnmarshaler); ok {
+			err := u.UnmarshalText([]byte(s))
+			if err != nil {
+				fail(err)
+			}
+			return true
+		}
 	}
 	switch out.Kind() {
 	case reflect.String:

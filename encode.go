@@ -1,6 +1,7 @@
 package yaml
 
 import (
+	"encoding"
 	"reflect"
 	"regexp"
 	"sort"
@@ -72,6 +73,14 @@ func (e *encoder) marshal(tag string, in reflect.Value) {
 			return
 		}
 		in = reflect.ValueOf(v)
+	}
+	if m, ok := in.Interface().(encoding.TextMarshaler); ok {
+		v, err := m.MarshalText()
+		if err != nil {
+			fail(err)
+		}
+		e.stringv(tag, reflect.ValueOf(string(v)))
+		return
 	}
 	switch in.Kind() {
 	case reflect.Interface:

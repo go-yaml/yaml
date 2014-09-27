@@ -3,6 +3,7 @@ package yaml_test
 import (
 	"fmt"
 	"math"
+	"net"
 	"strconv"
 	"strings"
 	"time"
@@ -259,6 +260,12 @@ var marshalTests = []struct {
 	{
 		map[string]string{"a": "你好"},
 		"a: 你好\n",
+	},
+
+	// net.IP is an encoding.TextMarshaler.
+	{
+		map[string]net.IP{"a": net.IPv4(127, 0, 0, 1)},
+		"a: 127.0.0.1\n",
 	},
 }
 

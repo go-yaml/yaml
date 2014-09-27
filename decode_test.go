@@ -5,6 +5,7 @@ import (
 	. "gopkg.in/check.v1"
 	"gopkg.in/yaml.v2"
 	"math"
+	"net"
 	"reflect"
 	"strings"
 	"time"
@@ -418,6 +419,18 @@ var unmarshalTests = []struct {
 		"a: {b: c}",
 		M{"a": M{"b": "c"}},
 	},
+	// net.IP is an encoding.TextUnMarshaler.
+	{
+		"a: 127.0.0.1\n",
+		map[string]net.IP{"a": net.IPv4(127, 0, 0, 1)},
+	}, {
+		"a: 127.0.0.1\n",
+		&struct{ A *net.IP }{ipPtr(net.IPv4(127, 0, 0, 1))},
+	},
+}
+
+func ipPtr(ip net.IP) *net.IP {
+	return &ip
 }
 
 type M map[interface{}]interface{}

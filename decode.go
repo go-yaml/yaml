@@ -1,6 +1,7 @@
 package yaml
 
 import (
+	"encoding"
 	"encoding/base64"
 	"fmt"
 	"reflect"
@@ -343,6 +344,12 @@ func (d *decoder) scalar(n *node, out reflect.Value) (good bool) {
 				failf("!!binary value contains invalid base64 data")
 			}
 			resolved = string(data)
+		}
+	}
+	if out.Kind() != reflect.Ptr && out.CanAddr() {
+		if textu, ok := out.Addr().Interface().(encoding.TextUnmarshaler); ok {
+			err := textu.UnmarshalText([]byte(n.value))
+			return err == nil
 		}
 	}
 	if resolved == nil {

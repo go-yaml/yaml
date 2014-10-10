@@ -237,7 +237,7 @@ func (e *encoder) stringv(tag string, in reflect.Value) {
 	}
 	if tag == "" && (rtag != yaml_STR_TAG || isBase60Float(s)) {
 		style = yaml_DOUBLE_QUOTED_SCALAR_STYLE
-	} else if strings.Contains(s, "\n") {
+	} else if strings.Contains(s, "\n") || strings.Contains(s, ": ") {
 		style = yaml_LITERAL_SCALAR_STYLE
 	} else {
 		style = yaml_PLAIN_SCALAR_STYLE

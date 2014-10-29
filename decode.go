@@ -4,6 +4,7 @@ import (
 	"encoding"
 	"encoding/base64"
 	"fmt"
+	"math"
 	"reflect"
 	"strconv"
 	"time"
@@ -389,8 +390,13 @@ func (d *decoder) scalar(n *node, out reflect.Value) (good bool) {
 				out.SetInt(resolved)
 				good = true
 			}
+		case uint64:
+			if resolved <= math.MaxInt64 && !out.OverflowInt(int64(resolved)) {
+				out.SetInt(int64(resolved))
+				good = true
+			}
 		case float64:
-			if resolved < 1<<63-1 && !out.OverflowInt(int64(resolved)) {
+			if resolved <= math.MaxInt64 && !out.OverflowInt(int64(resolved)) {
 				out.SetInt(int64(resolved))
 				good = true
 			}
@@ -406,17 +412,22 @@ func (d *decoder) scalar(n *node, out reflect.Value) (good bool) {
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
 		switch resolved := resolved.(type) {
 		case int:
-			if resolved >= 0 {
+			if resolved >= 0 && !out.OverflowUint(uint64(resolved)) {
 				out.SetUint(uint64(resolved))
 				good = true
 			}
 		case int64:
-			if resolved >= 0 {
+			if resolved >= 0 && !out.OverflowUint(uint64(resolved)) {
+				out.SetUint(uint64(resolved))
+				good = true
+			}
+		case uint64:
+			if !out.OverflowUint(uint64(resolved)) {
 				out.SetUint(uint64(resolved))
 				good = true
 			}
 		case float64:
-			if resolved < 1<<64-1 && !out.OverflowUint(uint64(resolved)) {
+			if resolved <= math.MaxUint64 && !out.OverflowUint(uint64(resolved)) {
 				out.SetUint(uint64(resolved))
 				good = true
 			}
@@ -433,6 +444,9 @@ func (d *decoder) scalar(n *node, out reflect.Value) (good bool) {
 			out.SetFloat(float64(resolved))
 			good = true
 		case int64:
+			out.SetFloat(float64(resolved))
+			good = true
+		case uint64:
 			out.SetFloat(float64(resolved))
 			good = true
 		case float64:

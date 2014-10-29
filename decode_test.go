@@ -267,6 +267,114 @@ var unmarshalTests = []struct {
 		map[string]uint64{},
 	},
 
+	// int
+	{
+		"int_max: 2147483647", // math.MaxInt32
+		map[string]int{"int_max": 2147483647},
+	},
+	{
+		"int_min: -2147483648", // math.MinInt32
+		map[string]int{"int_min": -2147483648},
+	},
+	{
+		"int_overflow: 9223372036854775808", // math.MaxInt64 + 1
+		map[string]int{},
+	},
+
+	// int64
+	{
+		"int64_max: 9223372036854775807", // math.MaxInt64
+		map[string]int64{"int64_max": 9223372036854775807},
+	},
+	{
+		"int64_max_base2: 0b111111111111111111111111111111111111111111111111111111111111111", // math.MaxInt64
+		map[string]int64{"int64_max_base2": 9223372036854775807},
+	},
+	{
+		"int64_min: -9223372036854775808", // math.MinInt64
+		map[string]int64{"int64_min": -9223372036854775808},
+	},
+	{
+		"int64_neg_base2: -0b111111111111111111111111111111111111111111111111111111111111111", // -math.MaxInt64
+		map[string]int64{"int64_neg_base2": -9223372036854775807},
+	},
+	{
+		"int64_overflow: 9223372036854775808", // math.MaxInt64 + 1
+		map[string]int64{},
+	},
+
+	// uint
+	{
+		"uint_min: 0",
+		map[string]uint{"uint_min": 0},
+	},
+	{
+		"uint_max: 4294967295", // math.MaxUint32
+		map[string]uint{"uint_max": 4294967295},
+	},
+	{
+		"uint_underflow: -1",
+		map[string]uint{},
+	},
+
+	// uint64
+	{
+		"uint64_min: 0",
+		map[string]uint{"uint64_min": 0},
+	},
+	{
+		"uint64_max: 18446744073709551615", // math.MaxUint64
+		map[string]uint64{"uint64_max": 18446744073709551615},
+	},
+	{
+		"uint64_max_base2: 0b1111111111111111111111111111111111111111111111111111111111111111", // math.MaxUint64
+		map[string]uint64{"uint64_max_base2": 18446744073709551615},
+	},
+	{
+		"uint64_maxint64: 9223372036854775807", // math.MaxInt64
+		map[string]uint64{"uint64_maxint64": 9223372036854775807},
+	},
+	{
+		"uint64_underflow: -1",
+		map[string]uint64{},
+	},
+
+	// float32
+	{
+		"float32_max: 3.40282346638528859811704183484516925440e+38", // math.MaxFloat32
+		map[string]float32{"float32_max": 3.40282346638528859811704183484516925440e+38},
+	},
+	{
+		"float32_nonzero: 1.401298464324817070923729583289916131280e-45", // math.SmallestNonzeroFloat32
+		map[string]float32{"float32_nonzero": 1.401298464324817070923729583289916131280e-45},
+	},
+	{
+		"float32_maxuint64: 18446744073709551615", // math.MaxUint64
+		map[string]float32{"float32_maxuint64": 1.8446744e+19},
+	},
+	{
+		"float32_maxuint64+1: 18446744073709551616", // math.MaxUint64 + 1
+		map[string]float32{"float32_maxuint64+1": 1.8446744e+19},
+	},
+
+	// float64
+	{
+		"float64_max: 1.797693134862315708145274237317043567981e+308", // math.MaxFloat64
+		map[string]float64{"float64_max": 1.797693134862315708145274237317043567981e+308},
+	},
+	{
+		"float64_nonzero: 4.940656458412465441765687928682213723651e-324", // math.SmallestNonzeroFloat64
+		map[string]float64{"float64_nonzero": 4.940656458412465441765687928682213723651e-324},
+	},
+	{
+		"float64_maxuint64: 18446744073709551615", // math.MaxUint64
+		map[string]float64{"float64_maxuint64": 1.8446744073709552e+19},
+	},
+	{
+		"float64_maxuint64+1: 18446744073709551616", // math.MaxUint64 + 1
+		map[string]float64{"float64_maxuint64+1": 1.8446744073709552e+19},
+	},
+
 	// Overflow cases.
 	{
 		"v: 4294967297",

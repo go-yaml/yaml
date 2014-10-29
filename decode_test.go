@@ -3,6 +3,7 @@ package yaml_test
 import (
 	. "gopkg.in/check.v1"
 	"gopkg.in/yaml.v1"
+	"fmt"
 	"math"
 	"reflect"
 	"strings"
@@ -263,6 +264,98 @@ var unmarshalTests = []struct {
 	}, {
 		"v: -4294967296",
 		map[string]uint64{},
+	},
+
+	// int
+	{
+		fmt.Sprintf("int_max: %d", math.MaxInt32),
+		map[string]int{"int_max": math.MaxInt32},
+	},
+	{
+		fmt.Sprintf("int_min: %d", math.MinInt32),
+		map[string]int{"int_min": math.MinInt32},
+	},
+	{
+		fmt.Sprintf("int_overflow: %d", uint64(math.MaxUint64)),
+		map[string]int{},
+	},
+
+	// int64
+	{
+		fmt.Sprintf("int64_max: %d", int64(math.MaxInt64)),
+		map[string]int64{"int64_max": math.MaxInt64},
+	},
+	{
+		fmt.Sprintf("int64_min: %d", int64(math.MinInt64)),
+		map[string]int64{"int64_min": math.MinInt64},
+	},
+	{
+		fmt.Sprintf("int64_overflow: %d", uint64(math.MaxUint64)),
+		map[string]int64{},
+	},
+
+	// uint
+	{
+		fmt.Sprintf("uint_min: %d", 0),
+		map[string]uint{"uint_min": 0},
+	},
+	{
+		fmt.Sprintf("uint_max: %d", math.MaxUint32),
+		map[string]uint{"uint_max": math.MaxUint32},
+	},
+	{
+		fmt.Sprintf("uint_maxint32: %d", math.MaxInt32),
+		map[string]uint{"uint_maxint32": math.MaxInt32},
+	},
+	{
+		fmt.Sprintf("uint_underflow: %d", -1),
+		map[string]uint{},
+	},
+
+	// uint64
+	{
+		fmt.Sprintf("uint64_min: %d", 0),
+		map[string]uint{"uint64_min": 0},
+	},
+	{
+		fmt.Sprintf("uint64_max: %d", uint64(math.MaxUint64)),
+		map[string]uint64{"uint64_max": math.MaxUint64},
+	},
+	{
+		fmt.Sprintf("uint64_maxint64: %d", math.MaxInt64),
+		map[string]uint64{"uint64_maxint64": uint64(math.MaxInt64)},
+	},
+	{
+		fmt.Sprintf("uint64_underflow: %d", -1),
+		map[string]uint64{},
+	},
+
+	// float32
+	{
+		fmt.Sprintf("float32_max: %f", math.MaxFloat32),
+		map[string]float32{"float32_max": math.MaxFloat32},
+	},
+	{
+		fmt.Sprintf("float32_nonzero: %e", float32(math.SmallestNonzeroFloat32)),
+		map[string]float32{"float32_nonzero": math.SmallestNonzeroFloat32},
+	},
+	{
+		fmt.Sprintf("float32_maxint64: %d", uint64(math.MaxUint64)),
+		map[string]float32{"float32_maxint64": float32(math.MaxUint64)},
+	},
+
+	// float64
+	{
+		fmt.Sprintf("float64_max: %f", math.MaxFloat64),
+		map[string]float64{"float64_max": math.MaxFloat64},
+	},
+	{
+		fmt.Sprintf("float64_nonzero: %e", math.SmallestNonzeroFloat64),
+		map[string]float64{"float64_nonzero": math.SmallestNonzeroFloat64},
+	},
+	{
+		fmt.Sprintf("float64_maxint64: %d", uint64(math.MaxUint64)),
+		map[string]float64{"float64_maxint64": float64(math.MaxUint64)},
 	},
 
 	// Overflow cases.

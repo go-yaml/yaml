@@ -134,6 +134,14 @@ func resolve(tag string, in string) (rtag string, out interface{}) {
 					return yaml_INT_TAG, intv
 				}
 			}
+			uintv, err := strconv.ParseUint(plain, 0, 64)
+			if err == nil {
+				if uintv == uint64(uint(uintv)) {
+					return yaml_INT_TAG, uint(uintv)
+				} else {
+					return yaml_INT_TAG, uintv
+				}
+			}
 			floatv, err := strconv.ParseFloat(plain, 64)
 			if err == nil {
 				return yaml_FLOAT_TAG, floatv

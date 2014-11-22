@@ -601,12 +601,7 @@ func (d *decoder) mappingStruct(n *node, out reflect.Value) (good bool) {
 			continue
 		}
 		if info, ok := sinfo.FieldsMap[name.String()]; ok {
-			var field reflect.Value
-			if info.Inline == nil {
-				field = out.Field(info.Num)
-			} else {
-				field = out.FieldByIndex(info.Inline)
-			}
+			field := info.value(out)
 			d.unmarshal(n.children[i+1], field)
 		}
 	}

@@ -358,6 +358,24 @@ var unmarshalTests = []struct {
 		}{1, inlineB{2, inlineC{3}}},
 	},
 
+	// Struct pointer inlining
+	{
+		"a: 1\nb: 2\nc: 3\n",
+		&struct {
+			A int
+			C *inlinePtrB `yaml:",inline"`
+		}{1, &inlinePtrB{2, &inlineC{3}}},
+	},
+
+	// Anonymous struct embedding
+	{
+		"a: 1\nb: 2\nc: 3\n",
+		&struct {
+			A int
+			*anonymousB
+		}{1, &anonymousB{2, &inlineC{3}}},
+	},
+
 	// bug 1243827
 	{
 		"a: -b_c",
@@ -432,6 +450,16 @@ type M map[interface{}]interface{}
 type inlineB struct {
 	B       int
 	inlineC `yaml:",inline"`
+}
+
+type inlinePtrB struct {
+	B        int
+	*inlineC `yaml:",inline"`
+}
+
+type anonymousB struct {
+	B int
+	*inlineC
 }
 
 type inlineC struct {

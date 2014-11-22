@@ -219,6 +219,24 @@ var marshalTests = []struct {
 		"a: 1\nb: 2\nc: 3\n",
 	},
 
+	// Struct pointer inlining
+	{
+		&struct {
+			A int
+			C *inlineB `yaml:",inline"`
+		}{1, &inlineB{2, inlineC{3}}},
+		"a: 1\nb: 2\nc: 3\n",
+	},
+
+	// Anonymous struct embedding
+	{
+		&struct {
+			A int
+			*inlineB
+		}{1, &inlineB{2, inlineC{3}}},
+		"a: 1\nb: 2\nc: 3\n",
+	},
+
 	// Duration
 	{
 		map[string]time.Duration{"a": 3 * time.Second},

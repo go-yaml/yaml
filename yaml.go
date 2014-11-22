@@ -205,6 +205,27 @@ type fieldInfo struct {
 	Inline []int
 }
 
+func (f *fieldInfo) value(v reflect.Value) reflect.Value {
+	if f.Inline == nil {
+		return v.Field(f.Num)
+	}
+
+	field := v
+	for i, x := range f.Inline {
+		if i > 0 {
+			t := field.Type()
+			if t.Kind() == reflect.Ptr && t.Elem().Kind() == reflect.Struct {
+				if field.IsNil() {
+					field.Set(reflect.New(field.Type().Elem()))
+				}
+				field = field.Elem()
+			}
+		}
+		field = field.Field(x)
+	}
+	return field
+}
+
 var structMap = make(map[reflect.Type]*structInfo)
 var fieldMapMutex sync.RWMutex
 
@@ -254,8 +275,12 @@ func getStructInfo(st reflect.Type) (*structInfo, error) {
 			tag = fields[0]
 		}
 
-		if inline {
-			switch field.Type.Kind() {
+		if inline || field.Anonymous {
+			ftype := field.Type
+			if ftype.Kind() == reflect.Ptr {
+				ftype = ftype.Elem()
+			}
+			switch ftype.Kind() {
 			// TODO: Implement support for inline maps.
 			//case reflect.Map:
 			//	if inlineMap >= 0 {
@@ -266,7 +291,7 @@ func getStructInfo(st reflect.Type) (*structInfo, error) {
 			//	}
 			//	inlineMap = info.Num
 			case reflect.Struct:
-				sinfo, err := getStructInfo(field.Type)
+				sinfo, err := getStructInfo(ftype)
 				if err != nil {
 					return nil, err
 				}

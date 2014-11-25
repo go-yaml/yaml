@@ -7,9 +7,10 @@ import (
 	"strings"
 	"time"
 
+	"net"
+
 	. "gopkg.in/check.v1"
 	"gopkg.in/yaml.v2"
-	"net"
 )
 
 var marshalIntTest = 123
@@ -431,4 +432,29 @@ func (s *S) TestSortedOutput(c *C) {
 		}
 		last = index
 	}
+}
+
+// Time is a wrapper around time.Time. time.Time is specifically an object that
+// supports both Marshaler and TextMarshaler, used here to test to make sure
+// only one is called.
+type TimeHolder struct {
+	T Time `yaml:"t"`
+}
+
+type Time struct {
+	time.Time
+}
+
+func (t Time) MarshalYAML() (interface{}, error) {
+	if t.IsZero() {
+		return "null", nil
+	}
+	return t.Format(time.RFC3339), nil
+}
+
+func (s *S) TestEmbeddedTime(c *C) {
+	th := TimeHolder{Time{}}
+	data, err := yaml.Marshal(&th)
+	c.Assert(err, IsNil)
+	c.Assert(string(data), Equals, "t: \"null\"\n")
 }

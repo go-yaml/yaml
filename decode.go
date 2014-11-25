@@ -248,9 +248,10 @@ func (d *decoder) callUnmarshaler(n *node, u Unmarshaler) (good bool) {
 // unmarshalling was already done by UnmarshalYAML, and if so whether
 // its types unmarshalled appropriately.
 //
-// If n holds a null value, prepare returns before doing anything.
+// If n holds a null value, prepare returns before doing anything. However, if
+// n holds a literal empty string (i.e.: ""), prepare runs as usual.
 func (d *decoder) prepare(n *node, out reflect.Value) (newout reflect.Value, unmarshaled, good bool) {
-	if n.tag == yaml_NULL_TAG || n.kind == scalarNode && n.tag == "" && (n.value == "null" || n.value == "") {
+	if (n.tag == yaml_NULL_TAG) || (n.kind == scalarNode && n.tag == "" && (n.value == "null" || (n.value == "" && n.implicit))) {
 		return out, false, false
 	}
 	again := true

@@ -2,13 +2,14 @@ package yaml_test
 
 import (
 	"errors"
-	. "gopkg.in/check.v1"
-	"gopkg.in/yaml.v2"
 	"math"
 	"net"
 	"reflect"
 	"strings"
 	"time"
+
+	. "gopkg.in/check.v1"
+	"gopkg.in/yaml.v2"
 )
 
 var unmarshalIntTest = 123
@@ -870,6 +871,61 @@ func (s *S) TestUnmarshalNull(c *C) {
 			c.Assert(reflect.ValueOf(item).Elem().Interface(), DeepEquals, zero)
 		}
 	}
+}
+
+type StringStructContainer struct {
+	Val StringStruct
+}
+
+type StringStruct struct {
+	StrVal          string
+	UnmarshalCalled bool // to be able to check that UnmarshalYAML was actually called
+}
+
+// UnmarshalYAML implements the yaml.Unmarshaler interface.
+func (s *StringStruct) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	var value *string
+	if err := unmarshal(&value); err != nil {
+		return err
+	}
+	s.StrVal = *value
+	s.UnmarshalCalled = true
+	return nil
+}
+
+// If a node value is a literal empty string (i.e.: "") but the corresponding
+// object to Unmarshal to is a struct or a pointer to a struct, the struct must
+// have UnmarshalYAML() called on it with an empty string.
+func (s *S) TestUnmarshalEmptyStringToStruct(c *C) {
+	//j := []byte(`{"val": "null"}`)
+	// Literal empty string should call UnmarshalYAML.
+	j := []byte("val: \"\"\n")
+	v := new(StringStructContainer)
+	err := yaml.Unmarshal(j, v)
+	c.Assert(err, IsNil)
+	c.Assert(v.Val.StrVal, Equals, "")
+	c.Assert(v.Val.UnmarshalCalled, Equals, true)
+}
+
+func (s *S) TestUnmarshalNullStringToStruct(c *C) {
+	// "null" string should not call UnmarshalYAML, but instead produce a zero object.
+	j := []byte("val: null\n")
+	v := new(StringStructContainer)
+	err := yaml.Unmarshal(j, v)
+	c.Assert(err, IsNil)
+	c.Assert(v.Val.StrVal, Equals, "")
+	c.Assert(v.Val.UnmarshalCalled, Equals, false)
+}
+
+// "Implicit" document ending should not call UnmarshalYAML, but instead produce a blank object.
+func (s *S) TestUnmarshalImplicitEndingToStruct(c *C) {
+	// "null" string should not call UnmarshalYAML, but instead produce a zero object.
+	j := []byte("val: \n")
+	v := new(StringStructContainer)
+	err := yaml.Unmarshal(j, v)
+	c.Assert(err, IsNil)
+	c.Assert(v.Val.StrVal, Equals, "")
+	c.Assert(v.Val.UnmarshalCalled, Equals, false)
 }
 
 //var data []byte

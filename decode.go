@@ -32,9 +32,9 @@ type node struct {
 // Parser, produces a node tree out of a libyaml event stream.
 
 type parser struct {
-	parser  yaml_parser_t
-	event   yaml_event_t
-	doc     *node
+	parser yaml_parser_t
+	event  yaml_event_t
+	doc    *node
 }
 
 func newParser(b []byte) *parser {
@@ -194,10 +194,10 @@ type decoder struct {
 }
 
 var (
-	mapItemType = reflect.TypeOf(MapItem{})
-	durationType = reflect.TypeOf(time.Duration(0))
+	mapItemType    = reflect.TypeOf(MapItem{})
+	durationType   = reflect.TypeOf(time.Duration(0))
 	defaultMapType = reflect.TypeOf(map[interface{}]interface{}{})
-	ifaceType = defaultMapType.Elem()
+	ifaceType      = defaultMapType.Elem()
 )
 
 func newDecoder() *decoder {
@@ -502,8 +502,6 @@ func (d *decoder) sequence(n *node, out reflect.Value) (good bool) {
 	}
 	return true
 }
-
-
 
 func (d *decoder) mapping(n *node, out reflect.Value) (good bool) {
 	switch out.Kind() {

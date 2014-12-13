@@ -2,13 +2,14 @@ package yaml_test
 
 import (
 	"errors"
-	. "gopkg.in/check.v1"
-	"gopkg.in/yaml.v2"
 	"math"
 	"net"
 	"reflect"
 	"strings"
 	"time"
+
+	. "gopkg.in/check.v1"
+	"gopkg.in/yaml.v2"
 )
 
 var unmarshalIntTest = 123
@@ -245,7 +246,7 @@ var unmarshalTests = []struct {
 	}, {
 		"a: 1",
 		&struct {
-			B int "a"
+			B int `yaml:"a"`
 		}{1},
 	}, {
 		"a: y",
@@ -438,7 +439,7 @@ var unmarshalTests = []struct {
 		"a: 1\nb: 2\n",
 		&struct {
 			A int
-			B int "-"
+			B int `yaml:"-"`
 		}{1, 0},
 	},
 
@@ -533,6 +534,100 @@ var unmarshalTests = []struct {
 		"a: 1.2.3.4\n",
 		map[string]net.IP{"a": net.IPv4(1, 2, 3, 4)},
 	},
+
+	// RegExp support inside structs
+	{
+		"a: ay\nb: bee\nc1: ceeone\nc2: ceetwo",
+		&struct {
+			A string
+			B string
+			C map[string]string `yaml:",regexp:c.*"`
+		}{"ay", "bee", map[string]string{"c1": "ceeone", "c2": "ceetwo"}},
+	},
+
+	// RegExp support inside structs #2
+	{
+		"a: ay\nb: bee\n" +
+			"c1: ceeone\n" +
+			"c2: ceetwo\n" +
+			"c12: ceeonetwo\n" +
+			"c22: ceetwotwo",
+		&struct {
+			A  string
+			B  string
+			C1 map[string]string `yaml:",regexp:c1.*"`
+			C2 map[string]string `yaml:",regexp:c2.*"`
+		}{"ay", "bee",
+			map[string]string{"c1": "ceeone", "c12": "ceeonetwo"},
+			map[string]string{"c2": "ceetwo", "c22": "ceetwotwo"}},
+	},
+
+	// RegExp support to slices, too
+	{
+		"a: 1\nb: 2\nnum1: 1\nnum2: 50\n" +
+			"phraseOne: to be or not to be\n" +
+			"phraseTwo: you can't touch my key!\n" +
+			"anotherKey: ThisValueWillNotBeUnmarshalled",
+		&struct {
+			A       int
+			B       int
+			Numbers map[string]int `yaml:",regexp:num.*"`
+			Phrases []string       `yaml:",regexp:phr.*"`
+		}{1, 2,
+			map[string]int{"num1": 1, "num2": 50},
+			[]string{"to be or not to be", "you can't touch my key!"}},
+	},
+
+	// RegExp priority #1
+	{
+		"a: 1\nb: 2\nnum1: 1\nnum2: 50\n" +
+			"phraseOne: to be or not to be\n" +
+			"phraseTwo: you can't touch my key!\n" +
+			"anotherKey: ThisValueWillNotBeUnmarshalled",
+		&struct {
+			A       int
+			B       int
+			Numbers map[string]int `yaml:",regexp:num.*"`
+			Phrases []string       `yaml:",regexp:num.*"`
+		}{1, 2,
+			map[string]int{"num1": 1, "num2": 50},
+			nil},
+	},
+
+	// RegExp priority #2
+	{
+		"a: 1\nb: 2\nnum1: 1\nnum2: 50\n" +
+			"phraseOne: to be or not to be\n" +
+			"phraseTwo: you can't touch my key!\n" +
+			"anotherKey: ThisValueWillNotBeUnmarshalled\n" +
+			"val1: one\nval2: two\nval3: three\n",
+		&struct {
+			A    int
+			B    int
+			More []string `yaml:",regexp:val.*"`
+			Less []string `yaml:",regexp:val.*"`
+		}{1, 2,
+			[]string{"one", "two", "three"},
+			nil},
+	},
+
+	// RegExp of multiple types
+	{
+		"a: 1\nb: 2\n" +
+			"str: hello\n" +
+			"flt: 0.55555555\n" +
+			"int: 5\n" +
+			"seq: [1, 2, 3]\n" +
+			"map: {key1: val1, key2: val2}\n",
+		&struct {
+			A       int
+			B       int
+			Default []interface{} `yaml:",regexp:.*"`
+		}{1, 2, []interface{}{"hello", 0.55555555, 5, []interface{}{1, 2, 3},
+			map[interface{}]interface{}{"key2": "val2", "key1": "val1"}}},
+	},
+
+	//"hello", 0.55555555, 5, []int {1, 2, 3}, map[string][string] {"key1": "val1", "key2": "Val2"}
 }
 
 type M map[interface{}]interface{}
@@ -801,7 +896,7 @@ longTag:
   label: center/big
 
 inlineMap:
-  # Inlined map 
+  # Inlined map
   << : {"x": 1, "y": 2, "r": 10}
   label: center/big
 

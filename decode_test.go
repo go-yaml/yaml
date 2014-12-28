@@ -2,13 +2,15 @@ package yaml_test
 
 import (
 	"errors"
-	. "gopkg.in/check.v1"
-	"gopkg.in/yaml.v2"
 	"math"
 	"net"
 	"reflect"
+	"strconv"
 	"strings"
 	"time"
+
+	. "gopkg.in/check.v1"
+	"gopkg.in/yaml.v2"
 )
 
 var unmarshalIntTest = 123
@@ -900,3 +902,33 @@ func (s *S) TestUnmarshalNull(c *C) {
 //		yaml.Marshal(&v)
 //	}
 //}
+
+type DWIMString string
+
+func (d *DWIMString) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	var i int
+	if e := unmarshal(&i); e == nil {
+		*d = DWIMString(strconv.Itoa(i))
+		return nil
+	}
+	if e := unmarshal((*string)(d)); e == nil {
+		return nil
+	}
+	return errors.New("not an integer or a string")
+}
+
+func (s *S) TestUnmarshalerRetry(c *C) {
+	examples := []struct {
+		in  string
+		out string
+	}{
+		{"7", "7"},
+		{"hello", "hello"},
+	}
+	for _, e := range examples {
+		var s DWIMString
+		err := yaml.Unmarshal([]byte(e.in), &s)
+		c.Check(err, IsNil)
+		c.Check(string(s), Equals, e.out)
+	}
+}

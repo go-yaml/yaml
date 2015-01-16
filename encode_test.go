@@ -286,6 +286,12 @@ var marshalTests = []struct {
 		map[string]net.IP{"a": net.IPv4(1, 2, 3, 4)},
 		"a: 1.2.3.4\n",
 	},
+
+	// Ensure strings containing ": " are quoted (reported as PR #43, but not reproducible).
+	{
+		map[string]string{"a": "b: c"},
+		"a: 'b: c'\n",
+	},
 }
 
 func (s *S) TestMarshal(c *C) {

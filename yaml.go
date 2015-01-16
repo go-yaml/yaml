@@ -32,7 +32,6 @@ type Unmarshaler interface {
 	UnmarshalYAML(unmarshal func(interface{}) error) error
 }
 
-
 // The Marshaler interface may be implemented by types to customize their
 // behavior when being marshaled into a YAML document. The returned value
 // is marshaled in place of the original value implementing Marshaler.
@@ -164,7 +163,7 @@ func fail(err error) {
 }
 
 func failf(format string, args ...interface{}) {
-	panic(yamlError{fmt.Errorf("yaml: " + format, args...)})
+	panic(yamlError{fmt.Errorf("yaml: "+format, args...)})
 }
 
 // A TypeError is returned by Unmarshal when one or more fields in

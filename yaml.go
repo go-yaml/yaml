@@ -89,7 +89,7 @@ func Unmarshal(in []byte, out interface{}) (err error) {
 		}
 		d.unmarshal(node, v)
 	}
-	if d.terrors != nil {
+	if len(d.terrors) > 0 {
 		return &TypeError{d.terrors}
 	}
 	return nil

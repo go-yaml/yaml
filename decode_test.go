@@ -419,6 +419,13 @@ var unmarshalTests = []struct {
 	}, {
 		"a: &a [1, 2]\nb: *a",
 		&struct{ B []int }{[]int{1, 2}},
+	}, {
+		"b: *a\na: &a {c: 1}",
+		&struct {
+			A, B struct {
+				C int
+			}
+		}{struct{ C int }{1}, struct{ C int }{1}},
 	},
 
 	// Bug #1133337

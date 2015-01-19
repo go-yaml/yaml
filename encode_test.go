@@ -238,6 +238,15 @@ var marshalTests = []struct {
 		"a: 1\nb: 2\nc: 3\n",
 	},
 
+	// Map inlining
+	{
+		&struct {
+			A int
+			C map[string]int `yaml:",inline"`
+		}{1, map[string]int{"b": 2, "c": 3}},
+		"a: 1\nb: 2\nc: 3\n",
+	},
+
 	// Duration
 	{
 		map[string]time.Duration{"a": 3 * time.Second},
@@ -312,6 +321,12 @@ var marshalErrorTests = []struct {
 		inlineB ",inline"
 	}{1, inlineB{2, inlineC{3}}},
 	panic: `Duplicated key 'b' in struct struct \{ B int; .*`,
+}, {
+	value: &struct {
+		A       int
+		B map[string]int ",inline"
+	}{1, map[string]int{"a": 2}},
+	panic: `Can't have key "a" in inlined map; conflicts with struct field`,
 }}
 
 func (s *S) TestMarshalErrors(c *C) {

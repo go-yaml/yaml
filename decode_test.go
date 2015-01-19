@@ -473,6 +473,15 @@ var unmarshalTests = []struct {
 		}{1, inlineB{2, inlineC{3}}},
 	},
 
+	// Map inlining
+	{
+		"a: 1\nb: 2\nc: 3\n",
+		&struct {
+			A int
+			C map[string]int `yaml:",inline"`
+		}{1, map[string]int{"b": 2, "c": 3}},
+	},
+
 	// bug 1243827
 	{
 		"a: -b_c",

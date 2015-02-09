@@ -65,13 +65,13 @@ a: Easy!
 b:
   c: 2
   d: [3, 4]
-e_e: yaml tag
+e: yaml tag
 `
 
 type T struct {
         A string
         B struct{C int; D []int ",flow"}
-        EE string `yaml:"e_e"`
+        AltE string `yaml:"e"`
 }
 
 func main() {
@@ -109,18 +109,18 @@ This example will generate the following output:
 
 ```
 --- t:
-{Easy! {2 [3 4]}}
+{Easy! {2 [3 4]} yaml tag}
 
 --- t dump:
 a: Easy!
 b:
   c: 2
   d: [3, 4]
-e_e: yaml tag
+e: yaml tag
 
 
 --- m:
-map[a:Easy! b:map[c:2 d:[3 4]] e_e:yaml tag]
+map[a:Easy! b:map[c:2 d:[3 4]] e:yaml tag]
 
 --- m dump:
 a: Easy!
@@ -129,6 +129,6 @@ b:
   d:
   - 3
   - 4
-e_e: yaml tag
+e: yaml tag
 ```
 

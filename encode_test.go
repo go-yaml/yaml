@@ -247,6 +247,24 @@ var marshalTests = []struct {
 		"a: 1\nb: 2\nc: 3\n",
 	},
 
+	// Anonymous fields
+	{
+		&struct {
+			A int
+			inlineC
+		}{1, inlineC{2}},
+		"a: 1\nc: 2\n",
+	},
+
+	// Don't inline anonymous maps.
+	{
+		&struct {
+			A int
+			MS
+		}{1, MS{"b": 2, "c": 3}},
+		"a: 1\nms:\n  b: 2\n  c: 3\n",
+	},
+
 	// Duration
 	{
 		map[string]time.Duration{"a": 3 * time.Second},

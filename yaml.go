@@ -254,6 +254,10 @@ func getStructInfo(st reflect.Type) (*structInfo, error) {
 			tag = tags[0]
 		}
 
+		if field.Type.Kind() == reflect.Struct && field.Anonymous {
+			inline = true
+		}
+
 		if inline {
 			switch field.Type.Kind() {
 			case reflect.Map:

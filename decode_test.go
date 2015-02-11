@@ -482,6 +482,24 @@ var unmarshalTests = []struct {
 		}{1, map[string]int{"b": 2, "c": 3}},
 	},
 
+	// Anonymous fields
+	{
+		"a: 1\nc: 2\n",
+		&struct {
+			A int
+			inlineC
+		}{1, inlineC{2}},
+	},
+
+	// Don't inline anonymous maps.
+	{
+		"a: 1\nb: 2\nc: 3\n",
+		&struct {
+			A int
+			MS
+		}{1, MS(nil)},
+	},
+
 	// bug 1243827
 	{
 		"a: -b_c",
@@ -558,6 +576,7 @@ var unmarshalTests = []struct {
 }
 
 type M map[interface{}]interface{}
+type MS map[string]int
 
 type inlineB struct {
 	B       int

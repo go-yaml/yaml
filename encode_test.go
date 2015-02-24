@@ -295,6 +295,10 @@ var marshalTests = []struct {
 		map[string]net.IP{"a": net.IPv4(1, 2, 3, 4)},
 		"a: 1.2.3.4\n",
 	},
+	{
+		map[string]time.Time{"a": time.Unix(1424801979, 0)},
+		"a: 2015-02-24T15:19:39-03:00\n",
+	},
 
 	// Ensure strings containing ": " are quoted (reported as PR #43, but not reproducible).
 	{

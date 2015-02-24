@@ -549,6 +549,10 @@ var unmarshalTests = []struct {
 		"a: 1.2.3.4\n",
 		map[string]net.IP{"a": net.IPv4(1, 2, 3, 4)},
 	},
+	{
+		"a: 2015-02-24T15:19:39-03:00\n",
+		map[string]time.Time{"a": time.Unix(1424801979, 0)},
+	},
 
 	// Encode empty lists as zero-length slices.
 	{

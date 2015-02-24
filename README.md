@@ -1,7 +1,5 @@
 # YAML support for the Go language
 
-[![Build Status](https://travis-ci.org/go-yaml/yaml.svg?branch=travis_ci_support)](https://travis-ci.org/go-yaml/yaml)
-
 Introduction
 ------------
 

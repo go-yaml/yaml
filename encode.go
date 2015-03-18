@@ -244,6 +244,9 @@ var base60float = regexp.MustCompile(`^[-+]?[0-9][0-9_]*(?::[0-5]?[0-9])+(?:\.[0
 func (e *encoder) stringv(tag string, in reflect.Value) {
 	var style yaml_scalar_style_t
 	s := in.String()
+	if tag == yaml_BINARY_TAG {
+		s = encodeBase64(s)
+	}
 	rtag, rs := resolve("", s)
 	if rtag == yaml_BINARY_TAG {
 		if tag == "" || tag == yaml_STR_TAG {

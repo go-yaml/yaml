@@ -7,8 +7,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/datianshi/yaml"
 	. "gopkg.in/check.v1"
-	"gopkg.in/yaml.v2"
 	"net"
 	"os"
 )
@@ -281,8 +281,8 @@ var marshalTests = []struct {
 	{
 		&struct {
 			A string `yaml:",binary"`
-		}{A: "SGVsbG8="},
-		"a: !!binary SGVsbG8=\n",
+		}{A: "hello"},
+		"a: !!binary aGVsbG8=\n",
 	},
 
 	// Ordered maps.

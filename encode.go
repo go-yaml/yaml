@@ -163,7 +163,11 @@ func (e *encoder) structv(tag string, in reflect.Value) {
 			}
 			e.marshal("", reflect.ValueOf(info.Key))
 			e.flow = info.Flow
-			e.marshal("", value)
+			if info.Binary {
+				e.marshal(yaml_BINARY_TAG, value)
+			} else {
+				e.marshal("", value)
+			}
 		}
 		if sinfo.InlineMap >= 0 {
 			m := in.Field(sinfo.InlineMap)

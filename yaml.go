@@ -200,6 +200,7 @@ type fieldInfo struct {
 	Num       int
 	OmitEmpty bool
 	Flow      bool
+	Binary    bool
 
 	// Inline holds the field index if the field is part of an inlined struct.
 	Inline []int
@@ -245,6 +246,8 @@ func getStructInfo(st reflect.Type) (*structInfo, error) {
 					info.OmitEmpty = true
 				case "flow":
 					info.Flow = true
+				case "binary":
+					info.Binary = true
 				case "inline":
 					inline = true
 				default:
@@ -330,7 +333,7 @@ func isZero(v reflect.Value) bool {
 		return !v.Bool()
 	case reflect.Struct:
 		vt := v.Type()
-		for i := v.NumField()-1; i >= 0; i-- {
+		for i := v.NumField() - 1; i >= 0; i-- {
 			if vt.Field(i).PkgPath != "" {
 				continue // Private field
 			}

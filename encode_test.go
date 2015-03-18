@@ -278,6 +278,12 @@ var marshalTests = []struct {
 		map[string]string{"a": strings.Repeat("\x90", 54)},
 		"a: !!binary |\n  " + strings.Repeat("kJCQ", 17) + "kJ\n  CQ\n",
 	},
+	{
+		&struct {
+			A string `yaml:",binary"`
+		}{A: "SGVsbG8="},
+		"a: !!binary SGVsbG8=\n",
+	},
 
 	// Ordered maps.
 	{
@@ -330,7 +336,7 @@ var marshalErrorTests = []struct {
 	panic: `Duplicated key 'b' in struct struct \{ B int; .*`,
 }, {
 	value: &struct {
-		A       int
+		A int
 		B map[string]int ",inline"
 	}{1, map[string]int{"a": 2}},
 	panic: `Can't have key "a" in inlined map; conflicts with struct field`,

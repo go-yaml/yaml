@@ -559,6 +559,12 @@ var unmarshalTests = []struct {
 		"a: []",
 		&struct{ A []int }{[]int{}},
 	},
+
+	// do not parse key as boolean keyword
+	{
+		"{on: 1, off: 2, true: 3, false: 4, yes: 5, no: 6}",
+		&yaml.MapSlice{{"on", 1}, {"off", 2}, {"true", 3}, {"false", 4}, {"yes", 5}, {"no", 6}},
+	},
 }
 
 type M map[interface{}]interface{}

@@ -237,6 +237,11 @@ func getStructInfo(st reflect.Type) (*structInfo, error) {
 		}
 
 		inline := false
+		// a embedded struct is auto-inlined, see LP: #1191814
+		if field.Anonymous {
+			inline = true
+		}
+
 		fields := strings.Split(tag, ",")
 		if len(fields) > 1 {
 			for _, flag := range fields[1:] {

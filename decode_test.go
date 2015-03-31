@@ -936,6 +936,21 @@ func (s *S) TestUnmarshalSliceOnPreset(c *C) {
 	c.Assert(v.A, DeepEquals, []int{2})
 }
 
+func (s *S) TestUnmarshalEmbeddedStructs(c *C) {
+	type Bar struct {
+		Name string
+	}
+
+	type Foo struct {
+		Address string
+		Bar
+	}
+
+	var g Foo
+	yaml.Unmarshal([]byte("---\nname: Deepak"), &g)
+	c.Assert(g.Name, Equals, "Deepak")
+}
+
 //var data []byte
 //func init() {
 //	var err error

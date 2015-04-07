@@ -48,6 +48,8 @@ The yaml package is licensed under the LGPL with an exception that allows it to 
 Example
 -------
 
+Some more examples can be found in the "examples" folder.
+
 ```Go
 package main
 

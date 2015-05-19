@@ -306,6 +306,16 @@ var marshalTests = []struct {
 		map[string]string{"a": "b: c"},
 		"a: 'b: c'\n",
 	},
+
+	// Containing hash mark ('#') in string should be quoted
+	{
+		map[string]string{"a": "Hello #comment"},
+		"a: 'Hello #comment'\n",
+	},
+	{
+		map[string]string{"a": "你好 #comment"},
+		"a: '你好 #comment'\n",
+	},
 }
 
 func (s *S) TestMarshal(c *C) {

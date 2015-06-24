@@ -190,6 +190,12 @@ var marshalTests = []struct {
 			A struct{ X, y int } "a,omitempty,flow"
 		}{struct{ X, y int }{0, 1}},
 		"{}\n",
+	}, {
+		&struct {
+			A float64 "a,omitempty"
+			B float64 "b,omitempty"
+		}{1, 0},
+		"a: 1\n",
 	},
 
 	// Flow flag
@@ -340,7 +346,7 @@ var marshalErrorTests = []struct {
 	panic: `Duplicated key 'b' in struct struct \{ B int; .*`,
 }, {
 	value: &struct {
-		A       int
+		A int
 		B map[string]int ",inline"
 	}{1, map[string]int{"a": 2}},
 	panic: `Can't have key "a" in inlined map; conflicts with struct field`,

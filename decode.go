@@ -616,6 +616,17 @@ func (d *decoder) mappingStruct(n *node, out reflect.Value) (good bool) {
 		elemType = inlineMap.Type().Elem()
 	}
 
+	for _, f := range sinfo.FieldsMap {
+		if f.LineNum {
+			field := out.Field(f.Num)
+			field.SetInt(int64(n.line))
+		}
+		if f.ColNum {
+			field := out.Field(f.Num)
+			field.SetInt(int64(n.column))
+		}
+	}
+
 	for i := 0; i < l; i += 2 {
 		ni := n.children[i]
 		if isMerge(ni) {

@@ -3,7 +3,7 @@ package yaml_test
 import (
 	"errors"
 	. "gopkg.in/check.v1"
-	"gopkg.in/yaml.v2"
+	yaml "."
 	"math"
 	"net"
 	"reflect"
@@ -810,6 +810,50 @@ func (s *S) TestUnmarshalerRetry(c *C) {
 	err = yaml.Unmarshal([]byte("1"), &su)
 	c.Assert(err, IsNil)
 	c.Assert(su, DeepEquals, sliceUnmarshaler([]int{1}))
+}
+
+type testPerson struct {
+	Name       string
+	Profession string
+	YOB        int
+
+	LineNumber int `,linenum`
+	ColNumber  int `,colnum`
+}
+
+func (s *S) TestUnmarshalerWithLineNumbers(c *C) {
+
+	input := []byte(`---
+- name: Ada Lovelace
+  profession: Mathematician
+  yob: 1815
+
+- name: Ada Rogato
+  profession: Pilot and Parachutist
+  yob: 1910
+`)
+
+	var v []testPerson
+	err := yaml.Unmarshal(input, &v)
+
+	c.Assert(err, IsNil)
+
+	c.Assert(v, DeepEquals, []testPerson{
+		testPerson{
+			Name:       "Ada Lovelace",
+			Profession: "Mathematician",
+			YOB:        1815,
+			LineNumber: 1,
+			ColNumber:  2,
+		},
+		testPerson{
+			Name:       "Ada Rogato",
+			Profession: "Pilot and Parachutist",
+			YOB:        1910,
+			LineNumber: 5,
+			ColNumber:  2,
+		},
+	})
 }
 
 // From http://yaml.org/type/merge.html

@@ -124,6 +124,12 @@ func Unmarshal(in []byte, out interface{}) (err error) {
 //                  they were part of the outer struct. For maps, keys must
 //                  not conflict with the yaml keys of other struct fields.
 //
+//     linenum      Will cause the parser to save the line number the object
+//                  was found.
+//
+//     colnum       Will cause the parser to save the column number the object
+//                  was found.
+//
 // In addition, if the key is "-", the field is ignored.
 //
 // For example:
@@ -200,6 +206,8 @@ type fieldInfo struct {
 	Num       int
 	OmitEmpty bool
 	Flow      bool
+	LineNum   bool
+	ColNum    bool
 
 	// Inline holds the field index if the field is part of an inlined struct.
 	Inline []int
@@ -247,6 +255,10 @@ func getStructInfo(st reflect.Type) (*structInfo, error) {
 					info.Flow = true
 				case "inline":
 					inline = true
+				case "linenum":
+					info.LineNum = true
+				case "colnum":
+					info.ColNum = true
 				default:
 					return nil, errors.New(fmt.Sprintf("Unsupported flag %q in tag %q of type %s", flag, tag, st))
 				}

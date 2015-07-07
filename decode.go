@@ -586,7 +586,7 @@ func (d *decoder) mappingSlice(n *node, out reflect.Value) (good bool) {
 			d.merge(n.children[i+1], out)
 			continue
 		}
-		item := MapItem{}
+		item := MapItem{Line: n.children[i].line, Col: n.children[i].column}
 		k := reflect.ValueOf(&item.Key).Elem()
 		if d.unmarshal(n.children[i], k) {
 			v := reflect.ValueOf(&item.Value).Elem()

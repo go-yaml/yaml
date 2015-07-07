@@ -529,9 +529,27 @@ var unmarshalTests = []struct {
 	// Ordered maps.
 	{
 		"{b: 2, a: 1, d: 4, c: 3, sub: {e: 5}}",
-		&yaml.MapSlice{{"b", 2}, {"a", 1}, {"d", 4}, {"c", 3}, {"sub", yaml.MapSlice{{"e", 5}}}},
+		&yaml.MapSlice{
+			{"b", 2, 0, 1},
+			{"a", 1, 0, 7},
+			{"d", 4, 0, 13},
+			{"c", 3, 0, 19},
+			{"sub", yaml.MapSlice{
+				{"e", 5, 0, 31},
+			}, 0, 25},
+		},
 	},
 
+	// Line numbers on ordered maps.
+	{
+		`root:
+  sub1: apple
+  sub2: orange`,
+		&yaml.MapSlice{{"root", yaml.MapSlice{
+			{"sub1", "apple", 1, 2},
+			{"sub2", "orange", 2, 2},
+		}, 0, 0}},
+	},
 	// Issue #39.
 	{
 		"a:\n b:\n  c: d\n",

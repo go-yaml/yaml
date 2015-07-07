@@ -287,7 +287,7 @@ var marshalTests = []struct {
 
 	// Ordered maps.
 	{
-		&yaml.MapSlice{{"b", 2}, {"a", 1}, {"d", 4}, {"c", 3}, {"sub", yaml.MapSlice{{"e", 5}}}},
+		&yaml.MapSlice{{"b", 2, 0, 0}, {"a", 1, 0, 0}, {"d", 4, 0, 0}, {"c", 3, 0, 0}, {"sub", yaml.MapSlice{{"e", 5, 0, 0}}, 0, 0}},
 		"b: 2\na: 1\nd: 4\nc: 3\nsub:\n  e: 5\n",
 	},
 

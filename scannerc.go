@@ -541,17 +541,17 @@ func read_line(parser *yaml_parser_t, s []byte) []byte {
 	switch {
 	case buf[pos] == '\r' && buf[pos+1] == '\n':
 		// CR LF . LF
-		s = append(s, '\n')
+		s = append(s, '\r', '\n')
 		parser.buffer_pos += 2
 		parser.mark.index++
 		parser.unread--
 	case buf[pos] == '\r' || buf[pos] == '\n':
 		// CR|LF . LF
-		s = append(s, '\n')
+		s = append(s, buf[pos])
 		parser.buffer_pos += 1
 	case buf[pos] == '\xC2' && buf[pos+1] == '\x85':
 		// NEL . LF
-		s = append(s, '\n')
+		s = append(s, buf[pos], buf[pos+1])
 		parser.buffer_pos += 2
 	case buf[pos] == '\xE2' && buf[pos+1] == '\x80' && (buf[pos+2] == '\xA8' || buf[pos+2] == '\xA9'):
 		// LS|PS . LS|PS

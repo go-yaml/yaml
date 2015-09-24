@@ -52,10 +52,10 @@ Example
 package main
 
 import (
-        "fmt"
-        "log"
+	"fmt"
+	"log"
 
-        "gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v2"
 )
 
 var data = `
@@ -63,59 +63,66 @@ a: Easy!
 b:
   c: 2
   d: [3, 4]
+e_f: tag
 `
 
 type T struct {
-        A string
-        B struct{C int; D []int ",flow"}
+	A string
+	B struct {
+		C int
+		D []int ",flow"
+	}
+	E string `yaml:"e_f"`
 }
 
 func main() {
-        t := T{}
-    
-        err := yaml.Unmarshal([]byte(data), &t)
-        if err != nil {
-                log.Fatalf("error: %v", err)
-        }
-        fmt.Printf("--- t:\n%v\n\n", t)
-    
-        d, err := yaml.Marshal(&t)
-        if err != nil {
-                log.Fatalf("error: %v", err)
-        }
-        fmt.Printf("--- t dump:\n%s\n\n", string(d))
-    
-        m := make(map[interface{}]interface{})
-    
-        err = yaml.Unmarshal([]byte(data), &m)
-        if err != nil {
-                log.Fatalf("error: %v", err)
-        }
-        fmt.Printf("--- m:\n%v\n\n", m)
-    
-        d, err = yaml.Marshal(&m)
-        if err != nil {
-                log.Fatalf("error: %v", err)
-        }
-        fmt.Printf("--- m dump:\n%s\n\n", string(d))
+	t := T{}
+
+	err := yaml.Unmarshal([]byte(data), &t)
+	if err != nil {
+		log.Fatalf("error: %v", err)
+	}
+	fmt.Printf("--- t:\n%v\n\n", t)
+
+	d, err := yaml.Marshal(&t)
+	if err != nil {
+		log.Fatalf("error: %v", err)
+	}
+	fmt.Printf("--- t dump:\n%s\n\n", string(d))
+
+	m := make(map[interface{}]interface{})
+
+	err = yaml.Unmarshal([]byte(data), &m)
+	if err != nil {
+		log.Fatalf("error: %v", err)
+	}
+	fmt.Printf("--- m:\n%v\n\n", m)
+
+	d, err = yaml.Marshal(&m)
+	if err != nil {
+		log.Fatalf("error: %v", err)
+	}
+	fmt.Printf("--- m dump:\n%s\n\n", string(d))
 }
+
 ```
 
 This example will generate the following output:
 
 ```
 --- t:
-{Easy! {2 [3 4]}}
+{Easy! {2 [3 4]} tag}
 
 --- t dump:
 a: Easy!
 b:
   c: 2
   d: [3, 4]
+e_f: tag
 
 
 --- m:
-map[a:Easy! b:map[c:2 d:[3 4]]]
+map[e_f:tag a:Easy! b:map[c:2 d:[3 4]]]
 
 --- m dump:
 a: Easy!
@@ -124,5 +131,6 @@ b:
   d:
   - 3
   - 4
+e_f: tag
 ```
 

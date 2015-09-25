@@ -642,6 +642,28 @@ func (d *decoder) mappingStruct(n *node, out reflect.Value) (good bool) {
 			inlineMap.SetMapIndex(name, value)
 		}
 	}
+
+	for _, info := range sinfo.FieldsList {
+		if info.LineNum {
+			var field reflect.Value
+			if info.Inline == nil {
+				field = out.Field(info.Num)
+			} else {
+				field = out.FieldByIndex(info.Inline)
+			}
+			field.SetInt(int64(n.line) + 1)
+		}
+		if info.ColNum {
+			var field reflect.Value
+			if info.Inline == nil {
+				field = out.Field(info.Num)
+			} else {
+				field = out.FieldByIndex(info.Inline)
+			}
+			field.SetInt(int64(n.column) + 1)
+		}
+	}
+
 	return true
 }
 

@@ -559,6 +559,17 @@ var unmarshalTests = []struct {
 		"a: []",
 		&struct{ A []int }{[]int{}},
 	},
+
+	// Line number information from parser
+	{
+		"\n\n\n\n\n\n\n\n\n\na: one\nb: two\nc: three\n",
+		&struct {
+			A    string
+			B    string
+			Line int ",linenum"
+			Col  int ",colnum"
+		}{"one", "two", 11, 1},
+	},
 }
 
 type M map[interface{}]interface{}

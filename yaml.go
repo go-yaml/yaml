@@ -124,6 +124,10 @@ func Unmarshal(in []byte, out interface{}) (err error) {
 //                  they were part of the outer struct. For maps, keys must
 //                  not conflict with the yaml keys of other struct fields.
 //
+//     linenum      Set value to parser line number
+//
+//     colnum       Set value to parser column number
+//
 // In addition, if the key is "-", the field is ignored.
 //
 // For example:
@@ -200,6 +204,8 @@ type fieldInfo struct {
 	Num       int
 	OmitEmpty bool
 	Flow      bool
+	LineNum   bool
+	ColNum    bool
 
 	// Inline holds the field index if the field is part of an inlined struct.
 	Inline []int
@@ -245,6 +251,10 @@ func getStructInfo(st reflect.Type) (*structInfo, error) {
 					info.OmitEmpty = true
 				case "flow":
 					info.Flow = true
+				case "linenum":
+					info.LineNum = true
+				case "colnum":
+					info.ColNum = true
 				case "inline":
 					inline = true
 				default:

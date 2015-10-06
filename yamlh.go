@@ -237,6 +237,7 @@ const (
 	yaml_SEQUENCE_END_EVENT   // A SEQUENCE-END event.
 	yaml_MAPPING_START_EVENT  // A MAPPING-START event.
 	yaml_MAPPING_END_EVENT    // A MAPPING-END event.
+	yaml_COMMENT_EVENT        // A COMMENT event.
 )
 
 // The event structure.

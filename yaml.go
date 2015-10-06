@@ -23,6 +23,17 @@ type MapItem struct {
 	Key, Value interface{}
 }
 
+// CommentedMapSlice functions identially to MapSlice, except
+// that it supports inserting comments when encoding.
+type CommentedMapSlice []CommentedMapItem
+
+// CommentedMapItem is a MapItem with a comment.  Use it with
+// CommentedMapSlice.
+type CommentedMapItem struct {
+	MapItem
+	Comment string
+}
+
 // The Unmarshaler interface may be implemented by types to customize their
 // behavior when being unmarshaled from a YAML document. The UnmarshalYAML
 // method receives a function that may be called to unmarshal the original
@@ -200,6 +211,7 @@ type fieldInfo struct {
 	Num       int
 	OmitEmpty bool
 	Flow      bool
+	Comment   string
 
 	// Inline holds the field index if the field is part of an inlined struct.
 	Inline []int
@@ -294,6 +306,8 @@ func getStructInfo(st reflect.Type) (*structInfo, error) {
 		} else {
 			info.Key = strings.ToLower(field.Name)
 		}
+
+		info.Comment = field.Tag.Get("yamlComment")
 
 		if _, found = fieldsMap[info.Key]; found {
 			msg := "Duplicated key '" + info.Key + "' in struct " + st.String()

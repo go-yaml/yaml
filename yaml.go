@@ -111,25 +111,22 @@ func NewDecoder(r io.Reader) *YAMLDecoder {
 // allows it to ducktype with those Decoders, pass them around as arguments,
 // use them in struct-members.  A trivial example would be:
 //
-//		type Decoder interface {
-//		 Decoder(interface{}) error
-//		}
-//		...
-//		var dec Decoder
-//		...
+//	type Decoder interface {
+//	 Decoder(interface{}) error
+//	}
 //
-//		switch input_format {
-//		case "xml":
-//			dec = xml.NewDecoder(input)
-//		case "json":
-//		  dec = json.NewDecoder(input)
-//		case "yaml":
-//		  dec = yaml.NewDecoder(input)
-//		}
+//	var dec Decoder
 //
-//		...
+//	switch input_format {
+//	case "xml":
+//		dec = xml.NewDecoder(input)
+//	case "json":
+//	  dec = json.NewDecoder(input)
+//	case "yaml":
+//	  dec = yaml.NewDecoder(input)
+//	}
 //
-//		err := dec.Decode(&target)
+//	err := dec.Decode(&target)
 //
 func (dec *YAMLDecoder) Decode(v interface{}) error {
 	buf, err := ioutil.ReadAll(dec.r)
@@ -203,26 +200,26 @@ func NewEncoder(w io.Writer) *YAMLEncoder {
 // allows it to ducktype with those Encoders, pass them around as arguments,
 // use them in struct-members.  A trivial example would be:
 //
-//		type Encoder interface {
-//			Encode(interface{}) error
-//		}
+//	type Encoder interface {
+//		Encode(interface{}) error
+//	}
 //
-//		type Data struct {
-//			Foo string
-//			Bar int
-//		}
+//	type Data struct {
+//		Foo string
+//		Bar int
+//	}
 //
-//		func main() {
-//			buf := &bytes.Buffer{}
+//	func main() {
+//		buf := &bytes.Buffer{}
 //
-//			for i, enc := range []Encoder{
-//					yaml.NewEncoder(buf),
-//					json.NewEncoder(buf),
-//					xml.NewEncoder(buf),
-//		  } {
-//				buf.Reset()
-//				err := enc.Encode(Data{Foo: "Foo String", Bar: 42})
-//        ...
+//		for i, enc := range []Encoder{
+//				yaml.NewEncoder(buf),
+//				json.NewEncoder(buf),
+//				xml.NewEncoder(buf),
+//	  } {
+//			buf.Reset()
+//			err := enc.Encode(Data{Foo: "Foo String", Bar: 42})
+//      ...
 func (enc *YAMLEncoder) Encode(v interface{}) error {
 	buf, err := Marshal(v)
 	if err != nil {

@@ -482,6 +482,9 @@ func (d *decoder) sequence(n *node, out reflect.Value) (good bool) {
 	switch out.Kind() {
 	case reflect.Slice:
 		out.Set(reflect.MakeSlice(out.Type(), l, l))
+	case reflect.Array:
+		made_array := reflect.New(out.Type())
+		out.Set(made_array.Elem())
 	case reflect.Interface:
 		// No type hints. Will have to use a generic sequence.
 		iface = out
@@ -500,7 +503,9 @@ func (d *decoder) sequence(n *node, out reflect.Value) (good bool) {
 			j++
 		}
 	}
-	out.Set(out.Slice(0, j))
+	if out.Kind()!=reflect.Array {
+		out.Set(out.Slice(0, j))
+	}
 	if iface.IsValid() {
 		iface.Set(out)
 	}

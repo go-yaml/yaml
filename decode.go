@@ -499,6 +499,10 @@ func (d *decoder) sequence(n *node, out reflect.Value) (good bool) {
 	for i := 0; i < l; i++ {
 		e := reflect.New(et).Elem()
 		if ok := d.unmarshal(n.children[i], e); ok {
+			if j >= out.Len() {
+				d.terror(n,yaml_SEQ_TAG,out)
+				return false
+			}
 			out.Index(j).Set(e)
 			j++
 		}

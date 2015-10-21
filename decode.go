@@ -196,7 +196,7 @@ type decoder struct {
 var (
 	mapItemType    = reflect.TypeOf(MapItem{})
 	durationType   = reflect.TypeOf(time.Duration(0))
-	defaultMapType = reflect.TypeOf(map[interface{}]interface{}{})
+	defaultMapType = reflect.TypeOf(map[string]interface{}{})
 	ifaceType      = defaultMapType.Elem()
 )
 

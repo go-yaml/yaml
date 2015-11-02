@@ -640,6 +640,9 @@ func (d *decoder) mappingStruct(n *node, out reflect.Value) (good bool) {
 			value := reflect.New(elemType).Elem()
 			d.unmarshal(n.children[i+1], value)
 			inlineMap.SetMapIndex(name, value)
+		} else {
+			d.terrors = append(d.terrors, fmt.Sprintf("line %d: no such field '%s' in struct '%s'", n.line+1, name, out.Type()))
+			return false
 		}
 	}
 	return true

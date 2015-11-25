@@ -2,13 +2,14 @@ package yaml_test
 
 import (
 	"errors"
-	. "gopkg.in/check.v1"
-	"gopkg.in/yaml.v2"
 	"math"
 	"net"
 	"reflect"
 	"strings"
 	"time"
+
+	. "gopkg.in/check.v1"
+	"gopkg.in/yaml.v2"
 )
 
 var unmarshalIntTest = 123
@@ -935,6 +936,39 @@ func (s *S) TestUnmarshalSliceOnPreset(c *C) {
 	yaml.Unmarshal([]byte("a: [2]"), &v)
 	c.Assert(v.A, DeepEquals, []int{2})
 }
+
+func (s *S) TestUnmarshalUppercaseFieldNamesNormal(c *C) {
+	v := struct {
+		AbcDef string
+	}{}
+	yaml.Unmarshal([]byte("---\nAbcDef: hello\n"), &v)
+	c.Assert(v.AbcDef, Equals, "")
+
+}
+
+type V struct {
+	AbcDef string
+}
+
+func (s *S) TestUnmarshalUppercaseFieldNamesWithoutLowercase(c *C) {
+	v := V{}
+	yaml.Unmarshal([]byte("---\nAbcDef: hello\n"), &v, yaml.OPT_NOLOWERCASE)
+	c.Assert(v.AbcDef, Equals, "hello")
+}
+
+type TestType struct {
+	AbcDef TestTypeNested
+}
+
+type TestTypeNested struct {
+	XyZ string
+}
+
+//func (s *S) TestUnmarshalNestedUppercaseFieldNamesWithoutLowercase(c *C) {
+//	v := TestType{AbcDef: TestTypeNested{"hello"}}
+//	yaml.Unmarshal([]byte("---\nAbcDef: hello\n"), &v, yaml.OptionNoLowercase)
+//	c.Assert(v.AbcDef, Equals, "hello")
+//}
 
 //var data []byte
 //func init() {

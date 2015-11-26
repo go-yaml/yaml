@@ -960,37 +960,17 @@ func (s *S) TestUnmarshalSliceOnPreset(c *C) {
 }
 
 func (s *S) TestUnmarshalUppercaseFieldNamesNormal(c *C) {
-	v := struct {
-		AbcDef string
-	}{}
+	v := struct{ AbcDef string }{}
 	yaml.Unmarshal([]byte("---\nAbcDef: hello\n"), &v)
 	c.Assert(v.AbcDef, Equals, "")
 
 }
 
-type V struct {
-	AbcDef string
-}
-
 func (s *S) TestUnmarshalUppercaseFieldNamesWithoutLowercase(c *C) {
-	v := V{}
+	v := struct{ AbcDef string }{}
 	yaml.Unmarshal([]byte("---\nAbcDef: hello\n"), &v, yaml.OPT_NOLOWERCASE)
 	c.Assert(v.AbcDef, Equals, "hello")
 }
-
-type TestType struct {
-	AbcDef TestTypeNested
-}
-
-type TestTypeNested struct {
-	XyZ string
-}
-
-//func (s *S) TestUnmarshalNestedUppercaseFieldNamesWithoutLowercase(c *C) {
-//	v := TestType{AbcDef: TestTypeNested{"hello"}}
-//	yaml.Unmarshal([]byte("---\nAbcDef: hello\n"), &v, yaml.OptionNoLowercase)
-//	c.Assert(v.AbcDef, Equals, "hello")
-//}
 
 //var data []byte
 //func init() {

@@ -501,7 +501,7 @@ func (s *S) TestSortedOutput(c *C) {
 }
 
 func (s *S) TestMarshalUppercaseFieldNamesNormal(c *C) {
-	v := V{"hello"}
+	v := struct{ AbcDef string }{"hello"}
 	y, err := yaml.Marshal(v)
 	c.Assert(err, IsNil)
 	c.Assert(string(y), Equals, "abcdef: hello\n")

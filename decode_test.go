@@ -559,6 +559,18 @@ var unmarshalTests = []struct {
 		"a: []",
 		&struct{ A []int }{[]int{}},
 	},
+
+	// UTF-16-LE
+	{
+		"\xff\xfe\xf1\x00o\x00\xf1\x00o\x00:\x00 \x00v\x00e\x00r\x00y\x00 \x00y\x00e\x00s\x00\n\x00",
+		M{"ñoño":"very yes"},
+	},
+
+	// UTF-16-BE
+	{
+		"\xfe\xff\x00\xf1\x00o\x00\xf1\x00o\x00:\x00 \x00v\x00e\x00r\x00y\x00 \x00y\x00e\x00s\x00\n",
+		M{"ñoño":"very yes"},
+	},
 }
 
 type M map[interface{}]interface{}

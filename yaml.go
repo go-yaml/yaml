@@ -95,6 +95,31 @@ func Unmarshal(in []byte, out interface{}) (err error) {
 	return nil
 }
 
+// ParseYAML decodes the first document found within the in byte slice
+// and assigns decoded values into Node representation.
+func ParseYAML(in []byte) (node *Node) {
+	p := newParser(in)
+	defer p.destroy()
+	return p.parse()
+}
+
+// UnmarshalNode decodes node to value.
+func UnmarshalNode(node *Node, out interface{}) (err error) {
+	defer handleErr(&err)
+	d := newDecoder()
+	if node != nil {
+		v := reflect.ValueOf(out)
+		if v.Kind() == reflect.Ptr && !v.IsNil() {
+			v = v.Elem()
+		}
+		d.unmarshal(node, v)
+	}
+	if len(d.terrors) > 0 {
+		return &TypeError{d.terrors}
+	}
+	return nil
+}
+
 // Marshal serializes the value provided into a YAML document. The structure
 // of the generated document will reflect the structure of the value itself.
 // Maps and pointers (to struct, string, int, etc) are accepted as the in value.

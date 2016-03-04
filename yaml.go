@@ -95,6 +95,20 @@ func Unmarshal(in []byte, out interface{}) (err error) {
 	return nil
 }
 
+// UnmarshalNode decodes the first document found within the in byte slice
+// and assigns decoded values into Node representation.
+func UnmarshalNode(in []byte) (node *Node, err error) {
+	defer handleErr(&err)
+	d := newDecoder()
+	p := newParser(in)
+	defer p.destroy()
+	node = p.parse()
+	if len(d.terrors) > 0 {
+		err = &TypeError{d.terrors}
+	}
+	return
+}
+
 // Marshal serializes the value provided into a YAML document. The structure
 // of the generated document will reflect the structure of the value itself.
 // Maps and pointers (to struct, string, int, etc) are accepted as the in value.

@@ -15,8 +15,6 @@ func (dec *Decoder) Decode(out interface{}) (err error) {
 	defer handleErr(&err)
 	if dec.p.event.typ == yaml_STREAM_END_EVENT {
 		return errors.New("EOF")
-	} else if dec.p.event.typ == yaml_STREAM_START_EVENT {
-		dec.p.skip()
 	}
 	node := dec.p.parse()
 	if node != nil {

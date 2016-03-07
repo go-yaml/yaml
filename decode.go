@@ -38,14 +38,6 @@ type parser struct {
 	doc    *node
 }
 
-func moveToFirstNode(p *parser) {
-	p.skip()
-	if p.event.typ != yaml_STREAM_START_EVENT {
-		panic("expected stream start event, got " + strconv.Itoa(int(p.event.typ)))
-	}
-	p.skip()
-}
-
 func newParser(b []byte) *parser {
 	p := parser{}
 	if !yaml_parser_initialize(&p.parser) {
@@ -58,7 +50,11 @@ func newParser(b []byte) *parser {
 
 	yaml_parser_set_input_string(&p.parser, b)
 
-	moveToFirstNode(&p)
+	p.skip()
+	if p.event.typ != yaml_STREAM_START_EVENT {
+		panic("expected stream start event, got " + strconv.Itoa(int(p.event.typ)))
+	}
+	p.skip()
 	return &p
 }
 
@@ -70,7 +66,11 @@ func newFileParser(r io.Reader) *parser {
 
 	yaml_parser_set_input_file(&p.parser, r)
 
-	moveToFirstNode(&p)
+	p.skip()
+	if p.event.typ != yaml_STREAM_START_EVENT {
+		panic("expected stream start event, got " + strconv.Itoa(int(p.event.typ)))
+	}
+	p.skip()
 	return &p
 }
 

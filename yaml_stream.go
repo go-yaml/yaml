@@ -42,3 +42,26 @@ func NewDecoder(r io.Reader) *Decoder {
 		p: newFileParser(r),
 	}
 }
+
+type Encoder struct {
+	e *encoder
+}
+
+func (enc *Encoder) Encode(in interface{}) (err error) {
+	defer handleErr(&err)
+	enc.e.begin()
+	enc.e.marshal("", reflect.ValueOf(in))
+	enc.e.end()
+	return
+}
+
+func (enc *Encoder) Close() {
+	enc.e.finish()
+	enc.e.destroy()
+}
+
+func NewEncoder(w io.Writer) *Encoder {
+	return &Encoder{
+		e: newFileEncoder(w),
+	}
+}

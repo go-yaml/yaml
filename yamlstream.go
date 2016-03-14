@@ -1,7 +1,6 @@
 package yaml
 
 import (
-	"errors"
 	"io"
 	"reflect"
 )
@@ -14,7 +13,7 @@ type Decoder struct {
 func (dec *Decoder) Decode(out interface{}) (err error) {
 	defer handleErr(&err)
 	if dec.p.event.typ == yaml_STREAM_END_EVENT {
-		return errors.New("EOF")
+		return io.EOF
 	}
 	node := dec.p.parse()
 	if node != nil {

@@ -966,9 +966,9 @@ func (s *S) TestUnmarshalUppercaseFieldNamesNormal(c *C) {
 
 }
 
-func (s *S) TestUnmarshalUppercaseFieldNamesWithoutLowercase(c *C) {
+func (s *S) TestUnmarshalWithOptions_UppercaseFieldNamesWithoutLowercase(c *C) {
 	v := struct{ AbcDef string }{}
-	yaml.Unmarshal([]byte("---\nAbcDef: hello\n"), &v, yaml.OPT_NOLOWERCASE)
+	yaml.UnmarshalWithOptions([]byte("---\nAbcDef: hello\n"), &v, yaml.OPT_NOLOWERCASE)
 	c.Assert(v.AbcDef, Equals, "hello")
 }
 

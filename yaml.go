@@ -21,6 +21,8 @@ type YAMLCodec struct {
 	fieldMapMutex sync.RWMutex
 }
 
+var DefaultCodec = NewYAMLCodec()
+
 // NewYAMLCodec creates a new *YAMLCodec configured with the provided options
 // (optional).
 func NewYAMLCodec(options ...Option) *YAMLCodec {
@@ -117,9 +119,14 @@ func (y *YAMLCodec) Unmarshal(in []byte, out interface{}) (err error) {
 	return nil
 }
 
-// Shorthand for NewYAMLCodec(options...).Unmarshal(in, out)
-func Unmarshal(in []byte, out interface{}, opts ...Option) (err error) {
+// UnmarshalWithOptions is shorthand for NewCodec(options...).Unmarshal(in, out)
+func UnmarshalWithOptions(in []byte, out interface{}, opts ...Option) (err error) {
 	return NewYAMLCodec(opts...).Unmarshal(in, out)
+}
+
+// Unmarshal is shorthand for DefaultCodec.Unmarshal(in, out)
+func Unmarshal(in []byte, out interface{}) (err error) {
+	return DefaultCodec.Unmarshal(in, out)
 }
 
 type Option int
@@ -181,9 +188,14 @@ func (y *YAMLCodec) Marshal(in interface{}) (out []byte, err error) {
 	return
 }
 
-// Shorthand for NewYAMLCodec(options...).Marshal(in)
-func Marshal(in interface{}, options ...Option) (out []byte, err error) {
+// MarshalWithOptions is shorthand for NewCodec(options...).Marshal(in)
+func MarshalWithOptions(in interface{}, options ...Option) (out []byte, err error) {
 	return NewYAMLCodec(options...).Marshal(in)
+}
+
+// Marshal is shorthand for DefaultCodec.Marshal()
+func Marshal(in interface{}) (out []byte, err error) {
+	return DefaultCodec.Marshal(in)
 }
 
 func handleErr(err *error) {

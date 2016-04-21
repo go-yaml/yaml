@@ -507,9 +507,9 @@ func (s *S) TestMarshalUppercaseFieldNamesNormal(c *C) {
 	c.Assert(string(y), Equals, "abcdef: hello\n")
 }
 
-func (s *S) TestMarshalUppercaseFieldNamesWithoutLowercase(c *C) {
+func (s *S) TestMarshalWithOptiosn_UppercaseFieldNamesWithoutLowercase(c *C) {
 	v := struct{ AbcDef string }{"hello"}
-	y, err := yaml.Marshal(v, yaml.OPT_NOLOWERCASE)
+	y, err := yaml.MarshalWithOptions(v, yaml.OPT_NOLOWERCASE)
 	c.Assert(err, IsNil)
 	c.Assert(string(y), Equals, "AbcDef: hello\n")
 }

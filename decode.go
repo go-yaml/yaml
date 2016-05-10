@@ -640,6 +640,69 @@ func (d *decoder) mappingStruct(n *node, out reflect.Value) (good bool) {
 			value := reflect.New(elemType).Elem()
 			d.unmarshal(n.children[i+1], value)
 			inlineMap.SetMapIndex(name, value)
+		} else {
+			// Otherwise, we try to see if the YAML key matches any regular
+			// expression
+			for _, info := range sinfo.RegexpFieldsList {
+				if info.Regexp.MatchString(name.String()) {
+
+					// Get the field. It must be a map or a slice
+					field := out.Field(info.Num)
+
+					// Will we write to a map or a slice?
+					if field.Kind() == reflect.Map {
+
+						// If the map doesn't exist yet..
+						if field.IsNil() {
+
+							// Create a map, set it
+							iface := field
+							field = reflect.MakeMap(field.Type())
+							iface.Set(field)
+						}
+
+						// Create a new value of the map element type
+						e := reflect.New(field.Type().Elem()).Elem()
+
+						// Unmarshal into the element value
+						if d.unmarshal(n.children[i+1], e) {
+
+							// Set it into the map!
+							field.SetMapIndex(name, e)
+
+						} else {
+							// Error is set inside the unmarshal call
+						}
+
+					} else {
+
+						// If the array doesn't exist yet..
+						if field.IsNil() {
+
+							// Create a slice, set it
+							newSlice := reflect.MakeSlice(field.Type(), 0, 0)
+							field.Set(newSlice)
+						}
+
+						// Create a new value of the map element type
+						e := reflect.New(field.Type().Elem()).Elem()
+
+						// Unmarshal into the element value
+						if d.unmarshal(n.children[i+1], e) {
+
+							// Append it to the slice
+							newSlice := reflect.Append(field, e)
+							field.Set(newSlice)
+
+						} else {
+							// Error is set inside the unmarshal call
+						}
+					}
+
+					break
+
+				}
+			}
 		}
 	}
 	return true

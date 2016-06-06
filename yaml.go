@@ -149,6 +149,13 @@ func Marshal(in interface{}) (out []byte, err error) {
 // behavior that preserves the case of struct fields.
 var preserveFieldCase bool = false
 
+// SetPreserveFieldCase allows consumers of the library to modify the behavior
+// of key name matching/generation to match encoding/json.
+// SetPreserveFieldCase(true) keeps the original case of field names (or uses
+// the provided yaml: struct tag), where stock behavior is to use ToLower()
+// on struct field names.
+// This function is not thread-safe, and should be called once from an
+// init() function to set behavior for the application.
 func SetPreserveFieldCase(b bool) {
 	preserveFieldCase = b
 }

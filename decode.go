@@ -194,11 +194,33 @@ type decoder struct {
 }
 
 var (
-	mapItemType    = reflect.TypeOf(MapItem{})
-	durationType   = reflect.TypeOf(time.Duration(0))
-	defaultMapType = reflect.TypeOf(map[interface{}]interface{}{})
-	ifaceType      = defaultMapType.Elem()
+	mapItemType       = reflect.TypeOf(MapItem{})
+	durationType      = reflect.TypeOf(time.Duration(0))
+	defaultMapType    = reflect.TypeOf(map[interface{}]interface{}{})
+	originalMapType   = defaultMapType
+	jsonCompatMapType = reflect.TypeOf(map[string]interface{}{})
+	ifaceType         = defaultMapType.Elem()
 )
+
+// PreserveJSONCodecCompatibility changes the default map type used when
+// decoding YAML content from  `map[interface{}]interface{}` to
+// `map[string]interface{}`.
+//
+// The Go StdLib JSON marshaller cannot encode maps with keys other than of
+// type string. Therefore, maps created by this package's decoder must use a
+// a string as the key-type in order for the same maps to be marshaled into
+// JSON at a later date.
+//
+// This function is not safe for concurrent use and should be invoked prior to
+// any codec activities.
+func PreserveJSONCodecCompatibility(preserve bool) {
+	if preserve {
+		defaultMapType = jsonCompatMapType
+	} else {
+		defaultMapType = originalMapType
+	}
+	ifaceType = defaultMapType.Elem()
+}
 
 func newDecoder() *decoder {
 	d := &decoder{mapType: defaultMapType}

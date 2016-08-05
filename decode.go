@@ -180,6 +180,18 @@ func (p *parser) mapping() *node {
 		n.children = append(n.children, p.parse(), p.parse())
 	}
 	p.skip()
+	duplicates := make(map[string]bool)
+
+	// fail for children with duplicate names
+	for _, c := range n.children {
+		if c.value == "" {
+			continue
+		}
+		if _, prs := duplicates[c.value]; prs {
+			p.fail()
+		}
+		duplicates[c.value] = true
+	}
 	return n
 }
 

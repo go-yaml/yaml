@@ -184,7 +184,7 @@ func (p *parser) mapping() *node {
 
 	// fail for children with duplicate names
 	for _, c := range n.children {
-		if c.value == "" {
+		if c.value == "" || c.kind == aliasNode {
 			continue
 		}
 		if _, prs := duplicates[c.value]; prs {

@@ -216,6 +216,9 @@ type yaml_token_t struct {
 
 	// The version directive major/minor (for yaml_VERSION_DIRECTIVE_TOKEN).
 	major, minor int8
+
+	// The comment above the token
+	comment_above []byte
 }
 
 // Events

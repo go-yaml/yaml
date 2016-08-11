@@ -369,10 +369,11 @@ func yaml_parser_parse_node(parser *yaml_parser_t, event *yaml_event_t, block, i
 		parser.state = parser.states[len(parser.states)-1]
 		parser.states = parser.states[:len(parser.states)-1]
 		*event = yaml_event_t{
-			typ:        yaml_ALIAS_EVENT,
-			start_mark: token.start_mark,
-			end_mark:   token.end_mark,
-			anchor:     token.value,
+			typ:           yaml_ALIAS_EVENT,
+			start_mark:    token.start_mark,
+			end_mark:      token.end_mark,
+			anchor:        token.value,
+			comment_above: token.comment_above,
 		}
 		skip_token(parser)
 		return true
@@ -455,13 +456,14 @@ func yaml_parser_parse_node(parser *yaml_parser_t, event *yaml_event_t, block, i
 		end_mark = token.end_mark
 		parser.state = yaml_PARSE_INDENTLESS_SEQUENCE_ENTRY_STATE
 		*event = yaml_event_t{
-			typ:        yaml_SEQUENCE_START_EVENT,
-			start_mark: start_mark,
-			end_mark:   end_mark,
-			anchor:     anchor,
-			tag:        tag,
-			implicit:   implicit,
-			style:      yaml_style_t(yaml_BLOCK_SEQUENCE_STYLE),
+			typ:           yaml_SEQUENCE_START_EVENT,
+			start_mark:    start_mark,
+			end_mark:      end_mark,
+			anchor:        anchor,
+			tag:           tag,
+			implicit:      implicit,
+			style:         yaml_style_t(yaml_BLOCK_SEQUENCE_STYLE),
+			comment_above: token.comment_above,
 		}
 		return true
 	}
@@ -486,6 +488,7 @@ func yaml_parser_parse_node(parser *yaml_parser_t, event *yaml_event_t, block, i
 			implicit:        plain_implicit,
 			quoted_implicit: quoted_implicit,
 			style:           yaml_style_t(token.style),
+			comment_above:   token.comment_above,
 		}
 		skip_token(parser)
 		return true
@@ -495,13 +498,14 @@ func yaml_parser_parse_node(parser *yaml_parser_t, event *yaml_event_t, block, i
 		end_mark = token.end_mark
 		parser.state = yaml_PARSE_FLOW_SEQUENCE_FIRST_ENTRY_STATE
 		*event = yaml_event_t{
-			typ:        yaml_SEQUENCE_START_EVENT,
-			start_mark: start_mark,
-			end_mark:   end_mark,
-			anchor:     anchor,
-			tag:        tag,
-			implicit:   implicit,
-			style:      yaml_style_t(yaml_FLOW_SEQUENCE_STYLE),
+			typ:           yaml_SEQUENCE_START_EVENT,
+			start_mark:    start_mark,
+			end_mark:      end_mark,
+			anchor:        anchor,
+			tag:           tag,
+			implicit:      implicit,
+			style:         yaml_style_t(yaml_FLOW_SEQUENCE_STYLE),
+			comment_above: token.comment_above,
 		}
 		return true
 	}
@@ -509,13 +513,14 @@ func yaml_parser_parse_node(parser *yaml_parser_t, event *yaml_event_t, block, i
 		end_mark = token.end_mark
 		parser.state = yaml_PARSE_FLOW_MAPPING_FIRST_KEY_STATE
 		*event = yaml_event_t{
-			typ:        yaml_MAPPING_START_EVENT,
-			start_mark: start_mark,
-			end_mark:   end_mark,
-			anchor:     anchor,
-			tag:        tag,
-			implicit:   implicit,
-			style:      yaml_style_t(yaml_FLOW_MAPPING_STYLE),
+			typ:           yaml_MAPPING_START_EVENT,
+			start_mark:    start_mark,
+			end_mark:      end_mark,
+			anchor:        anchor,
+			tag:           tag,
+			implicit:      implicit,
+			style:         yaml_style_t(yaml_FLOW_MAPPING_STYLE),
+			comment_above: token.comment_above,
 		}
 		return true
 	}
@@ -523,13 +528,14 @@ func yaml_parser_parse_node(parser *yaml_parser_t, event *yaml_event_t, block, i
 		end_mark = token.end_mark
 		parser.state = yaml_PARSE_BLOCK_SEQUENCE_FIRST_ENTRY_STATE
 		*event = yaml_event_t{
-			typ:        yaml_SEQUENCE_START_EVENT,
-			start_mark: start_mark,
-			end_mark:   end_mark,
-			anchor:     anchor,
-			tag:        tag,
-			implicit:   implicit,
-			style:      yaml_style_t(yaml_BLOCK_SEQUENCE_STYLE),
+			typ:           yaml_SEQUENCE_START_EVENT,
+			start_mark:    start_mark,
+			end_mark:      end_mark,
+			anchor:        anchor,
+			tag:           tag,
+			implicit:      implicit,
+			style:         yaml_style_t(yaml_BLOCK_SEQUENCE_STYLE),
+			comment_above: token.comment_above,
 		}
 		return true
 	}
@@ -537,13 +543,14 @@ func yaml_parser_parse_node(parser *yaml_parser_t, event *yaml_event_t, block, i
 		end_mark = token.end_mark
 		parser.state = yaml_PARSE_BLOCK_MAPPING_FIRST_KEY_STATE
 		*event = yaml_event_t{
-			typ:        yaml_MAPPING_START_EVENT,
-			start_mark: start_mark,
-			end_mark:   end_mark,
-			anchor:     anchor,
-			tag:        tag,
-			implicit:   implicit,
-			style:      yaml_style_t(yaml_BLOCK_MAPPING_STYLE),
+			typ:           yaml_MAPPING_START_EVENT,
+			start_mark:    start_mark,
+			end_mark:      end_mark,
+			anchor:        anchor,
+			tag:           tag,
+			implicit:      implicit,
+			style:         yaml_style_t(yaml_BLOCK_MAPPING_STYLE),
+			comment_above: token.comment_above,
 		}
 		return true
 	}
@@ -560,6 +567,7 @@ func yaml_parser_parse_node(parser *yaml_parser_t, event *yaml_event_t, block, i
 			implicit:        implicit,
 			quoted_implicit: false,
 			style:           yaml_style_t(yaml_PLAIN_SCALAR_STYLE),
+			comment_above:   token.comment_above,
 		}
 		return true
 	}

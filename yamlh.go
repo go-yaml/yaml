@@ -278,6 +278,9 @@ type yaml_event_t struct {
 
 	// The style (for yaml_SCALAR_EVENT, yaml_SEQUENCE_START_EVENT, yaml_MAPPING_START_EVENT).
 	style yaml_style_t
+
+	// The comment above the event
+	comment_above []byte
 }
 
 func (e *yaml_event_t) scalar_style() yaml_scalar_style_t     { return yaml_scalar_style_t(e.style) }

@@ -570,6 +570,12 @@ type yaml_parser_t struct {
 	aliases []yaml_alias_data_t // The alias data.
 
 	document *yaml_document_t // The currently parsed document.
+
+  // Comments stuff
+
+  comment []byte
+  comment_line    int
+  comment_column  int
 }
 
 // Emitter Definitions

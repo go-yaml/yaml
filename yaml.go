@@ -77,6 +77,12 @@ type Marshaler interface {
 // supported tag options.
 //
 func Unmarshal(in []byte, out interface{}) (err error) {
+	_, err = UnmarshalWithComments(in, out)
+	return err
+}
+
+// TODO(ags799): doc
+func UnmarshalWithComments(in []byte, out interface{}) (comments CommentNode, err error) {
 	defer handleErr(&err)
 	d := newDecoder()
 	p := newParser(in)
@@ -88,11 +94,15 @@ func Unmarshal(in []byte, out interface{}) (err error) {
 			v = v.Elem()
 		}
 		d.unmarshal(node, v)
+		comments, err = unmarshalComments(node)
+		if err != nil {
+			return comments, err
+		}
 	}
 	if len(d.terrors) > 0 {
-		return &TypeError{d.terrors}
+		return comments, &TypeError{d.terrors}
 	}
-	return nil
+	return comments, nil
 }
 
 // Marshal serializes the value provided into a YAML document. The structure
@@ -143,6 +153,11 @@ func Marshal(in interface{}) (out []byte, err error) {
 	e.finish()
 	out = e.out
 	return
+}
+
+type CommentNode struct {
+	Comment string
+	Child   interface{}
 }
 
 func handleErr(err *error) {

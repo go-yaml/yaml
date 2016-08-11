@@ -3,6 +3,7 @@ package yaml
 import (
 	"encoding"
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"math"
 	"reflect"
@@ -645,6 +646,83 @@ func (d *decoder) mappingStruct(n *node, out reflect.Value) (good bool) {
 		}
 	}
 	return true
+}
+
+func unmarshalComments(n *node) (comments CommentNode, err error) {
+	comments.Comment = n.comment_above
+	comments.Child, err = commentChild(n)
+	return comments, err
+}
+
+func unmarshalCommentsKeyValue(key *node, value *node) (comments CommentNode, err error) {
+	comments.Comment = key.comment_above
+	if len(key.children) != 0 {
+		return comments, errors.New("Key node has children.")
+	}
+	comments.Child, err = unmarshalComments(value)
+	return comments, err
+}
+
+func commentChild(n *node) (child interface{}, err error) {
+	switch n.kind {
+	case documentNode:
+		return commentChildDocument(n)
+	case aliasNode:
+		return commentChildAlias(n)
+	case scalarNode:
+		return commentChildScalar(n)
+	case mappingNode:
+		return commentChildMapping(n)
+	case sequenceNode:
+		return commentChildSequence(n)
+	default:
+		panic("internal error: unknown node kind: " + strconv.Itoa(n.kind))
+	}
+}
+
+func commentChildDocument(n *node) (child interface{}, err error) {
+	if len(n.children) == 1 {
+		return unmarshalComments(n.children[0])
+	} else {
+		return nil, errors.New("Document has zero or multiple children.")
+	}
+}
+
+func commentChildAlias(n *node) (child interface{}, err error) {
+	if len(n.children) == 0 {
+		return nil, nil
+	} else {
+		return nil, errors.New("Alias has nonzero children.")
+	}
+}
+
+func commentChildScalar(n *node) (child interface{}, err error) {
+	if len(n.children) == 0 {
+		return nil, nil
+	} else {
+		return nil, errors.New("Scalar has a child.")
+	}
+}
+
+func commentChildMapping(n *node) (child map[interface{}]CommentNode, err error) {
+	child = make(map[interface{}]CommentNode)
+	for i := 0; i < len(n.children); i += 2 {
+		keyNode := n.children[i]
+		valueNode := n.children[i+1]
+		child[keyNode.value], err = unmarshalCommentsKeyValue(keyNode, valueNode)
+	}
+	return child, err
+}
+
+func commentChildSequence(n *node) (child []CommentNode, err error) {
+	child = make([]CommentNode, len(n.children))
+	for index, element := range n.children {
+		child[index], err = unmarshalComments(element)
+		if err != nil {
+			return child, err
+		}
+	}
+	return child, err
 }
 
 func failWantMap() {

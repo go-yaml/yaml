@@ -19,13 +19,14 @@ const (
 )
 
 type node struct {
-	kind         int
-	line, column int
-	tag          string
-	value        string
-	implicit     bool
-	children     []*node
-	anchors      map[string]*node
+	kind          int
+	line, column  int
+	tag           string
+	value         string
+	implicit      bool
+	children      []*node
+	anchors       map[string]*node
+	comment_above string
 }
 
 // ----------------------------------------------------------------------------
@@ -125,9 +126,10 @@ func (p *parser) parse() *node {
 
 func (p *parser) node(kind int) *node {
 	return &node{
-		kind:   kind,
-		line:   p.event.start_mark.line,
-		column: p.event.start_mark.column,
+		kind:          kind,
+		line:          p.event.start_mark.line,
+		column:        p.event.start_mark.column,
+		comment_above: string(p.event.comment_above),
 	}
 }
 

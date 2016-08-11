@@ -1459,14 +1459,17 @@ func yaml_parser_scan_to_next_token(parser *yaml_parser_t) bool {
 			}
 		}
 
-		// Eat a comment until a line break.
 		if parser.buffer[parser.buffer_pos] == '#' {
+			skip(parser)
+			var comment []byte
 			for !is_breakz(parser.buffer, parser.buffer_pos) {
+				comment = append(comment, parser.buffer[parser.buffer_pos])
 				skip(parser)
 				if parser.unread < 1 && !yaml_parser_update_buffer(parser, 1) {
 					return false
 				}
 			}
+			parser.comment = comment
 		}
 
 		// If it is a line break, eat it.

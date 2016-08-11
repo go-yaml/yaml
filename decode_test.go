@@ -2,8 +2,8 @@ package yaml_test
 
 import (
 	"errors"
-	. "gopkg.in/check.v1"
 	"github.com/ags799/yaml"
+	. "gopkg.in/check.v1"
 	"math"
 	"net"
 	"reflect"

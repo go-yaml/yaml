@@ -7,8 +7,8 @@ import (
 	"strings"
 	"time"
 
-	. "gopkg.in/check.v1"
 	"github.com/ags799/yaml"
+	. "gopkg.in/check.v1"
 	"net"
 	"os"
 )

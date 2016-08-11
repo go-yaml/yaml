@@ -571,11 +571,11 @@ type yaml_parser_t struct {
 
 	document *yaml_document_t // The currently parsed document.
 
-  // Comments stuff
+	// Comments stuff
 
-  comment []byte
-  comment_line    int
-  comment_column  int
+	comment        []byte
+	comment_line   int
+	comment_column int
 }
 
 // Emitter Definitions

@@ -681,6 +681,13 @@ var unmarshalWithCommentsTests = []struct {
 			nil,
 		},
 	},
+	{
+		"# comment",
+		yaml.CommentNode{
+			" comment",
+			nil,
+		},
+	},
 }
 
 func (s *S) TestUnmarshalWithComments(c *C) {

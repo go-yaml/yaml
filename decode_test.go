@@ -701,21 +701,30 @@ a:
 		))),
 	},
 	{`
-# sequence
+# one
 - 1
 - 2
 - 3`,
-		cn(" sequence", cnSeq(cn("", nil), cn("", nil), cn("", nil))),
+		cn("", cnSeq(cn(" one", nil), cn("", nil), cn("", nil))),
+	},
+	{`
+# one
+- 1
+# two
+- 2
+- 3`,
+		cn("", cnSeq(
+			cn(" one", nil),
+			cn(" two", nil),
+			cn("", nil),
+		)),
 	},
 	{`
 # sequence
-- 1
-# element
-- 2
-- 3`,
+[1, 2, 3]`,
 		cn(" sequence", cnSeq(
 			cn("", nil),
-			cn(" element", nil),
+			cn("", nil),
 			cn("", nil),
 		)),
 	},

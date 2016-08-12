@@ -736,6 +736,19 @@ a:
 			cn("", nil),
 		)),
 	},
+	{`
+# one
+# two
+[1]`,
+		cn(" one\n two", cnSeq(cn("", nil))),
+	},
+	{`
+# one
+
+# two
+[1]`,
+		cn(" two", cnSeq(cn("", nil))),
+	},
 }
 
 func cn(comment string, child interface{}) yaml.CommentNode {

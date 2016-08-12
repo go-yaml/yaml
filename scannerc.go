@@ -1469,7 +1469,14 @@ func yaml_parser_scan_to_next_token(parser *yaml_parser_t) bool {
 					return false
 				}
 			}
-			parser.comment = comment
+			if parser.comment_line == parser.mark.line - 1 && parser.comment_column == parser.mark.column {
+				parser.comment = append(parser.comment, '\n')
+				parser.comment = append(parser.comment, comment...)
+			} else {
+				parser.comment = comment
+			}
+			parser.comment_line = parser.mark.line
+			parser.comment_column = parser.mark.column
 		}
 
 		// If it is a line break, eat it.

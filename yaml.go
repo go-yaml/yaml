@@ -82,7 +82,7 @@ func Unmarshal(in []byte, out interface{}) (err error) {
 }
 
 // TODO(ags799): doc
-func UnmarshalWithComments(in []byte, out interface{}) (comments CommentNode, err error) {
+func UnmarshalWithComments(in []byte, out interface{}) (comments interface{}, err error) {
 	defer handleErr(&err)
 	d := newDecoder()
 	p := newParser(in)
@@ -94,7 +94,7 @@ func UnmarshalWithComments(in []byte, out interface{}) (comments CommentNode, er
 			v = v.Elem()
 		}
 		d.unmarshal(node, v)
-		comments, err = unmarshalComments(node)
+		comments, err = unmarshalDocumentComments(node)
 		if err != nil {
 			return comments, err
 		}

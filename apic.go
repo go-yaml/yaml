@@ -9,8 +9,10 @@ func yaml_insert_token(parser *yaml_parser_t, pos int, token *yaml_token_t) {
 	//fmt.Println("yaml_insert_token", "pos:", pos, "typ:", token.typ, "head:", parser.tokens_head, "len:", len(parser.tokens))
 
 	// Add comment to token
-	token.comment_above = parser.comment
-	parser.comment = nil
+	if token.typ != yaml_BLOCK_ENTRY_TOKEN {
+		token.comment_above = parser.comment
+		parser.comment = nil
+	}
 
 	// Check if we can move the queue at the beginning of the buffer.
 	if parser.tokens_head > 0 && len(parser.tokens) == cap(parser.tokens) {

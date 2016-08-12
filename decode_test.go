@@ -695,10 +695,10 @@ b: 2`,
 a:
   # value
   1`,
-	cn("", cnMap("a", cn(
-		" key",
-		cn(" value", nil),
-	))),
+		cn("", cnMap("a", cn(
+			" key",
+			cn(" value", nil),
+		))),
 	},
 	{`
 # sequence

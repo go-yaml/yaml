@@ -671,15 +671,25 @@ func (s *S) TestUnmarshalErrors(c *C) {
 }
 
 var unmarshalWithCommentsTests = []struct {
-	data string
+	data     string
 	expected interface{}
 }{
 	{"", nil},
 	{`
-# map
+# a
 a: 1
 `,
-		cn("", cnMap("a", cn(" map", cn("", nil)))),
+		cn("", cnMap("a", cn(" a", cn("", nil)))),
+	},
+	{`
+# a
+a: 1
+# b
+b: 2`,
+		cn("", cnMap(
+			"a", cn(" a", cn("", nil)),
+			"b", cn(" b", cn("", nil)),
+		)),
 	},
 }
 
@@ -687,11 +697,11 @@ func cn(comment string, child interface{}) yaml.CommentNode {
 	return yaml.CommentNode{comment, child}
 }
 
-func cnMap(values... interface{}) map[interface{}]yaml.CommentNode {
+func cnMap(values ...interface{}) map[interface{}]yaml.CommentNode {
 	comments := make(map[interface{}]yaml.CommentNode)
-	for i := 0; i < len(values) - 1; i += 2 {
+	for i := 0; i < len(values)-1; i += 2 {
 		key := values[i]
-		value := values[i + 1].(yaml.CommentNode)
+		value := values[i+1].(yaml.CommentNode)
 		comments[key] = value
 	}
 	return comments

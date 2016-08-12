@@ -652,7 +652,7 @@ func unmarshalDocumentComments(n *node) (comments interface{}, err error) {
 	return commentChild(n)
 }
 
-func unmarshalComments(n * node) (comments CommentNode, err error) {
+func unmarshalComments(n *node) (comments CommentNode, err error) {
 	comments.Comment = n.comment_above
 	comments.Child, err = commentChild(n)
 	return comments, err

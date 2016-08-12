@@ -716,14 +716,14 @@ a:
 		cn("", cnSeq(cn(" one", nil), cn("", nil), cn("", nil))),
 	},
 	{`
-# one
+# One
 - 1
-# two
+# Two
 - 2
 - 3`,
 		cn("", cnSeq(
-			cn(" one", nil),
-			cn(" two", nil),
+			cn(" One", nil),
+			cn(" Two", nil),
 			cn("", nil),
 		)),
 	},
@@ -748,6 +748,15 @@ a:
 # two
 [1]`,
 		cn(" two", cnSeq(cn("", nil))),
+	},
+	{`
+a: 1  # A
+b: 2  # B
+`,
+		cn("", cnMap(
+			"a", cn(" A", cn("", nil)),
+			"b", cn(" B", cn("", nil)),
+		)),
 	},
 }
 

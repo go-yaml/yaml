@@ -28,6 +28,7 @@ type node struct {
 	children      []*node
 	anchors       map[string]*node
 	comment_above string
+	comment_inline string
 }
 
 // ----------------------------------------------------------------------------
@@ -131,6 +132,7 @@ func (p *parser) node(kind int) *node {
 		line:          p.event.start_mark.line,
 		column:        p.event.start_mark.column,
 		comment_above: string(p.event.comment_above),
+		comment_inline: string(p.event.comment_inline),
 	}
 }
 
@@ -653,18 +655,31 @@ func unmarshalDocumentComments(n *node) (comments interface{}, err error) {
 }
 
 func unmarshalComments(n *node) (comments CommentNode, err error) {
-	comments.Comment = n.comment_above
+	comments.Comment = comment(n)
 	comments.Child, err = commentChild(n)
 	return comments, err
 }
 
 func unmarshalCommentsKeyValue(key *node, value *node) (comments CommentNode, err error) {
-	comments.Comment = key.comment_above
+	comments.Comment = comment(key)
 	if len(key.children) != 0 {
 		return comments, errors.New("Key node has children.")
 	}
 	comments.Child, err = unmarshalComments(value)
 	return comments, err
+}
+
+func comment(n *node) string {
+	return n.comment_above
+	if len(n.comment_above) == 0 && len(n.comment_inline) == 0 {
+		return ""
+	} else if len(n.comment_above) == 0 {
+		return n.comment_inline
+	} else if len(n.comment_inline) == 0 {
+		return n.comment_above
+	} else {
+		return n.comment_above + "\n" + n.comment_inline
+	}
 }
 
 func commentChild(n *node) (child interface{}, err error) {

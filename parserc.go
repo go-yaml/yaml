@@ -374,6 +374,7 @@ func yaml_parser_parse_node(parser *yaml_parser_t, event *yaml_event_t, block, i
 			end_mark:      token.end_mark,
 			anchor:        token.value,
 			comment_above: token.comment_above,
+			comment_inline: token.comment_inline,
 		}
 		skip_token(parser)
 		return true
@@ -464,6 +465,7 @@ func yaml_parser_parse_node(parser *yaml_parser_t, event *yaml_event_t, block, i
 			implicit:      implicit,
 			style:         yaml_style_t(yaml_BLOCK_SEQUENCE_STYLE),
 			comment_above: token.comment_above,
+			comment_inline: token.comment_inline,
 		}
 		return true
 	}
@@ -489,6 +491,7 @@ func yaml_parser_parse_node(parser *yaml_parser_t, event *yaml_event_t, block, i
 			quoted_implicit: quoted_implicit,
 			style:           yaml_style_t(token.style),
 			comment_above:   token.comment_above,
+			comment_inline:   token.comment_inline,
 		}
 		skip_token(parser)
 		return true
@@ -506,6 +509,7 @@ func yaml_parser_parse_node(parser *yaml_parser_t, event *yaml_event_t, block, i
 			implicit:      implicit,
 			style:         yaml_style_t(yaml_FLOW_SEQUENCE_STYLE),
 			comment_above: token.comment_above,
+			comment_inline: token.comment_inline,
 		}
 		return true
 	}
@@ -521,6 +525,7 @@ func yaml_parser_parse_node(parser *yaml_parser_t, event *yaml_event_t, block, i
 			implicit:      implicit,
 			style:         yaml_style_t(yaml_FLOW_MAPPING_STYLE),
 			comment_above: token.comment_above,
+			comment_inline: token.comment_inline,
 		}
 		return true
 	}
@@ -536,6 +541,7 @@ func yaml_parser_parse_node(parser *yaml_parser_t, event *yaml_event_t, block, i
 			implicit:      implicit,
 			style:         yaml_style_t(yaml_BLOCK_SEQUENCE_STYLE),
 			comment_above: token.comment_above,
+			comment_inline: token.comment_inline,
 		}
 		return true
 	}
@@ -551,6 +557,7 @@ func yaml_parser_parse_node(parser *yaml_parser_t, event *yaml_event_t, block, i
 			implicit:      implicit,
 			style:         yaml_style_t(yaml_BLOCK_MAPPING_STYLE),
 			comment_above: token.comment_above,
+			comment_inline: token.comment_inline,
 		}
 		return true
 	}
@@ -568,6 +575,7 @@ func yaml_parser_parse_node(parser *yaml_parser_t, event *yaml_event_t, block, i
 			quoted_implicit: false,
 			style:           yaml_style_t(yaml_PLAIN_SCALAR_STYLE),
 			comment_above:   token.comment_above,
+			comment_inline:   token.comment_inline,
 		}
 		return true
 	}

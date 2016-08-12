@@ -1472,11 +1472,23 @@ func yaml_parser_scan_to_next_token(parser *yaml_parser_t) bool {
 			if parser.comment_line == parser.mark.line - 1 && parser.comment_column == parser.mark.column {
 				parser.comment = append(parser.comment, '\n')
 				parser.comment = append(parser.comment, comment...)
+				parser.comment_line = parser.mark.line
+				parser.comment_column = parser.mark.column
 			} else {
-				parser.comment = comment
+				inline := false
+				for _, token := range parser.tokens {
+					if token.start_mark.line == parser.mark.line && token.typ != yaml_BLOCK_ENTRY_TOKEN && token.typ != yaml_BLOCK_SEQUENCE_START_TOKEN {
+						fmt.Printf("line: %d\n typ: %v\n comment: %s\n value: %s\n", parser.mark.line, token.typ, comment, token.value)
+						token.comment_inline = comment
+						inline = true
+					}
+				}
+				if !inline {
+					parser.comment = comment
+					parser.comment_line = parser.mark.line
+					parser.comment_column = parser.mark.column
+				}
 			}
-			parser.comment_line = parser.mark.line
-			parser.comment_column = parser.mark.column
 		}
 
 		// If it is a line break, eat it.

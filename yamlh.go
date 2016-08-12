@@ -219,6 +219,9 @@ type yaml_token_t struct {
 
 	// The comment above the token
 	comment_above []byte
+
+	// The comment inline with the token
+	comment_inline []byte
 }
 
 // Events
@@ -281,6 +284,9 @@ type yaml_event_t struct {
 
 	// The comment above the event
 	comment_above []byte
+
+	// The comment inline with the event
+	comment_inline []byte
 }
 
 func (e *yaml_event_t) scalar_style() yaml_scalar_style_t     { return yaml_scalar_style_t(e.style) }

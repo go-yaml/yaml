@@ -670,6 +670,30 @@ func (s *S) TestUnmarshalErrors(c *C) {
 	}
 }
 
+var unmarshalWithCommentsTests = []struct {
+	data string
+	expected yaml.CommentNode
+}{
+	{
+		"",
+		yaml.CommentNode{
+			"",
+			nil,
+		},
+	},
+}
+
+func (s *S) TestUnmarshalWithComments(c *C) {
+	for _, item := range unmarshalWithCommentsTests {
+		var value interface{}
+		comments, err := yaml.UnmarshalWithComments([]byte(item.data), &value)
+		if _, ok := err.(*yaml.TypeError); !ok {
+			c.Assert(err, IsNil)
+		}
+		c.Assert(comments, DeepEquals, item.expected)
+	}
+}
+
 var unmarshalerTests = []struct {
 	data, tag string
 	value     interface{}

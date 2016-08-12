@@ -13,10 +13,7 @@ import (
 
 var unmarshalIntTest = 123
 
-var unmarshalTests = []struct {
-	data  string
-	value interface{}
-}{
+var unmarshalTests = []unmarshalTest{
 	{
 		"",
 		&struct{}{},
@@ -583,6 +580,11 @@ var unmarshalTests = []struct {
 	},
 }
 
+type unmarshalTest struct {
+	data  string
+	value interface{}
+}
+
 type M map[interface{}]interface{}
 
 type inlineB struct {
@@ -597,26 +599,45 @@ type inlineC struct {
 func (s *S) TestUnmarshal(c *C) {
 	for _, item := range unmarshalTests {
 		t := reflect.ValueOf(item.value).Type()
-		var value interface{}
-		switch t.Kind() {
-		case reflect.Map:
-			value = reflect.MakeMap(t).Interface()
-		case reflect.String:
-			value = reflect.New(t).Interface()
-		case reflect.Ptr:
-			value = reflect.New(t.Elem()).Interface()
-		default:
-			c.Fatalf("missing case for %s", t)
-		}
-		err := yaml.Unmarshal([]byte(item.data), value)
-		if _, ok := err.(*yaml.TypeError); !ok {
-			c.Assert(err, IsNil)
-		}
-		if t.Kind() == reflect.String {
-			c.Assert(*value.(*string), Equals, item.value)
-		} else {
-			c.Assert(value, DeepEquals, item.value)
-		}
+		checkUnmarshalWithoutComments(item, t, c)
+		checkUnmarshalWithComments(item, t, c)
+	}
+}
+
+func checkUnmarshalWithoutComments(item unmarshalTest, t reflect.Type, c *C) {
+	value := makeValue(t, c)
+	err := yaml.Unmarshal([]byte(item.data), value)
+	checkUnmarshal(item, value, err, t, c)
+}
+
+func checkUnmarshalWithComments(item unmarshalTest, t reflect.Type, c *C) {
+	value := makeValue(t, c)
+	_, err := yaml.UnmarshalWithComments([]byte(item.data), value)
+	checkUnmarshal(item, value, err, t, c)
+}
+
+func makeValue(t reflect.Type, c *C) (value interface{}) {
+	switch t.Kind() {
+	case reflect.Map:
+		value = reflect.MakeMap(t).Interface()
+	case reflect.String:
+		value = reflect.New(t).Interface()
+	case reflect.Ptr:
+		value = reflect.New(t.Elem()).Interface()
+	default:
+		c.Fatalf("missing case for %s", t)
+	}
+	return value
+}
+
+func checkUnmarshal(item unmarshalTest, value interface{}, err error, t reflect.Type, c *C) {
+	if _, ok := err.(*yaml.TypeError); !ok {
+		c.Assert(err, IsNil)
+	}
+	if t.Kind() == reflect.String {
+		c.Assert(*value.(*string), Equals, item.value)
+	} else {
+		c.Assert(value, DeepEquals, item.value)
 	}
 }
 

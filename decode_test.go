@@ -677,8 +677,7 @@ var unmarshalWithCommentsTests = []struct {
 	{"", nil},
 	{`
 # a
-a: 1
-`,
+a: 1`,
 		cn("", cnMap("a", cn(" a", cn("", nil)))),
 	},
 	{`
@@ -691,10 +690,46 @@ b: 2`,
 			"b", cn(" b", cn("", nil)),
 		)),
 	},
+	{`
+# key
+a:
+  # value
+  1`,
+	cn("", cnMap("a", cn(
+		" key",
+		cn(" value", nil),
+	))),
+	},
+	{`
+# sequence
+- 1
+- 2
+- 3`,
+		cn(" sequence", cnSeq(cn("", nil), cn("", nil), cn("", nil))),
+	},
+	{`
+# sequence
+- 1
+# element
+- 2
+- 3`,
+		cn(" sequence", cnSeq(
+			cn("", nil),
+			cn(" element", nil),
+			cn("", nil),
+		)),
+	},
 }
 
 func cn(comment string, child interface{}) yaml.CommentNode {
 	return yaml.CommentNode{comment, child}
+}
+
+func cnSeq(values ...yaml.CommentNode) (comments []yaml.CommentNode) {
+	for _, value := range values {
+		comments = append(comments, value)
+	}
+	return comments
 }
 
 func cnMap(values ...interface{}) map[interface{}]yaml.CommentNode {

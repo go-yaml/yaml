@@ -176,8 +176,16 @@ func (p *parser) mapping() *node {
 	n := p.node(mappingNode)
 	p.anchor(n, p.event.anchor)
 	p.skip()
+	names := make(map[string]bool)
 	for p.event.typ != yaml_MAPPING_END_EVENT {
-		n.children = append(n.children, p.parse(), p.parse())
+		n1, n2 := p.parse(), p.parse()
+		if _, ok := names[n1.value]; ok {
+			p.parser.problem_mark.line = n1.line
+			p.parser.problem = fmt.Sprintf("duplicate name %q", n1.value)
+			p.fail()
+		}
+		names[n1.value] = true
+		n.children = append(n.children, n1, n2)
 	}
 	p.skip()
 	duplicates := make(map[string]bool)

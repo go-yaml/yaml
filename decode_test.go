@@ -958,6 +958,18 @@ func (s *S) TestUnmarshalSliceOnPreset(c *C) {
 	c.Assert(v.A, DeepEquals, []int{2})
 }
 
+func (s *S) TestInvalidDuration(c *C) {
+	type Expected struct {
+		Dur time.Duration `yaml:"dur"`
+	}
+
+	var exp Expected
+	data := []byte(`dur: 15`)
+	err := yaml.Unmarshal(data, &exp)
+	c.Assert(err, ErrorMatches, "yaml: unmarshal errors:\n"+
+		"  line 1: cannot unmarshal !!int `15` into time.Duration")
+}
+
 //var data []byte
 //func init() {
 //	var err error

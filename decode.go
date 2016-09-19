@@ -379,24 +379,28 @@ func (d *decoder) scalar(n *node, out reflect.Value) (good bool) {
 		}
 		good = true
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		// The only valid types for durations are strings, nothing else
+		// can have a parseable unit
+		isDuration := out.Type() == durationType
+
 		switch resolved := resolved.(type) {
 		case int:
-			if !out.OverflowInt(int64(resolved)) {
+			if !isDuration && !out.OverflowInt(int64(resolved)) {
 				out.SetInt(int64(resolved))
 				good = true
 			}
 		case int64:
-			if !out.OverflowInt(resolved) {
+			if !isDuration && !out.OverflowInt(resolved) {
 				out.SetInt(resolved)
 				good = true
 			}
 		case uint64:
-			if resolved <= math.MaxInt64 && !out.OverflowInt(int64(resolved)) {
+			if !isDuration && resolved <= math.MaxInt64 && !out.OverflowInt(int64(resolved)) {
 				out.SetInt(int64(resolved))
 				good = true
 			}
 		case float64:
-			if resolved <= math.MaxInt64 && !out.OverflowInt(int64(resolved)) {
+			if !isDuration && resolved <= math.MaxInt64 && !out.OverflowInt(int64(resolved)) {
 				out.SetInt(int64(resolved))
 				good = true
 			}

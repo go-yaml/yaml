@@ -2,13 +2,14 @@ package yaml_test
 
 import (
 	"errors"
-	. "gopkg.in/check.v1"
-	"gopkg.in/yaml.v2"
 	"math"
 	"net"
 	"reflect"
 	"strings"
 	"time"
+
+	. "gopkg.in/check.v1"
+	"gopkg.in/yaml.v2"
 )
 
 var unmarshalIntTest = 123
@@ -956,6 +957,42 @@ func (s *S) TestUnmarshalSliceOnPreset(c *C) {
 	v := struct{ A []int }{[]int{1}}
 	yaml.Unmarshal([]byte("a: [2]"), &v)
 	c.Assert(v.A, DeepEquals, []int{2})
+}
+
+type tagUnmarshalerType struct {
+	UnmarshalToMap bool
+}
+
+func (t *tagUnmarshalerType) UnmarshalYAMLTag(in string) interface{} {
+	if t.UnmarshalToMap {
+		result := map[string]string{}
+		result["val"] = "mapvalue"
+		result["in"] = in
+		return result
+	}
+
+	return "resolved to something " + in
+}
+
+func (s *S) TestTagUnmarshal(c *C) {
+	a := `some: !TheTag blah`
+	var out map[string]string
+
+	un := &tagUnmarshalerType{}
+	yaml.RegisterTagUnmarshaler("!TheTag", un)
+	yaml.Unmarshal([]byte(a), &out)
+	c.Assert(out, DeepEquals, map[string]string{"some": "resolved to something blah"})
+}
+
+func (s *S) TestTagUnmarshalToMap(c *C) {
+	a := `some: !TheTag`
+	var out map[string]interface{}
+
+	un := &tagUnmarshalerType{}
+	un.UnmarshalToMap = true
+	yaml.RegisterTagUnmarshaler("!TheTag", un)
+	yaml.Unmarshal([]byte(a), &out)
+	c.Assert(out, DeepEquals, map[string]interface{}{"some": map[string]string{"val": "mapvalue", "in": ""}})
 }
 
 //var data []byte

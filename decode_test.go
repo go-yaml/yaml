@@ -666,6 +666,7 @@ var unmarshalerTests = []struct {
 	{`_: BAR!`, "!!str", "BAR!"},
 	{`_: "BAR!"`, "!!str", "BAR!"},
 	{"_: !!foo 'BAR!'", "!!foo", "BAR!"},
+	{`_: ""`, "!!str", ""},
 }
 
 var unmarshalerResult = map[int]error{}

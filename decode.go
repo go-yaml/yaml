@@ -4,6 +4,7 @@ import (
 	"encoding"
 	"encoding/base64"
 	"fmt"
+	"io"
 	"math"
 	"reflect"
 	"strconv"
@@ -48,6 +49,22 @@ func newParser(b []byte) *parser {
 	}
 
 	yaml_parser_set_input_string(&p.parser, b)
+
+	p.skip()
+	if p.event.typ != yaml_STREAM_START_EVENT {
+		panic("expected stream start event, got " + strconv.Itoa(int(p.event.typ)))
+	}
+	p.skip()
+	return &p
+}
+
+func newFileParser(r io.Reader) *parser {
+	p := parser{}
+	if !yaml_parser_initialize(&p.parser) {
+		panic("failed to initialize YAML emitter")
+	}
+
+	yaml_parser_set_input_file(&p.parser, r)
 
 	p.skip()
 	if p.event.typ != yaml_STREAM_START_EVENT {

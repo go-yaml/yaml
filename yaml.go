@@ -109,7 +109,7 @@ func Unmarshal(in []byte, out interface{}) error {
 //         B int
 //     }
 //     var t T
-//     d := yam.NewDecoder()
+//     d := yaml.NewDecoder()
 //     d.Unmarshal([]byte("a: 1\nb: 2"), &t)
 //
 // See the documentation of Marshal for the format of tags and a list of

@@ -198,11 +198,12 @@ func NewDecoder() *Decoder {
 	}
 }
 
-// WithStrict sets strict mode on the Decoder struct. When enabled
-// any unspecified fields in the yaml document will through an error.
-func (d *Decoder) WithStrict(strict bool) *Decoder {
-	d.strict = strict
-	return d
+// NewStrictDecoder creates and initializes a new Decoder with strict enabled.
+func NewStrictDecoder() *Decoder {
+	d := newDecoder()
+	d.strict = true
+
+	return &Decoder{d}
 }
 
 type decoder struct {

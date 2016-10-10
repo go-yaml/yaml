@@ -3,13 +3,14 @@ package yaml_test
 import (
 	"errors"
 
-	. "gopkg.in/check.v1"
-	"gopkg.in/yaml.v2"
 	"math"
 	"net"
 	"reflect"
 	"strings"
 	"time"
+
+	. "gopkg.in/check.v1"
+	"gopkg.in/yaml.v2"
 )
 
 var unmarshalIntTest = 123
@@ -962,7 +963,7 @@ func (s *S) TestUnmarshalSliceOnPreset(c *C) {
 
 func (s *S) TestUnmarshalStrictError(c *C) {
 	var v struct{}
-	d := yaml.NewDecoder().WithStrict(true)
+	d := yaml.NewStrictDecoder()
 	err := d.Unmarshal([]byte("a: b"), &v)
 	c.Assert(err, ErrorMatches, ""+
 		"yaml: unmarshal errors:\n"+

@@ -129,7 +129,7 @@ func Unmarshal(in []byte, out interface{}) (err error) {
 // For example:
 //
 //     type T struct {
-//         F int "a,omitempty"
+//         F int `yaml:"a,omitempty"`
 //         B int
 //     }
 //     yaml.Marshal(&T{B: 2}) // Returns "b: 2\n"

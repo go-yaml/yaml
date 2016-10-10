@@ -4,14 +4,12 @@ import (
 	"errors"
 
 	. "gopkg.in/check.v1"
-	// "gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v2"
 	"math"
 	"net"
 	"reflect"
 	"strings"
 	"time"
-
-	"github.com/infor-cloud/yaml"
 )
 
 var unmarshalIntTest = 123

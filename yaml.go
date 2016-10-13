@@ -32,6 +32,14 @@ type Unmarshaler interface {
 	UnmarshalYAML(unmarshal func(interface{}) error) error
 }
 
+// The Initiator interface my be implemented by types to do things directly
+// after the creation of itself by the Decoder. It could be used to
+// set customize the instances before the unmarshaler process of the object.
+// This is useful for setting of default values.
+type Initiator interface {
+	BeforeUnmarshalYAML() error
+}
+
 // The Marshaler interface may be implemented by types to customize their
 // behavior when being marshaled into a YAML document. The returned value
 // is marshaled in place of the original value implementing Marshaler.

@@ -1,6 +1,7 @@
 package yaml
 
 import (
+	"fmt"
 	"io"
 )
 
@@ -138,6 +139,7 @@ const (
 	yaml_ANCHOR_TOKEN // An ANCHOR token.
 	yaml_TAG_TOKEN    // A TAG token.
 	yaml_SCALAR_TOKEN // A SCALAR token.
+	yaml_COMMENT_TOKEN
 )
 
 func (tt yaml_token_type_t) String() string {
@@ -186,6 +188,8 @@ func (tt yaml_token_type_t) String() string {
 		return "yaml_TAG_TOKEN"
 	case yaml_SCALAR_TOKEN:
 		return "yaml_SCALAR_TOKEN"
+	case yaml_COMMENT_TOKEN:
+		return "yaml_COMMENT_TOKEN"
 	}
 	return "<unknown token>"
 }
@@ -218,6 +222,10 @@ type yaml_token_t struct {
 	major, minor int8
 }
 
+func (t *yaml_token_t) String() string {
+	return fmt.Sprintf("Token(typ=%s, value=%s)", t.typ.String(), string(t.value))
+}
+
 // Events
 
 type yaml_event_type_t int8
@@ -237,6 +245,8 @@ const (
 	yaml_SEQUENCE_END_EVENT   // A SEQUENCE-END event.
 	yaml_MAPPING_START_EVENT  // A MAPPING-START event.
 	yaml_MAPPING_END_EVENT    // A MAPPING-END event.
+
+	yaml_COMMENT_EVENT
 )
 
 // The event structure.

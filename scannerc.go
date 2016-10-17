@@ -794,6 +794,11 @@ func yaml_parser_fetch_next_token(parser *yaml_parser_t) bool {
 		return yaml_parser_fetch_flow_scalar(parser, false)
 	}
 
+	// Is it a comment?
+	if parser.buffer[parser.buffer_pos] == '#' {
+		return yaml_parser_fetch_comment(parser)
+	}
+
 	// Is it a plain scalar?
 	//
 	// A plain scalar may start with any non-blank characters except
@@ -1430,6 +1435,27 @@ func yaml_parser_fetch_plain_scalar(parser *yaml_parser_t) bool {
 	return true
 }
 
+func yaml_parser_fetch_comment(parser *yaml_parser_t) bool {
+	start_mark := parser.mark
+	var comment []byte
+	skip(parser)
+	for !is_breakz(parser.buffer, parser.buffer_pos) {
+		comment = read(parser, comment)
+		if parser.unread < 1 && !yaml_parser_update_buffer(parser, 1) {
+			return false
+		}
+	}
+	token := yaml_token_t{
+		typ:        yaml_COMMENT_TOKEN,
+		start_mark: start_mark,
+		end_mark:   parser.mark,
+		value:      comment,
+		style:      yaml_PLAIN_SCALAR_STYLE,
+	}
+	yaml_insert_token(parser, -1, &token)
+	return true
+}
+
 // Eat whitespaces and comments until the next token is found.
 func yaml_parser_scan_to_next_token(parser *yaml_parser_t) bool {
 
@@ -1456,16 +1482,6 @@ func yaml_parser_scan_to_next_token(parser *yaml_parser_t) bool {
 			skip(parser)
 			if parser.unread < 1 && !yaml_parser_update_buffer(parser, 1) {
 				return false
-			}
-		}
-
-		// Eat a comment until a line break.
-		if parser.buffer[parser.buffer_pos] == '#' {
-			for !is_breakz(parser.buffer, parser.buffer_pos) {
-				skip(parser)
-				if parser.unread < 1 && !yaml_parser_update_buffer(parser, 1) {
-					return false
-				}
 			}
 		}
 

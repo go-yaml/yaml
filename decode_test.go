@@ -189,14 +189,14 @@ var unmarshalTests = []struct {
 
 	// Literal block scalar
 	{
-		"scalar: | # Comment\n\n literal\n\n \ttext\n\n",
-		map[string]string{"scalar": "\nliteral\n\n\ttext\n"},
+		"scalar: |\n literal\n\n \ttext\n\n",
+		map[string]string{"scalar": "literal\n\n\ttext\n"},
 	},
 
 	// Folded block scalar
 	{
-		"scalar: > # Comment\n\n folded\n line\n \n next\n line\n  * one\n  * two\n\n last\n line\n\n",
-		map[string]string{"scalar": "\nfolded line\nnext line\n * one\n * two\n\nlast line\n"},
+		"scalar: >\n folded\n line\n \n next\n line\n  * one\n  * two\n\n last\n line\n\n",
+		map[string]string{"scalar": "folded line\nnext line\n * one\n * two\n\nlast line\n"},
 	},
 
 	// Map inside interface with no type hints.
@@ -706,7 +706,7 @@ func (s *S) TestUnmarshalerPointerField(c *C) {
 		if item.value == nil {
 			c.Assert(obj.Field, IsNil)
 		} else {
-			c.Assert(obj.Field, NotNil, Commentf("Pointer not initialized (%#v)", item.value))
+			c.Assert(obj.Field, NotNil, Commentf("Pointer not initialized (#v)", item.value))
 			c.Assert(obj.Field.value, DeepEquals, item.value)
 		}
 	}
@@ -853,49 +853,39 @@ anchors:
     - &BIG    { "r": 10 }
     - &SMALL  { "r": 1 }
 
-# All the following maps are equal:
-
 plain:
-  # Explicit keys
   "x": 1
   "y": 2
   "r": 10
   label: center/big
 
 mergeOne:
-  # Merge one map
   << : *CENTER
   "r": 10
   label: center/big
 
 mergeMultiple:
-  # Merge multiple maps
   << : [ *CENTER, *BIG ]
   label: center/big
 
 override:
-  # Override
   << : [ *BIG, *LEFT, *SMALL ]
   "x": 1
   label: center/big
 
 shortTag:
-  # Explicit short merge tag
   !!merge "<<" : [ *CENTER, *BIG ]
   label: center/big
 
 longTag:
-  # Explicit merge long tag
   !<tag:yaml.org,2002:merge> "<<" : [ *CENTER, *BIG ]
   label: center/big
 
 inlineMap:
-  # Inlined map 
   << : {"x": 1, "y": 2, "r": 10}
   label: center/big
 
 inlineSequenceMap:
-  # Inlined map in sequence
   << : [ *CENTER, {"r": 10} ]
   label: center/big
 `

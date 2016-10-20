@@ -1453,7 +1453,9 @@ func yaml_parser_fetch_comment(parser *yaml_parser_t) bool {
 		value:      comment,
 		style:      yaml_PLAIN_SCALAR_STYLE,
 	}
-	yaml_insert_token(parser, -1, &token)
+	if parser.parse_comments {
+		yaml_insert_token(parser, -1, &token)
+	}
 	return true
 }
 

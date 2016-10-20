@@ -586,7 +586,6 @@ func (d *decoder) mapping(n *node, out reflect.Value) (good bool) {
 			} else {
 				keySet = false
 				value = child
-				fmt.Println("Key:", key, "isMerge:", isMerge(key))
 				if isMerge(key) {
 					d.merge(value, out)
 					continue

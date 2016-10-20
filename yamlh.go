@@ -609,6 +609,8 @@ type yaml_parser_t struct {
 	aliases []yaml_alias_data_t // The alias data.
 
 	document *yaml_document_t // The currently parsed document.
+
+	parse_comments bool // Whether to parse comments or not
 }
 
 // Emitter Definitions

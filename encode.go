@@ -75,6 +75,9 @@ func (e *encoder) marshal(tag string, in reflect.Value) {
 			return
 		}
 		in = reflect.ValueOf(v)
+	} else if _, ok := iface.(time.Time); ok {
+		e.timev(tag, in)
+		return
 	} else if m, ok := iface.(encoding.TextMarshaler); ok {
 		text, err := m.MarshalText()
 		if err != nil {
@@ -233,9 +236,22 @@ func isBase60Float(s string) (result bool) {
 	return base60float.MatchString(s)
 }
 
+func isDate(s string) (result bool) {
+	return date.MatchString(s)
+}
+
 // From http://yaml.org/type/float.html, except the regular expression there
 // is bogus. In practice parsers do not enforce the "\.[0-9_]*" suffix.
 var base60float = regexp.MustCompile(`^[-+]?[0-9][0-9_]*(?::[0-5]?[0-9])+(?:\.[0-9_]*)?$`)
+
+// From http://yaml.org/type/timestamp.html
+var date = regexp.MustCompile(`[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]|[0-9][0-9][0-9][0-9]-[0-9][0-9]?-[0-9][0-9]?([Tt]|[ \t]+)[0-9][0-9]?:[0-9][0-9]:[0-9][0-9](\.[0-9]*)?(([ \t]*)Z|[-+][0-9][0-9]?(:[0-9][0-9])?)?`)
+
+func (e *encoder) timev(tag string, in reflect.Value) {
+	m := in.Interface().(encoding.TextMarshaler)
+	s, _ := m.MarshalText()
+	e.emitScalar(string(s), "", tag, yaml_PLAIN_SCALAR_STYLE)
+}
 
 func (e *encoder) stringv(tag string, in reflect.Value) {
 	var style yaml_scalar_style_t
@@ -255,6 +271,8 @@ func (e *encoder) stringv(tag string, in reflect.Value) {
 		style = yaml_DOUBLE_QUOTED_SCALAR_STYLE
 	} else if strings.Contains(s, "\n") {
 		style = yaml_LITERAL_SCALAR_STYLE
+	} else if isDate(s) {
+		style = yaml_SINGLE_QUOTED_SCALAR_STYLE
 	} else {
 		style = yaml_PLAIN_SCALAR_STYLE
 	}

@@ -769,7 +769,6 @@ func yaml_parser_parse_block_mapping_value(parser *yaml_parser_t, event *yaml_ev
 		if token == nil {
 			return false
 		}
-
 		if token.typ == yaml_COMMENT_TOKEN {
 			*event = yaml_event_t{
 				typ:        yaml_COMMENT_EVENT,

@@ -683,9 +683,11 @@ func yaml_parser_fetch_next_token(parser *yaml_parser_t) bool {
 		return false
 	}
 
-	// Check the indentation level against the current column.
-	if !yaml_parser_unroll_indent(parser, parser.mark.column) {
-		return false
+	// Check the indentation level against the current column, only if the current token is not a comment
+	if parser.buffer[parser.buffer_pos] != '#' {
+		if !yaml_parser_unroll_indent(parser, parser.mark.column) {
+			return false
+		}
 	}
 
 	// Ensure that the buffer contains at least 4 characters.  4 is the length
@@ -973,7 +975,6 @@ func yaml_parser_unroll_indent(parser *yaml_parser_t, column int) bool {
 	if parser.flow_level > 0 {
 		return true
 	}
-
 	// Loop through the indentation levels in the stack.
 	for parser.indent > column {
 		// Create a token and append it to the queue.

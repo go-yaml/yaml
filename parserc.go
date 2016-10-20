@@ -651,7 +651,16 @@ func yaml_parser_parse_indentless_sequence_entry(parser *yaml_parser_t, event *y
 	if token == nil {
 		return false
 	}
-
+	if token.typ == yaml_COMMENT_TOKEN {
+		*event = yaml_event_t{
+			typ:        yaml_COMMENT_EVENT,
+			value:      token.value,
+			start_mark: token.start_mark,
+			end_mark:   token.end_mark,
+		}
+		skip_token(parser)
+		return true
+	}
 	if token.typ == yaml_BLOCK_ENTRY_TOKEN {
 		mark := token.end_mark
 		skip_token(parser)

@@ -278,7 +278,7 @@ func (d *decoder) prepare(n *node, out reflect.Value) (newout reflect.Value, unm
 func (d *decoder) unmarshal(n *node, out reflect.Value) (good bool) {
 	switch n.kind {
 	case documentNode:
-		if good := d.document(n, out); good {
+		if good = d.document(n, out); good {
 			n.data = out.Addr().Interface()
 		}
 		return good

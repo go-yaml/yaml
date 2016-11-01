@@ -26,6 +26,7 @@ type node struct {
 	implicit     bool
 	children     []*node
 	anchors      map[string]*node
+	data         interface{}
 }
 
 // ----------------------------------------------------------------------------
@@ -277,12 +278,18 @@ func (d *decoder) prepare(n *node, out reflect.Value) (newout reflect.Value, unm
 func (d *decoder) unmarshal(n *node, out reflect.Value) (good bool) {
 	switch n.kind {
 	case documentNode:
-		return d.document(n, out)
+		if good := d.document(n, out); good {
+			n.data = out.Addr().Interface()
+		}
+		return good
 	case aliasNode:
 		return d.alias(n, out)
 	}
 	out, unmarshaled, good := d.prepare(n, out)
 	if unmarshaled {
+		if good {
+			n.data = out.Addr().Interface()
+		}
 		return good
 	}
 	switch n.kind {
@@ -294,6 +301,9 @@ func (d *decoder) unmarshal(n *node, out reflect.Value) (good bool) {
 		good = d.sequence(n, out)
 	default:
 		panic("internal error: unknown node kind: " + strconv.Itoa(n.kind))
+	}
+	if good {
+		n.data = out.Addr().Interface()
 	}
 	return good
 }
@@ -312,13 +322,26 @@ func (d *decoder) alias(n *node, out reflect.Value) (good bool) {
 	if !ok {
 		failf("unknown anchor '%s' referenced", n.value)
 	}
-	if d.aliases[n.value] {
-		failf("anchor '%s' value contains itself", n.value)
+
+	if d.aliases[n.value] && out.Kind() != reflect.Ptr {
+		failf("anchor '%s' value contains itself and is not a pointer", n.value)
+	} else if d.aliases[n.value] && out.Kind() == reflect.Ptr {
+		out.Set(an.data.(reflect.Value).Elem())
+	} else {
+		d.aliases[n.value] = true
+		if an.data == nil {
+			an.data = out.Addr()
+			good = d.unmarshal(an, out)
+		} else {
+			if out.Kind() == reflect.Ptr {
+				out.Set(reflect.ValueOf(an.data))
+			} else {
+				out.Set(reflect.ValueOf(an.data).Elem())
+			}
+		}
+		delete(d.aliases, n.value)
 	}
-	d.aliases[n.value] = true
-	good = d.unmarshal(an, out)
-	delete(d.aliases, n.value)
-	return good
+	return
 }
 
 var zeroValue reflect.Value

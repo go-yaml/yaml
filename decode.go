@@ -192,8 +192,9 @@ type Decoder struct {
 }
 
 type DecoderOptions struct {
-	Strict    bool
-	Recursive bool
+	Strict     bool
+	Recursive  bool
+	StrictBool bool
 }
 
 // NewDecoder creates and initializes a new Decoder struct.
@@ -220,6 +221,11 @@ func NewDecoderWithOptions(options DecoderOptions) *Decoder {
 // SetStrict puts the decoder to strict mode
 func (d *Decoder) SetStrict(strict bool) {
 	d.options.Strict = strict
+}
+
+// SetStrict puts the decoder to strict boolean mode (According to the 1.2 YAML Spec)
+func (d *Decoder) SetStrictBool(strict bool) {
+	d.options.StrictBool = strict
 }
 
 // SetAllowRecursive allows to enable / disable the recursive parsing feature
@@ -433,6 +439,10 @@ func (d *decoder) scalar(n *node, out reflect.Value) (good bool) {
 				failf("!!binary value contains invalid base64 data")
 			}
 			resolved = string(data)
+		} else if d.options.StrictBool && tag == yaml_BOOL_TAG {
+			if resolved != "true" && resolved != "false" {
+				tag = yaml_STR_TAG
+			}
 		}
 	}
 	if resolved == nil {

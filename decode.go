@@ -683,7 +683,11 @@ func (d *decoder) mappingSlice(n *node, out reflect.Value) (good bool) {
 	var l = len(n.children)
 	for i := 0; i < l; i += 2 {
 		if isMerge(n.children[i]) {
-			d.merge(n.children[i+1], out)
+			tmp := reflect.ValueOf(map[interface{}]interface{}{})
+			d.merge(n.children[i+1], tmp)
+			for k, v := range tmp.Interface().(map[interface{}]interface{}) {
+				slice = append(slice, MapItem{k, v})
+			}
 			continue
 		}
 		item := MapItem{}

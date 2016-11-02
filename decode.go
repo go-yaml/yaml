@@ -373,36 +373,38 @@ func (d *decoder) alias(n *node, out reflect.Value) (good bool) {
 		failf("unknown anchor '%s' referenced", n.value)
 	}
 
+	handled := false
 	if d.options.Recursive {
 		if d.aliases[n.value] && out.Kind() != reflect.Ptr {
 			failf("anchor '%s' value contains itself and is not a pointer", n.value)
 		} else if d.aliases[n.value] && out.Kind() == reflect.Ptr {
 			out.Set(an.data.(reflect.Value).Elem())
+			handled = true
 		} else {
-			d.aliases[n.value] = true
-			if an.data == nil {
-				an.data = out.Addr()
-				good = d.unmarshal(an, out)
-			} else {
-				if _, ok := an.data.(reflect.Value); !ok {
-					an.data = reflect.ValueOf(an.data)
-				}
-				if out.Kind() == reflect.Ptr {
-					out.Set(an.data.(reflect.Value).Addr())
-				} else if data := an.data.(reflect.Value); data.Kind() == reflect.Ptr {
-					out.Set(data.Elem())
-				} else {
-					good = d.unmarshal(an, out)
-				}
-			}
-			delete(d.aliases, n.value)
 		}
 	} else {
 		if d.aliases[n.value] {
 			failf("anchor '%s' value contains itself", n.value)
 		}
+	}
+
+	if !handled {
 		d.aliases[n.value] = true
-		good = d.unmarshal(an, out)
+		if an.data == nil {
+			an.data = out.Addr()
+			good = d.unmarshal(an, out)
+		} else {
+			if _, ok := an.data.(reflect.Value); !ok {
+				an.data = reflect.ValueOf(an.data)
+			}
+			if out.Kind() == reflect.Ptr {
+				out.Set(an.data.(reflect.Value).Addr())
+			} else if data := an.data.(reflect.Value); data.Kind() == reflect.Ptr {
+				out.Set(data.Elem())
+			} else {
+				good = d.unmarshal(an, out)
+			}
+		}
 		delete(d.aliases, n.value)
 	}
 

@@ -186,12 +186,63 @@ func (p *parser) mapping() *node {
 // ----------------------------------------------------------------------------
 // Decoder, unmarshals a node into a provided value.
 
+// Decoder unmarshals a node into a provided value.
+type Decoder struct {
+	*decoder
+}
+
+type DecoderOptions struct {
+	Strict    bool
+	Recursive bool
+}
+
+// NewDecoder creates and initializes a new Decoder struct.
+func NewDecoder() *Decoder {
+	return &Decoder{
+		newDecoder(),
+	}
+}
+
+// NewStrictDecoder creates and initializes a new Decoder with strict enabled.
+func NewStrictDecoder() *Decoder {
+	return NewDecoderWithOptions(DecoderOptions{
+		Strict: true,
+	})
+}
+
+// NewDecoderWithOptions creates and initializes a new Decoder and sets the passed options
+func NewDecoderWithOptions(options DecoderOptions) *Decoder {
+	d := NewDecoder()
+	d.SetOptions(options)
+	return d
+}
+
+// SetStrict puts the decoder to strict mode
+func (d *Decoder) SetStrict(strict bool) {
+	d.options.Strict = strict
+}
+
+// SetAllowRecursive allows to enable / disable the recursive parsing feature
+func (d *Decoder) SetAllowRecursive(recursive bool) {
+	d.options.Recursive = recursive
+}
+
+// SetOptions allows to set all options at once
+func (d *Decoder) SetOptions(options DecoderOptions) {
+	d.options = options
+}
+
+// GetOptions returns the current options
+func (d Decoder) GetOptions() DecoderOptions {
+	return d.options
+}
+
 type decoder struct {
 	doc     *node
 	aliases map[string]bool
 	mapType reflect.Type
 	terrors []string
-	strict  bool
+	options DecoderOptions
 }
 
 var (
@@ -201,8 +252,8 @@ var (
 	ifaceType      = defaultMapType.Elem()
 )
 
-func newDecoder(strict bool) *decoder {
-	d := &decoder{mapType: defaultMapType, strict: strict}
+func newDecoder() *decoder {
+	d := &decoder{mapType: defaultMapType}
 	d.aliases = make(map[string]bool)
 	return d
 }
@@ -279,7 +330,7 @@ func (d *decoder) unmarshal(n *node, out reflect.Value) (good bool) {
 	switch n.kind {
 	case documentNode:
 		if good = d.document(n, out); good {
-			n.data = out.Addr().Interface()
+			n.data = out
 		}
 		return good
 	case aliasNode:
@@ -287,9 +338,7 @@ func (d *decoder) unmarshal(n *node, out reflect.Value) (good bool) {
 	}
 	out, unmarshaled, good := d.prepare(n, out)
 	if unmarshaled {
-		if good {
-			n.data = out.Addr().Interface()
-		}
+		n.data = out
 		return good
 	}
 	switch n.kind {
@@ -299,11 +348,12 @@ func (d *decoder) unmarshal(n *node, out reflect.Value) (good bool) {
 		good = d.mapping(n, out)
 	case sequenceNode:
 		good = d.sequence(n, out)
+		out = out.Addr()
 	default:
 		panic("internal error: unknown node kind: " + strconv.Itoa(n.kind))
 	}
 	if good {
-		n.data = out.Addr().Interface()
+		n.data = out
 	}
 	return good
 }
@@ -323,24 +373,39 @@ func (d *decoder) alias(n *node, out reflect.Value) (good bool) {
 		failf("unknown anchor '%s' referenced", n.value)
 	}
 
-	if d.aliases[n.value] && out.Kind() != reflect.Ptr {
-		failf("anchor '%s' value contains itself and is not a pointer", n.value)
-	} else if d.aliases[n.value] && out.Kind() == reflect.Ptr {
-		out.Set(an.data.(reflect.Value).Elem())
-	} else {
-		d.aliases[n.value] = true
-		if an.data == nil {
-			an.data = out.Addr()
-			good = d.unmarshal(an, out)
+	if d.options.Recursive {
+		if d.aliases[n.value] && out.Kind() != reflect.Ptr {
+			failf("anchor '%s' value contains itself and is not a pointer", n.value)
+		} else if d.aliases[n.value] && out.Kind() == reflect.Ptr {
+			out.Set(an.data.(reflect.Value).Elem())
 		} else {
-			if out.Kind() == reflect.Ptr {
-				out.Set(reflect.ValueOf(an.data))
+			d.aliases[n.value] = true
+			if an.data == nil {
+				an.data = out.Addr()
+				good = d.unmarshal(an, out)
 			} else {
-				out.Set(reflect.ValueOf(an.data).Elem())
+				if _, ok := an.data.(reflect.Value); !ok {
+					an.data = reflect.ValueOf(an.data)
+				}
+				if out.Kind() == reflect.Ptr {
+					out.Set(an.data.(reflect.Value).Addr())
+				} else if data := an.data.(reflect.Value); data.Kind() == reflect.Ptr {
+					out.Set(data.Elem())
+				} else {
+					good = d.unmarshal(an, out)
+				}
 			}
+			delete(d.aliases, n.value)
 		}
+	} else {
+		if d.aliases[n.value] {
+			failf("anchor '%s' value contains itself", n.value)
+		}
+		d.aliases[n.value] = true
+		good = d.unmarshal(an, out)
 		delete(d.aliases, n.value)
 	}
+
 	return
 }
 
@@ -663,11 +728,11 @@ func (d *decoder) mappingStruct(n *node, out reflect.Value) (good bool) {
 			value := reflect.New(elemType).Elem()
 			d.unmarshal(n.children[i+1], value)
 			inlineMap.SetMapIndex(name, value)
-		} else if d.strict {
+		} else if d.options.Strict {
 			d.terrors = append(d.terrors, fmt.Sprintf("line %d: field %s not found in struct %s", n.line+1, name.String(), out.Type()))
 		}
 	}
-	return true
+	return len(d.terrors) == 0
 }
 
 func failWantMap() {

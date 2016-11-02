@@ -89,7 +89,7 @@ func UnmarshalStrict(in []byte, out interface{}) (err error) {
 
 func unmarshal(in []byte, out interface{}, strict bool) (err error) {
 	defer handleErr(&err)
-	d := newDecoder(strict)
+    d := NewDecoderWithOptions(DecoderOptions{Strict: strict})
 	p := newParser(in)
 	defer p.destroy()
 	node := p.parse()

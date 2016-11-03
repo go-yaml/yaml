@@ -945,6 +945,50 @@ func (s *S) TestMergeStruct(c *C) {
 	}
 }
 
+func (s *S) TestMapMerging(c *C) {
+	data := `---
+world: &world
+  greeting: Hello
+earth:
+  << : *world`
+
+	config := map[string]interface{}{}
+	err := yaml.Unmarshal([]byte(data), &config)
+	if err != nil {
+		c.Errorf("Failed to parse\n%v\n\ninto a %T: %v", data, config, err)
+	}
+
+	earth := config["earth"]
+	expected := map[interface{}]interface{}{
+		"greeting": "Hello",
+	}
+
+	if !reflect.DeepEqual(earth, expected) {
+		c.Errorf("Merging does not work. Expected %v (%T), got %v (%T)", expected, expected, earth, earth)
+	}
+}
+
+func (s *S) TestMapSliceMerging(c *C) {
+	data := `---
+world: &world
+  greeting: Hello
+earth:
+  << : *world`
+
+	config := make(yaml.MapSlice, 0)
+	err := yaml.Unmarshal([]byte(data), &config)
+	if err != nil {
+		c.Errorf("Failed to parse\n%v\n\ninto a %T: %v", data, config, err)
+	}
+
+	earth := config[1].Value
+	expected := yaml.MapSlice{{Key: "greeting", Value: "Hello"}}
+
+	if !reflect.DeepEqual(earth, expected) {
+		c.Errorf("Merging does not work. Expected %v (%T), got %v (%T)", expected, expected, earth, earth)
+	}
+}
+
 var unmarshalNullTests = []func() interface{}{
 	func() interface{} { var v interface{}; v = "v"; return &v },
 	func() interface{} { var s = "s"; return &s },

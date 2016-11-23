@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"regexp"
 	"strings"
 	"sync"
 )
@@ -193,6 +194,13 @@ type structInfo struct {
 	// InlineMap is the number of the field in the struct that
 	// contains an ,inline map, or -1 if there's none.
 	InlineMap int
+
+	// This a list of fields with regexps that are tested during unmarshaling,
+	// and when matched by a YAML key, will write the value to the designated
+	// field value. This is check from top to bottom, the first match wins.
+	// Exact key match (using FieldsMap) is checked before the regular
+	// expression phase.
+	RegexpFieldsList []fieldInfo
 }
 
 type fieldInfo struct {
@@ -203,6 +211,10 @@ type fieldInfo struct {
 
 	// Inline holds the field index if the field is part of an inlined struct.
 	Inline []int
+
+	// Regular expression that the YAML key must match for unmarshaling into
+	// this field
+	Regexp *regexp.Regexp
 }
 
 var structMap = make(map[reflect.Type]*structInfo)
@@ -219,6 +231,7 @@ func getStructInfo(st reflect.Type) (*structInfo, error) {
 	n := st.NumField()
 	fieldsMap := make(map[string]fieldInfo)
 	fieldsList := make([]fieldInfo, 0, n)
+	regexpFieldsList := make([]fieldInfo, 0)
 	inlineMap := -1
 	for i := 0; i != n; i++ {
 		field := st.Field(i)
@@ -233,6 +246,29 @@ func getStructInfo(st reflect.Type) (*structInfo, error) {
 			tag = string(field.Tag)
 		}
 		if tag == "-" {
+			continue
+		}
+
+		if strings.HasPrefix(tag, ",regexp:") {
+
+			// Store just the pattern
+			regex := tag[8:]
+
+			// Compile parses a regular expression. Use it as the key in the
+			// hash.
+			compiledRegexp := regexp.MustCompile(regex)
+
+			// Verify that the type is indeed a map or a slice
+			if field.Type.Kind() != reflect.Map &&
+				field.Type.Kind() != reflect.Slice {
+
+				// Die
+				failf("field %s.%s has regexp flag set but is not a map or slice",
+					st.Name(), field.Name)
+			}
+
+			info.Regexp = compiledRegexp
+			regexpFieldsList = append(regexpFieldsList, info)
 			continue
 		}
 
@@ -304,7 +340,7 @@ func getStructInfo(st reflect.Type) (*structInfo, error) {
 		fieldsMap[info.Key] = info
 	}
 
-	sinfo = &structInfo{fieldsMap, fieldsList, inlineMap}
+	sinfo = &structInfo{fieldsMap, fieldsList, inlineMap, regexpFieldsList}
 
 	fieldMapMutex.Lock()
 	structMap[st] = sinfo

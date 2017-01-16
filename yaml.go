@@ -79,9 +79,17 @@ type Marshaler interface {
 func Unmarshal(in []byte, out interface{}) (err error) {
 	defer handleErr(&err)
 	d := newDecoder()
-	p := newParser(in)
+	p, err := newParser(in)
+	if err != nil {
+		return err
+	}
 	defer p.destroy()
-	node := p.parse()
+
+	node, err := p.parse()
+	if err != nil {
+		return err
+	}
+
 	if node != nil {
 		v := reflect.ValueOf(out)
 		if v.Kind() == reflect.Ptr && !v.IsNil() {

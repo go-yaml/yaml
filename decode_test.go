@@ -988,3 +988,17 @@ func (s *S) TestUnmarshalSliceOnPreset(c *C) {
 //		yaml.Marshal(&v)
 //	}
 //}
+
+func (s *S) TestParse(c *C) {
+	template := "v: 5"
+	node, _ := yaml.Parse([]byte(template))
+
+	if node != nil {
+		c.Assert(node.Kind, Equals, yaml.DocumentNode)
+		c.Assert(len(node.Children), Equals, 1)
+
+		child := node.Children[0]
+		c.Assert(len(child.Children), Equals, 2)
+		c.Assert(child.Children[1].Implicit, Equals, true)
+	}
+}

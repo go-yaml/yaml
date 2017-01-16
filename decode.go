@@ -11,11 +11,11 @@ import (
 )
 
 const (
-	documentNode = 1 << iota
-	mappingNode
-	sequenceNode
-	scalarNode
-	aliasNode
+	DocumentNode = 1 << iota
+	MappingNode
+	SequenceNode
+	ScalarNode
+	AliasNode
 )
 
 type node struct {
@@ -132,7 +132,7 @@ func (p *parser) node(kind int) *node {
 }
 
 func (p *parser) document() *node {
-	n := p.node(documentNode)
+	n := p.node(DocumentNode)
 	n.anchors = make(map[string]*node)
 	p.doc = n
 	p.skip()
@@ -145,14 +145,14 @@ func (p *parser) document() *node {
 }
 
 func (p *parser) alias() *node {
-	n := p.node(aliasNode)
+	n := p.node(AliasNode)
 	n.value = string(p.event.anchor)
 	p.skip()
 	return n
 }
 
 func (p *parser) scalar() *node {
-	n := p.node(scalarNode)
+	n := p.node(ScalarNode)
 	n.value = string(p.event.value)
 	n.tag = string(p.event.tag)
 	n.implicit = p.event.implicit
@@ -162,7 +162,7 @@ func (p *parser) scalar() *node {
 }
 
 func (p *parser) sequence() *node {
-	n := p.node(sequenceNode)
+	n := p.node(SequenceNode)
 	p.anchor(n, p.event.anchor)
 	p.skip()
 	for p.event.typ != yaml_SEQUENCE_END_EVENT {
@@ -173,7 +173,7 @@ func (p *parser) sequence() *node {
 }
 
 func (p *parser) mapping() *node {
-	n := p.node(mappingNode)
+	n := p.node(MappingNode)
 	p.anchor(n, p.event.anchor)
 	p.skip()
 	for p.event.typ != yaml_MAPPING_END_EVENT {
@@ -251,7 +251,7 @@ func (d *decoder) callUnmarshaler(n *node, u Unmarshaler) (good bool) {
 //
 // If n holds a null value, prepare returns before doing anything.
 func (d *decoder) prepare(n *node, out reflect.Value) (newout reflect.Value, unmarshaled, good bool) {
-	if n.tag == yaml_NULL_TAG || n.kind == scalarNode && n.tag == "" && (n.value == "null" || n.value == "" && n.implicit) {
+	if n.tag == yaml_NULL_TAG || n.kind == ScalarNode && n.tag == "" && (n.value == "null" || n.value == "" && n.implicit) {
 		return out, false, false
 	}
 	again := true
@@ -276,9 +276,9 @@ func (d *decoder) prepare(n *node, out reflect.Value) (newout reflect.Value, unm
 
 func (d *decoder) unmarshal(n *node, out reflect.Value) (good bool) {
 	switch n.kind {
-	case documentNode:
+	case DocumentNode:
 		return d.document(n, out)
-	case aliasNode:
+	case AliasNode:
 		return d.alias(n, out)
 	}
 	out, unmarshaled, good := d.prepare(n, out)
@@ -286,11 +286,11 @@ func (d *decoder) unmarshal(n *node, out reflect.Value) (good bool) {
 		return good
 	}
 	switch n.kind {
-	case scalarNode:
+	case ScalarNode:
 		good = d.scalar(n, out)
-	case mappingNode:
+	case MappingNode:
 		good = d.mapping(n, out)
-	case sequenceNode:
+	case SequenceNode:
 		good = d.sequence(n, out)
 	default:
 		panic("internal error: unknown node kind: " + strconv.Itoa(n.kind))
@@ -651,24 +651,24 @@ func failWantMap() {
 
 func (d *decoder) merge(n *node, out reflect.Value) {
 	switch n.kind {
-	case mappingNode:
+	case MappingNode:
 		d.unmarshal(n, out)
-	case aliasNode:
+	case AliasNode:
 		an, ok := d.doc.anchors[n.value]
-		if ok && an.kind != mappingNode {
+		if ok && an.kind != MappingNode {
 			failWantMap()
 		}
 		d.unmarshal(n, out)
-	case sequenceNode:
+	case SequenceNode:
 		// Step backwards as earlier nodes take precedence.
 		for i := len(n.children) - 1; i >= 0; i-- {
 			ni := n.children[i]
-			if ni.kind == aliasNode {
+			if ni.kind == AliasNode {
 				an, ok := d.doc.anchors[ni.value]
-				if ok && an.kind != mappingNode {
+				if ok && an.kind != MappingNode {
 					failWantMap()
 				}
-			} else if ni.kind != mappingNode {
+			} else if ni.kind != MappingNode {
 				failWantMap()
 			}
 			d.unmarshal(ni, out)
@@ -679,5 +679,5 @@ func (d *decoder) merge(n *node, out reflect.Value) {
 }
 
 func isMerge(n *node) bool {
-	return n.kind == scalarNode && n.value == "<<" && (n.implicit == true || n.tag == yaml_MERGE_TAG)
+	return n.kind == ScalarNode && n.value == "<<" && (n.implicit == true || n.tag == yaml_MERGE_TAG)
 }

@@ -63,11 +63,20 @@ func newParser(b []byte) (*parser, error) {
 
 	yaml_parser_set_input_string(&p.parser, b)
 
-	p.skip()
+	err := p.skip()
+	if err != nil {
+		return nil, err
+	}
+
 	if p.event.typ != yaml_STREAM_START_EVENT {
 		return nil, errors.New("expected stream start event, got " + strconv.Itoa(int(p.event.typ)))
 	}
-	p.skip()
+
+	err = p.skip()
+	if err != nil {
+		return nil, err
+	}
+
 	return &p, nil
 }
 
@@ -78,19 +87,21 @@ func (p *parser) destroy() {
 	yaml_parser_delete(&p.parser)
 }
 
-func (p *parser) skip() {
+func (p *parser) skip() error {
 	if p.event.typ != yaml_NO_EVENT {
 		if p.event.typ == yaml_STREAM_END_EVENT {
-			failf("attempted to go past the end of stream; corrupted value?")
+			return errors.New("attempted to go past the end of stream; corrupted value?")
 		}
 		yaml_event_delete(&p.event)
 	}
 	if !yaml_parser_parse(&p.parser, &p.event) {
-		p.fail()
+		return p.fail()
 	}
+
+	return nil
 }
 
-func (p *parser) fail() {
+func (p *parser) fail() error {
 	var where string
 	var line int
 	if p.parser.problem_mark.line != 0 {
@@ -107,7 +118,7 @@ func (p *parser) fail() {
 	} else {
 		msg = "unknown problem parsing YAML content"
 	}
-	failf("%s%s", where, msg)
+	return fmt.Errorf("%s%s", where, msg)
 }
 
 func (p *parser) anchor(n *Node, anchor []byte) {
@@ -119,9 +130,9 @@ func (p *parser) anchor(n *Node, anchor []byte) {
 func (p *parser) parse() (*Node, error) {
 	switch p.event.typ {
 	case yaml_SCALAR_EVENT:
-		return p.scalar(), nil
+		return p.scalar()
 	case yaml_ALIAS_EVENT:
-		return p.alias(), nil
+		return p.alias()
 	case yaml_MAPPING_START_EVENT:
 		return p.mapping()
 	case yaml_SEQUENCE_START_EVENT:
@@ -149,7 +160,11 @@ func (p *parser) document() (*Node, error) {
 	n := p.node(DocumentNode)
 	n.Anchors = make(map[string]*Node)
 	p.doc = n
-	p.skip()
+	err := p.skip()
+	if err != nil {
+		return nil, err
+	}
+
 	children, err := p.parse()
 	if err != nil {
 		return nil, err
@@ -158,31 +173,50 @@ func (p *parser) document() (*Node, error) {
 	if p.event.typ != yaml_DOCUMENT_END_EVENT {
 		return nil, errors.New("expected end of document event but got " + strconv.Itoa(int(p.event.typ)))
 	}
-	p.skip()
+
+	err = p.skip()
+	if err != nil {
+		return nil, err
+	}
+
 	return n, nil
 }
 
-func (p *parser) alias() *Node {
+func (p *parser) alias() (*Node, error) {
 	n := p.node(AliasNode)
 	n.Value = string(p.event.anchor)
-	p.skip()
-	return n
+
+	err := p.skip()
+	if err != nil {
+		return nil, err
+	}
+	return n, nil
 }
 
-func (p *parser) scalar() *Node {
+func (p *parser) scalar() (*Node, error) {
 	n := p.node(ScalarNode)
 	n.Value = string(p.event.value)
 	n.Tag = string(p.event.tag)
 	n.Implicit = p.event.implicit
 	p.anchor(n, p.event.anchor)
-	p.skip()
-	return n
+
+	err := p.skip()
+	if err != nil {
+		return nil, err
+	}
+
+	return n, nil
 }
 
 func (p *parser) sequence() (*Node, error) {
 	n := p.node(SequenceNode)
 	p.anchor(n, p.event.anchor)
-	p.skip()
+
+	err := p.skip()
+	if err != nil {
+		return nil, err
+	}
+
 	for p.event.typ != yaml_SEQUENCE_END_EVENT {
 		children, err := p.parse()
 		if err != nil {
@@ -190,14 +224,23 @@ func (p *parser) sequence() (*Node, error) {
 		}
 		n.Children = append(n.Children, children)
 	}
-	p.skip()
+
+	err = p.skip()
+	if err != nil {
+		return nil, err
+	}
 	return n, nil
 }
 
 func (p *parser) mapping() (*Node, error) {
 	n := p.node(MappingNode)
 	p.anchor(n, p.event.anchor)
-	p.skip()
+
+	err := p.skip()
+	if err != nil {
+		return nil, err
+	}
+
 	for p.event.typ != yaml_MAPPING_END_EVENT {
 		key, err := p.parse()
 		if err != nil {
@@ -209,7 +252,11 @@ func (p *parser) mapping() (*Node, error) {
 		}
 		n.Children = append(n.Children, key, value)
 	}
-	p.skip()
+
+	err = p.skip()
+	if err != nil {
+		return nil, err
+	}
 	return n, nil
 }
 

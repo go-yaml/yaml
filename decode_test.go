@@ -551,7 +551,7 @@ var unmarshalTests = []struct {
 	},
 	{
 		"a: 2015-02-24T18:19:39Z\n",
-		map[string]time.Time{"a": time.Unix(1424801979, 0)},
+		map[string]time.Time{"a": time.Unix(1424801979, 0).In(time.UTC)},
 	},
 
 	// Encode empty lists as zero-length slices.

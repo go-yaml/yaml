@@ -135,9 +135,15 @@ func resolve(tag string, in string) (rtag string, out interface{}) {
 			if err == nil {
 				return yaml_INT_TAG, uintv
 			}
-			floatv, err := strconv.ParseFloat(plain, 64)
-			if err == nil {
-				return yaml_FLOAT_TAG, floatv
+			tryFloat := true
+			if strings.HasPrefix(plain, "0") {
+				tryFloat = strings.ContainsRune(plain, '.')
+			}
+			if tryFloat {
+				floatv, err := strconv.ParseFloat(plain, 64)
+				if err == nil {
+					return yaml_FLOAT_TAG, floatv
+				}
 			}
 			if strings.HasPrefix(plain, "0b") {
 				intv, err := strconv.ParseInt(plain[2:], 2, 64)

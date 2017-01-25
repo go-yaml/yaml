@@ -581,6 +581,15 @@ var unmarshalTests = []struct {
 		"\xfe\xff\x00\xf1\x00o\x00\xf1\x00o\x00:\x00 \x00v\x00e\x00r\x00y\x00 \x00y\x00e\x00s\x00 \xd8=\xdf\xd4\x00\n",
 		M{"ñoño": "very yes 🟔"},
 	},
+
+	// YAML Float regex shouldn't match this
+	{
+		"a: 123456e1\n",
+		M{"a": "123456e1"},
+	}, {
+		"a: 123456E1\n",
+		M{"a": "123456E1"},
+	},
 }
 
 type M map[interface{}]interface{}

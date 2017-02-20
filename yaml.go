@@ -139,7 +139,7 @@ func Marshal(in interface{}) (out []byte, err error) {
 	defer handleErr(&err)
 	e := newEncoder()
 	defer e.destroy()
-	e.marshal("", reflect.ValueOf(in))
+	e.marshal("", reflect.ValueOf(in), fieldInfo{})
 	e.finish()
 	out = e.out
 	return
@@ -200,6 +200,7 @@ type fieldInfo struct {
 	Num       int
 	OmitEmpty bool
 	Flow      bool
+	NoWrap    bool
 
 	// Inline holds the field index if the field is part of an inlined struct.
 	Inline []int
@@ -247,6 +248,8 @@ func getStructInfo(st reflect.Type) (*structInfo, error) {
 					info.Flow = true
 				case "inline":
 					inline = true
+				case "nowrap":
+					info.NoWrap = true
 				default:
 					return nil, errors.New(fmt.Sprintf("Unsupported flag %q in tag %q of type %s", flag, tag, st))
 				}

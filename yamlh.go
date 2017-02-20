@@ -275,6 +275,9 @@ type yaml_event_t struct {
 
 	// The style (for yaml_SCALAR_EVENT, yaml_SEQUENCE_START_EVENT, yaml_MAPPING_START_EVENT).
 	style yaml_style_t
+
+	// The flag for if there should be line breaks allowed during the value.
+	allow_breaks bool
 }
 
 func (e *yaml_event_t) scalar_style() yaml_scalar_style_t     { return yaml_scalar_style_t(e.style) }
@@ -696,6 +699,7 @@ type yaml_emitter_t struct {
 		single_quoted_allowed bool                // Can the scalar be expressed in the single quoted style?
 		block_allowed         bool                // Can the scalar be expressed in the literal or folded styles?
 		style                 yaml_scalar_style_t // The output style.
+		allow_breaks          bool                // Are line breaks allowed in this scalar while being expressed?
 	}
 
 	// Dumper stuff

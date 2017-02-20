@@ -59,7 +59,7 @@ func (e *encoder) must(ok bool) {
 	}
 }
 
-func (e *encoder) marshal(tag string, in reflect.Value) {
+func (e *encoder) marshal(tag string, in reflect.Value, info fieldInfo) {
 	if !in.IsValid() {
 		e.nilv()
 		return
@@ -87,65 +87,65 @@ func (e *encoder) marshal(tag string, in reflect.Value) {
 		if in.IsNil() {
 			e.nilv()
 		} else {
-			e.marshal(tag, in.Elem())
+			e.marshal(tag, in.Elem(), info)
 		}
 	case reflect.Map:
-		e.mapv(tag, in)
+		e.mapv(tag, in, info)
 	case reflect.Ptr:
 		if in.IsNil() {
 			e.nilv()
 		} else {
-			e.marshal(tag, in.Elem())
+			e.marshal(tag, in.Elem(), info)
 		}
 	case reflect.Struct:
-		e.structv(tag, in)
+		e.structv(tag, in, info)
 	case reflect.Slice:
 		if in.Type().Elem() == mapItemType {
-			e.itemsv(tag, in)
+			e.itemsv(tag, in, info)
 		} else {
-			e.slicev(tag, in)
+			e.slicev(tag, in, info)
 		}
 	case reflect.String:
-		e.stringv(tag, in)
+		e.stringv(tag, in, info)
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		if in.Type() == durationType {
-			e.stringv(tag, reflect.ValueOf(iface.(time.Duration).String()))
+			e.stringv(tag, reflect.ValueOf(iface.(time.Duration).String()), info)
 		} else {
-			e.intv(tag, in)
+			e.intv(tag, in, info)
 		}
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
-		e.uintv(tag, in)
+		e.uintv(tag, in, info)
 	case reflect.Float32, reflect.Float64:
-		e.floatv(tag, in)
+		e.floatv(tag, in, info)
 	case reflect.Bool:
-		e.boolv(tag, in)
+		e.boolv(tag, in, info)
 	default:
 		panic("cannot marshal type: " + in.Type().String())
 	}
 }
 
-func (e *encoder) mapv(tag string, in reflect.Value) {
+func (e *encoder) mapv(tag string, in reflect.Value, info fieldInfo) {
 	e.mappingv(tag, func() {
 		keys := keyList(in.MapKeys())
 		sort.Sort(keys)
 		for _, k := range keys {
-			e.marshal("", k)
-			e.marshal("", in.MapIndex(k))
+			e.marshal("", k, info)
+			e.marshal("", in.MapIndex(k), info)
 		}
 	})
 }
 
-func (e *encoder) itemsv(tag string, in reflect.Value) {
+func (e *encoder) itemsv(tag string, in reflect.Value, info fieldInfo) {
 	e.mappingv(tag, func() {
 		slice := in.Convert(reflect.TypeOf([]MapItem{})).Interface().([]MapItem)
 		for _, item := range slice {
-			e.marshal("", reflect.ValueOf(item.Key))
-			e.marshal("", reflect.ValueOf(item.Value))
+			e.marshal("", reflect.ValueOf(item.Key), info)
+			e.marshal("", reflect.ValueOf(item.Value), info)
 		}
 	})
 }
 
-func (e *encoder) structv(tag string, in reflect.Value) {
+func (e *encoder) structv(tag string, in reflect.Value, info fieldInfo) {
 	sinfo, err := getStructInfo(in.Type())
 	if err != nil {
 		panic(err)
@@ -161,9 +161,10 @@ func (e *encoder) structv(tag string, in reflect.Value) {
 			if info.OmitEmpty && isZero(value) {
 				continue
 			}
-			e.marshal("", reflect.ValueOf(info.Key))
+			e.marshal("", reflect.ValueOf(info.Key), info)
 			e.flow = info.Flow
-			e.marshal("", value)
+			e.marshal("", value, info)
+
 		}
 		if sinfo.InlineMap >= 0 {
 			m := in.Field(sinfo.InlineMap)
@@ -175,9 +176,9 @@ func (e *encoder) structv(tag string, in reflect.Value) {
 					if _, found := sinfo.FieldsMap[k.String()]; found {
 						panic(fmt.Sprintf("Can't have key %q in inlined map; conflicts with struct field", k.String()))
 					}
-					e.marshal("", k)
+					e.marshal("", k, info)
 					e.flow = false
-					e.marshal("", m.MapIndex(k))
+					e.marshal("", m.MapIndex(k), info)
 				}
 			}
 		}
@@ -198,7 +199,7 @@ func (e *encoder) mappingv(tag string, f func()) {
 	e.emit()
 }
 
-func (e *encoder) slicev(tag string, in reflect.Value) {
+func (e *encoder) slicev(tag string, in reflect.Value, info fieldInfo) {
 	implicit := tag == ""
 	style := yaml_BLOCK_SEQUENCE_STYLE
 	if e.flow {
@@ -209,7 +210,7 @@ func (e *encoder) slicev(tag string, in reflect.Value) {
 	e.emit()
 	n := in.Len()
 	for i := 0; i < n; i++ {
-		e.marshal("", in.Index(i))
+		e.marshal("", in.Index(i), info)
 	}
 	e.must(yaml_sequence_end_event_initialize(&e.event))
 	e.emit()
@@ -237,7 +238,7 @@ func isBase60Float(s string) (result bool) {
 // is bogus. In practice parsers do not enforce the "\.[0-9_]*" suffix.
 var base60float = regexp.MustCompile(`^[-+]?[0-9][0-9_]*(?::[0-5]?[0-9])+(?:\.[0-9_]*)?$`)
 
-func (e *encoder) stringv(tag string, in reflect.Value) {
+func (e *encoder) stringv(tag string, in reflect.Value, info fieldInfo) {
 	var style yaml_scalar_style_t
 	s := in.String()
 	rtag, rs := resolve("", s)
@@ -258,30 +259,30 @@ func (e *encoder) stringv(tag string, in reflect.Value) {
 	} else {
 		style = yaml_PLAIN_SCALAR_STYLE
 	}
-	e.emitScalar(s, "", tag, style)
+	e.emitScalar(s, "", tag, style, info)
 }
 
-func (e *encoder) boolv(tag string, in reflect.Value) {
+func (e *encoder) boolv(tag string, in reflect.Value, info fieldInfo) {
 	var s string
 	if in.Bool() {
 		s = "true"
 	} else {
 		s = "false"
 	}
-	e.emitScalar(s, "", tag, yaml_PLAIN_SCALAR_STYLE)
+	e.emitScalar(s, "", tag, yaml_PLAIN_SCALAR_STYLE, info)
 }
 
-func (e *encoder) intv(tag string, in reflect.Value) {
+func (e *encoder) intv(tag string, in reflect.Value, info fieldInfo) {
 	s := strconv.FormatInt(in.Int(), 10)
-	e.emitScalar(s, "", tag, yaml_PLAIN_SCALAR_STYLE)
+	e.emitScalar(s, "", tag, yaml_PLAIN_SCALAR_STYLE, info)
 }
 
-func (e *encoder) uintv(tag string, in reflect.Value) {
+func (e *encoder) uintv(tag string, in reflect.Value, info fieldInfo) {
 	s := strconv.FormatUint(in.Uint(), 10)
-	e.emitScalar(s, "", tag, yaml_PLAIN_SCALAR_STYLE)
+	e.emitScalar(s, "", tag, yaml_PLAIN_SCALAR_STYLE, info)
 }
 
-func (e *encoder) floatv(tag string, in reflect.Value) {
+func (e *encoder) floatv(tag string, in reflect.Value, info fieldInfo) {
 	// FIXME: Handle 64 bits here.
 	s := strconv.FormatFloat(float64(in.Float()), 'g', -1, 32)
 	switch s {
@@ -292,15 +293,15 @@ func (e *encoder) floatv(tag string, in reflect.Value) {
 	case "NaN":
 		s = ".nan"
 	}
-	e.emitScalar(s, "", tag, yaml_PLAIN_SCALAR_STYLE)
+	e.emitScalar(s, "", tag, yaml_PLAIN_SCALAR_STYLE, info)
 }
 
 func (e *encoder) nilv() {
-	e.emitScalar("null", "", "", yaml_PLAIN_SCALAR_STYLE)
+	e.emitScalar("null", "", "", yaml_PLAIN_SCALAR_STYLE, fieldInfo{})
 }
 
-func (e *encoder) emitScalar(value, anchor, tag string, style yaml_scalar_style_t) {
+func (e *encoder) emitScalar(value, anchor, tag string, style yaml_scalar_style_t, info fieldInfo) {
 	implicit := tag == ""
-	e.must(yaml_scalar_event_initialize(&e.event, []byte(anchor), []byte(tag), []byte(value), implicit, implicit, style))
+	e.must(yaml_scalar_event_initialize(&e.event, []byte(anchor), []byte(tag), []byte(value), implicit, implicit, style, info))
 	e.emit()
 }

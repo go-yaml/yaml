@@ -218,6 +218,14 @@ var marshalTests = []struct {
 		"a: {b: c, d: e}\n",
 	},
 
+	// No wrapping flag
+	{
+		&struct {
+			A string "a,nowrap"
+		}{ "When I have more than 100 characters in a single line and have now wrap I should not be wrapped. This string is being used to test this."},
+		"a: When I have more than 100 characters in a single line and have now wrap I should not be wrapped. This string is being used to test this.\n",
+	},
+
 	// Unexported field
 	{
 		&struct {

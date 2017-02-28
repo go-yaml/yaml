@@ -357,7 +357,8 @@ func (d *decoder) scalar(n *node, out reflect.Value) (good bool) {
 		if u, ok := out.Addr().Interface().(encoding.TextUnmarshaler); ok {
 			err := u.UnmarshalText([]byte(s))
 			if err != nil {
-				fail(err)
+				d.terrors = append(d.terrors, fmt.Sprintf("line %d: %v", n.line+1, err))
+				return false
 			}
 			return true
 		}

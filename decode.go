@@ -546,7 +546,7 @@ func (d *decoder) mapping(n *node, out reflect.Value) (good bool) {
 	}
 	l := len(n.children)
 	for i := 0; i < l; i += 2 {
-		if isMerge(n.children[i]) {
+		if isMerge(n.children[i], n.children[i+1]) {
 			d.merge(n.children[i+1], out)
 			continue
 		}
@@ -582,7 +582,7 @@ func (d *decoder) mappingSlice(n *node, out reflect.Value) (good bool) {
 	var slice []MapItem
 	var l = len(n.children)
 	for i := 0; i < l; i += 2 {
-		if isMerge(n.children[i]) {
+		if isMerge(n.children[i], n.children[i+1]) {
 			d.merge(n.children[i+1], out)
 			continue
 		}
@@ -618,7 +618,7 @@ func (d *decoder) mappingStruct(n *node, out reflect.Value) (good bool) {
 
 	for i := 0; i < l; i += 2 {
 		ni := n.children[i]
-		if isMerge(ni) {
+		if isMerge(ni, n.children[i+1]) {
 			d.merge(n.children[i+1], out)
 			continue
 		}
@@ -678,6 +678,6 @@ func (d *decoder) merge(n *node, out reflect.Value) {
 	}
 }
 
-func isMerge(n *node) bool {
-	return n.kind == scalarNode && n.value == "<<" && (n.implicit == true || n.tag == yaml_MERGE_TAG)
+func isMerge(n *node, nn *node) bool {
+	return n.kind == scalarNode && n.value == "<<" && (n.implicit == true || n.tag == yaml_MERGE_TAG) && nn.kind != scalarNode
 }

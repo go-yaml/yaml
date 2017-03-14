@@ -937,6 +937,13 @@ func (s *S) TestMergeStruct(c *C) {
 	}
 }
 
+func (s *S) TestDontMergeScalarNode(c *C) {
+	value := map[string]interface{}{}
+	err := yaml.Unmarshal([]byte("<<: value"), &value)
+	c.Assert(err, IsNil)
+	c.Assert(value["<<"], Equals, "value")
+}
+
 var unmarshalNullTests = []func() interface{}{
 	func() interface{} { var v interface{}; v = "v"; return &v },
 	func() interface{} { var s = "s"; return &s },

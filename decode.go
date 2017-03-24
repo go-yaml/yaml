@@ -176,8 +176,16 @@ func (p *parser) mapping() *node {
 	n := p.node(mappingNode)
 	p.anchor(n, p.event.anchor)
 	p.skip()
+	duplicates := make(map[string]bool)
 	for p.event.typ != yaml_MAPPING_END_EVENT {
-		n.children = append(n.children, p.parse(), p.parse())
+		key := p.parse()
+		value := p.parse()
+		if _, exists := duplicates[key.value]; exists {
+			p.parser.problem = fmt.Sprintf("duplicate key %#v", key.value)
+			p.fail()
+		}
+		duplicates[key.value] = true
+		n.children = append(n.children, key, value)
 	}
 	p.skip()
 	return n

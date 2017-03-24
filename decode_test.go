@@ -187,6 +187,21 @@ var unmarshalTests = []struct {
 		map[string]interface{}{"seq": []interface{}{"A", 1, "C"}},
 	},
 
+	// Mappings
+	{
+		"a: 1\nb: 2",
+		map[string]interface{}{"a": 1, "b": 2},
+	}, {
+		"a: 1\nb: 1", // duplicate values are OK
+		map[string]interface{}{"a": 1, "b": 1},
+	}, {
+		"a: a", // value matches key
+		map[string]interface{}{"a": "a"},
+	}, {
+		"a: b\nb: a", // values match keys
+		map[string]interface{}{"a": "b", "b": "a"},
+	},
+
 	// Literal block scalar
 	{
 		"scalar: | # Comment\n\n literal\n\n \ttext\n\n",
@@ -619,7 +634,7 @@ func (s *S) TestUnmarshal(c *C) {
 		}
 		err := yaml.Unmarshal([]byte(item.data), value)
 		if _, ok := err.(*yaml.TypeError); !ok {
-			c.Assert(err, IsNil)
+			c.Assert(err, IsNil, Commentf("Failed to unmarshal %#v", item.data))
 		}
 		if t.Kind() == reflect.String {
 			c.Assert(*value.(*string), Equals, item.value)
@@ -648,13 +663,14 @@ var unmarshalErrorTests = []struct {
 	{"a: !!binary ==", "yaml: !!binary value contains invalid base64 data"},
 	{"{[.]}", `yaml: invalid map key: \[\]interface \{\}\{"\."\}`},
 	{"{{.}}", `yaml: invalid map key: map\[interface\ \{\}\]interface \{\}\{".":interface \{\}\(nil\)\}`},
+	{"a: 0\na: 1", `yaml: duplicate key "a"`},
 }
 
 func (s *S) TestUnmarshalErrors(c *C) {
 	for _, item := range unmarshalErrorTests {
 		var value interface{}
 		err := yaml.Unmarshal([]byte(item.data), &value)
-		c.Assert(err, ErrorMatches, item.error, Commentf("Partial unmarshal: %#v", value))
+		c.Assert(err, ErrorMatches, item.error, Commentf("%#v unmarshalled to: %#v", item.data, value))
 	}
 }
 

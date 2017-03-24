@@ -181,6 +181,7 @@ func (p *parser) mapping() *node {
 		key := p.parse()
 		value := p.parse()
 		if _, exists := duplicates[key.value]; exists {
+			p.parser.problem_mark.line = p.event.start_mark.line
 			p.parser.problem = fmt.Sprintf("duplicate key %#v", key.value)
 			p.fail()
 		}

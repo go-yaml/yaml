@@ -663,7 +663,7 @@ var unmarshalErrorTests = []struct {
 	{"a: !!binary ==", "yaml: !!binary value contains invalid base64 data"},
 	{"{[.]}", `yaml: invalid map key: \[\]interface \{\}\{"\."\}`},
 	{"{{.}}", `yaml: invalid map key: map\[interface\ \{\}\]interface \{\}\{".":interface \{\}\(nil\)\}`},
-	{"a: 0\na: 1", `yaml: duplicate key "a"`},
+	{"a: 3\nb: 0\nb: 1", `yaml: line 3: duplicate key "b"`},
 }
 
 func (s *S) TestUnmarshalErrors(c *C) {

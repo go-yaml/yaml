@@ -193,16 +193,21 @@ type decoder struct {
 }
 
 var (
-	mapItemType    = reflect.TypeOf(MapItem{})
-	durationType   = reflect.TypeOf(time.Duration(0))
-	defaultMapType = reflect.TypeOf(map[interface{}]interface{}{})
-	ifaceType      = defaultMapType.Elem()
+	mapItemType     = reflect.TypeOf(MapItem{})
+	durationType    = reflect.TypeOf(time.Duration(0))
+	defaultMapType  = reflect.TypeOf(map[interface{}]interface{}{})
+	ifaceType       = defaultMapType.Elem()
+	tagUnmarshalers = map[string]TagUnmarshaler{}
 )
 
 func newDecoder() *decoder {
 	d := &decoder{mapType: defaultMapType}
 	d.aliases = make(map[string]bool)
 	return d
+}
+
+func registerCustomTagUnmarshaler(tag string, unmarshaler TagUnmarshaler) {
+	tagUnmarshalers[tag] = unmarshaler
 }
 
 func (d *decoder) terror(n *node, tag string, out reflect.Value) {
@@ -342,6 +347,12 @@ func (d *decoder) scalar(n *node, out reflect.Value) (good bool) {
 				failf("!!binary value contains invalid base64 data")
 			}
 			resolved = string(data)
+		}
+		if unmarshaler, found := tagUnmarshalers[n.tag]; found {
+			resolved = unmarshaler.UnmarshalYAMLTag(n.value)
+			if out.Kind() == reflect.String && tag != yaml_BINARY_TAG {
+				n.value = resolved.(string)
+			}
 		}
 	}
 	if resolved == nil {

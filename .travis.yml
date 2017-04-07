@@ -7,3 +7,5 @@ go:
     - tip
 
 go_import_path: gopkg.in/yaml.v2
+
+script: go get -t -v ./...

@@ -2,13 +2,15 @@ package yaml_test
 
 import (
 	"errors"
-	. "gopkg.in/check.v1"
-	"gopkg.in/yaml.v2"
+
 	"math"
 	"net"
 	"reflect"
 	"strings"
 	"time"
+
+	. "gopkg.in/check.v1"
+	"gopkg.in/yaml.v2"
 )
 
 var unmarshalIntTest = 123
@@ -890,7 +892,7 @@ longTag:
   label: center/big
 
 inlineMap:
-  # Inlined map 
+  # Inlined map
   << : {"x": 1, "y": 2, "r": 10}
   label: center/big
 
@@ -966,6 +968,15 @@ func (s *S) TestUnmarshalSliceOnPreset(c *C) {
 	v := struct{ A []int }{[]int{1}}
 	yaml.Unmarshal([]byte("a: [2]"), &v)
 	c.Assert(v.A, DeepEquals, []int{2})
+}
+
+func (s *S) TestUnmarshalStrictError(c *C) {
+	var v struct{}
+	d := yaml.NewStrictDecoder()
+	err := d.Unmarshal([]byte("a: b"), &v)
+	c.Assert(err, ErrorMatches, ""+
+		"yaml: unmarshal errors:\n"+
+		"  line 1: no such field 'a' in struct 'struct {}'")
 }
 
 //var data []byte

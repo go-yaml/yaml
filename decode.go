@@ -185,11 +185,32 @@ func (p *parser) mapping() *node {
 // ----------------------------------------------------------------------------
 // Decoder, unmarshals a node into a provided value.
 
+// Decoder unmarshals a node into a provided value.
+type Decoder struct {
+	*decoder
+}
+
+// NewDecoder creates and initializes a new Decoder struct.
+func NewDecoder() *Decoder {
+	return &Decoder{
+		newDecoder(),
+	}
+}
+
+// NewStrictDecoder creates and initializes a new Decoder with strict enabled.
+func NewStrictDecoder() *Decoder {
+	d := newDecoder()
+	d.strict = true
+
+	return &Decoder{d}
+}
+
 type decoder struct {
 	doc     *node
 	aliases map[string]bool
 	mapType reflect.Type
 	terrors []string
+	strict  bool
 }
 
 var (
@@ -639,6 +660,9 @@ func (d *decoder) mappingStruct(n *node, out reflect.Value) (good bool) {
 			value := reflect.New(elemType).Elem()
 			d.unmarshal(n.children[i+1], value)
 			inlineMap.SetMapIndex(name, value)
+		} else if d.strict {
+			d.terrors = append(d.terrors, fmt.Sprintf("line %d: no such field '%s' in struct '%s'", ni.line+1, name, out.Type()))
+			return false
 		}
 	}
 	return true

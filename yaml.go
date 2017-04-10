@@ -14,6 +14,29 @@ import (
 	"sync"
 )
 
+// YAMLCodec implements Marshal and Unmarshal.
+type YAMLCodec struct {
+	opt           Option
+	structMap     map[reflect.Type]*structInfo
+	fieldMapMutex sync.RWMutex
+}
+
+var DefaultCodec = NewYAMLCodec()
+
+// NewYAMLCodec creates a new *YAMLCodec configured with the provided options
+// (optional).
+func NewYAMLCodec(options ...Option) *YAMLCodec {
+	option := OPT_NONE
+	for _, o := range options {
+		option |= o
+	}
+	return &YAMLCodec{
+		option,
+		make(map[reflect.Type]*structInfo),
+		sync.RWMutex{},
+	}
+}
+
 // MapSlice encodes and decodes as a YAML map.
 // The order of keys is preserved when encoding and decoding.
 type MapSlice []MapItem
@@ -58,11 +81,12 @@ type Marshaler interface {
 //
 // Struct fields are only unmarshalled if they are exported (have an
 // upper case first letter), and are unmarshalled using the field name
-// lowercased as the default key. Custom keys may be defined via the
-// "yaml" name in the field tag: the content preceding the first comma
-// is used as the key, and the following comma-separated options are
-// used to tweak the marshalling process (see Marshal).
-// Conflicting names result in a runtime error.
+// lowercased as the default key, unless provided options override this.
+//
+// Custom keys may be defined via the "yaml" name in the field
+// tag: the content preceding the first comma is used as the key, and the
+// following comma-separated options are used to tweak the marshalling
+// process (see Marshal). Conflicting names result in a runtime error.
 //
 // For example:
 //
@@ -76,9 +100,9 @@ type Marshaler interface {
 // See the documentation of Marshal for the format of tags and a list of
 // supported tag options.
 //
-func Unmarshal(in []byte, out interface{}) (err error) {
+func (y *YAMLCodec) Unmarshal(in []byte, out interface{}) (err error) {
 	defer handleErr(&err)
-	d := newDecoder()
+	d := newDecoder(y)
 	p := newParser(in)
 	defer p.destroy()
 	node := p.parse()
@@ -95,16 +119,35 @@ func Unmarshal(in []byte, out interface{}) (err error) {
 	return nil
 }
 
+// UnmarshalWithOptions is shorthand for NewCodec(options...).Unmarshal(in, out)
+func UnmarshalWithOptions(in []byte, out interface{}, opts ...Option) (err error) {
+	return NewYAMLCodec(opts...).Unmarshal(in, out)
+}
+
+// Unmarshal is shorthand for DefaultCodec.Unmarshal(in, out)
+func Unmarshal(in []byte, out interface{}) (err error) {
+	return DefaultCodec.Unmarshal(in, out)
+}
+
+type Option int
+
+const (
+	OPT_NONE Option = 1 << iota
+	OPT_NOLOWERCASE
+)
+
 // Marshal serializes the value provided into a YAML document. The structure
 // of the generated document will reflect the structure of the value itself.
 // Maps and pointers (to struct, string, int, etc) are accepted as the in value.
 //
 // Struct fields are only unmarshalled if they are exported (have an upper case
 // first letter), and are unmarshalled using the field name lowercased as the
-// default key. Custom keys may be defined via the "yaml" name in the field
-// tag: the content preceding the first comma is used as the key, and the
-// following comma-separated options are used to tweak the marshalling process.
-// Conflicting names result in a runtime error.
+// default key, unless the provided options override this behaviour.
+//
+// Custom keys may be defined via the
+// "yaml" name in the field tag: the content preceding the first comma is used as
+// the key, and the following comma-separated options are used to tweak the
+// marshalling process. Conflicting names result in a runtime error.
 //
 // The field tag format accepted is:
 //
@@ -135,14 +178,24 @@ func Unmarshal(in []byte, out interface{}) (err error) {
 //     yaml.Marshal(&T{B: 2}) // Returns "b: 2\n"
 //     yaml.Marshal(&T{F: 1}} // Returns "a: 1\nb: 0\n"
 //
-func Marshal(in interface{}) (out []byte, err error) {
+func (y *YAMLCodec) Marshal(in interface{}) (out []byte, err error) {
 	defer handleErr(&err)
-	e := newEncoder()
+	e := newEncoder(y)
 	defer e.destroy()
 	e.marshal("", reflect.ValueOf(in))
 	e.finish()
 	out = e.out
 	return
+}
+
+// MarshalWithOptions is shorthand for NewCodec(options...).Marshal(in)
+func MarshalWithOptions(in interface{}, options ...Option) (out []byte, err error) {
+	return NewYAMLCodec(options...).Marshal(in)
+}
+
+// Marshal is shorthand for DefaultCodec.Marshal()
+func Marshal(in interface{}) (out []byte, err error) {
+	return DefaultCodec.Marshal(in)
 }
 
 func handleErr(err *error) {
@@ -205,13 +258,10 @@ type fieldInfo struct {
 	Inline []int
 }
 
-var structMap = make(map[reflect.Type]*structInfo)
-var fieldMapMutex sync.RWMutex
-
-func getStructInfo(st reflect.Type) (*structInfo, error) {
-	fieldMapMutex.RLock()
-	sinfo, found := structMap[st]
-	fieldMapMutex.RUnlock()
+func (y *YAMLCodec) getStructInfo(st reflect.Type) (*structInfo, error) {
+	y.fieldMapMutex.RLock()
+	sinfo, found := y.structMap[st]
+	y.fieldMapMutex.RUnlock()
 	if found {
 		return sinfo, nil
 	}
@@ -265,7 +315,7 @@ func getStructInfo(st reflect.Type) (*structInfo, error) {
 				}
 				inlineMap = info.Num
 			case reflect.Struct:
-				sinfo, err := getStructInfo(field.Type)
+				sinfo, err := y.getStructInfo(field.Type)
 				if err != nil {
 					return nil, err
 				}
@@ -291,6 +341,8 @@ func getStructInfo(st reflect.Type) (*structInfo, error) {
 
 		if tag != "" {
 			info.Key = tag
+		} else if y.opt&OPT_NOLOWERCASE != 0 {
+			info.Key = field.Name
 		} else {
 			info.Key = strings.ToLower(field.Name)
 		}
@@ -306,9 +358,9 @@ func getStructInfo(st reflect.Type) (*structInfo, error) {
 
 	sinfo = &structInfo{fieldsMap, fieldsList, inlineMap}
 
-	fieldMapMutex.Lock()
-	structMap[st] = sinfo
-	fieldMapMutex.Unlock()
+	y.fieldMapMutex.Lock()
+	y.structMap[st] = sinfo
+	y.fieldMapMutex.Unlock()
 	return sinfo, nil
 }
 

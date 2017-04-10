@@ -3,14 +3,14 @@ package yaml_test
 import (
 	"fmt"
 	"math"
+	"net"
+	"os"
 	"strconv"
 	"strings"
 	"time"
 
 	. "gopkg.in/check.v1"
 	"gopkg.in/yaml.v2"
-	"net"
-	"os"
 )
 
 var marshalIntTest = 123
@@ -498,4 +498,18 @@ func (s *S) TestSortedOutput(c *C) {
 		}
 		last = index
 	}
+}
+
+func (s *S) TestMarshalUppercaseFieldNamesNormal(c *C) {
+	v := struct{ AbcDef string }{"hello"}
+	y, err := yaml.Marshal(v)
+	c.Assert(err, IsNil)
+	c.Assert(string(y), Equals, "abcdef: hello\n")
+}
+
+func (s *S) TestMarshalWithOptiosn_UppercaseFieldNamesWithoutLowercase(c *C) {
+	v := struct{ AbcDef string }{"hello"}
+	y, err := yaml.MarshalWithOptions(v, yaml.OPT_NOLOWERCASE)
+	c.Assert(err, IsNil)
+	c.Assert(string(y), Equals, "AbcDef: hello\n")
 }

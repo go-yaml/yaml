@@ -12,14 +12,15 @@ import (
 )
 
 type encoder struct {
-	emitter yaml_emitter_t
-	event   yaml_event_t
-	out     []byte
-	flow    bool
+	emitter   yaml_emitter_t
+	event     yaml_event_t
+	out       []byte
+	flow      bool
+	yamlCodec *YAMLCodec
 }
 
-func newEncoder() (e *encoder) {
-	e = &encoder{}
+func newEncoder(y *YAMLCodec) (e *encoder) {
+	e = &encoder{yamlCodec: y}
 	e.must(yaml_emitter_initialize(&e.emitter))
 	yaml_emitter_set_output_string(&e.emitter, &e.out)
 	yaml_emitter_set_unicode(&e.emitter, true)
@@ -146,7 +147,7 @@ func (e *encoder) itemsv(tag string, in reflect.Value) {
 }
 
 func (e *encoder) structv(tag string, in reflect.Value) {
-	sinfo, err := getStructInfo(in.Type())
+	sinfo, err := e.yamlCodec.getStructInfo(in.Type())
 	if err != nil {
 		panic(err)
 	}

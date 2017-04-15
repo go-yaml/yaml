@@ -209,6 +209,29 @@ func yaml_emitter_increase_indent(emitter *yaml_emitter_t, flow, indentless bool
 
 // State dispatcher.
 func yaml_emitter_state_machine(emitter *yaml_emitter_t, event *yaml_event_t) bool {
+	// comments do not change the state, so deal with them separately
+	if event.typ == yaml_COMMENT_EVENT {
+		switch emitter.state {
+		// on the first item of a mapping, we need to indent
+		case yaml_EMIT_BLOCK_MAPPING_FIRST_KEY_STATE:
+			return yaml_emitter_emit_comment(emitter, event, true)
+		// place comments on their own line, and never inside
+		// a flow-style mapping or sequence
+		// TODO(directxman12): support postfix-style comments
+		case yaml_EMIT_BLOCK_SEQUENCE_FIRST_ITEM_STATE:
+			fallthrough
+		case yaml_EMIT_BLOCK_SEQUENCE_ITEM_STATE:
+			fallthrough
+		case yaml_EMIT_BLOCK_MAPPING_KEY_STATE:
+			return yaml_emitter_emit_comment(emitter, event, false)
+		default:
+			// in most cases, a comment isn't valid
+			return true
+		}
+
+		return true
+	}
+
 	switch emitter.state {
 	default:
 	case yaml_EMIT_STREAM_START_STATE:
@@ -702,6 +725,26 @@ func yaml_emitter_emit_scalar(emitter *yaml_emitter_t, event *yaml_event_t) bool
 	return true
 }
 
+// Expect COMMENT.
+func yaml_emitter_emit_comment(emitter *yaml_emitter_t, event *yaml_event_t, first bool) bool {
+	if first {
+		if !yaml_emitter_increase_indent(emitter, false, false) {
+			return false
+		}
+	}
+	if !yaml_emitter_write_indent(emitter) {
+		return false
+	}
+	if !yaml_emitter_process_comment(emitter) {
+		return false
+	}
+	if first {
+		emitter.indent = emitter.indents[len(emitter.indents)-1]
+		emitter.indents = emitter.indents[:len(emitter.indents)-1]
+	}
+	return true
+}
+
 // Expect SEQUENCE-START.
 func yaml_emitter_emit_sequence_start(emitter *yaml_emitter_t, event *yaml_event_t) bool {
 	if !yaml_emitter_process_anchor(emitter) {
@@ -905,6 +948,11 @@ func yaml_emitter_process_scalar(emitter *yaml_emitter_t) bool {
 		return yaml_emitter_write_folded_scalar(emitter, emitter.scalar_data.value)
 	}
 	panic("unknown scalar style")
+}
+
+// Write a comment.
+func yaml_emitter_process_comment(emitter *yaml_emitter_t) bool {
+	return yaml_emitter_write_comment(emitter, emitter.scalar_data.value)
 }
 
 // Check if a %YAML directive is valid.
@@ -1156,6 +1204,10 @@ func yaml_emitter_analyze_event(emitter *yaml_emitter_t, event *yaml_event_t) bo
 		if !yaml_emitter_analyze_scalar(emitter, event.value) {
 			return false
 		}
+
+	case yaml_COMMENT_EVENT:
+		// TODO(directxman12): replace this with an analyze_xyz function
+		emitter.scalar_data.value = event.value
 
 	case yaml_SEQUENCE_START_EVENT:
 		if len(event.anchor) > 0 {
@@ -1680,5 +1732,57 @@ func yaml_emitter_write_folded_scalar(emitter *yaml_emitter_t, value []byte) boo
 			breaks = false
 		}
 	}
+	return true
+}
+
+func yaml_emitter_write_comment(emitter *yaml_emitter_t, value []byte) bool {
+	if !yaml_emitter_write_indicator(emitter, []byte{'#', ' '}, true, false, false) {
+		return false
+	}
+	breaks := false
+	spaces := false
+	for i := 0; i < len(value); {
+		if is_space(value, i) {
+			if !spaces && emitter.column > emitter.best_width && i > 0 && i < len(value)-1 && !is_space(value, i+1) {
+				if !yaml_emitter_write_indent(emitter) {
+					return false
+				}
+				if !yaml_emitter_write_indicator(emitter, []byte{'#', ' '}, false, false, false) {
+					return false
+				}
+				i += width(value[i])
+			} else if i+1 == len(value) {
+				// never write a space at the end of the comment
+				i += width(value[i])
+			} else {
+				if !write(emitter, value, &i) {
+					return false
+				}
+			}
+			spaces = true
+		} else if is_break(value, i) {
+			i += width(value[i])
+			breaks = true
+		} else {
+			if breaks {
+				if !yaml_emitter_write_indent(emitter) {
+					return false
+				}
+				if !yaml_emitter_write_indicator(emitter, []byte{'#', ' '}, false, false, false) {
+					return false
+				}
+				emitter.indention = true
+			}
+			if !write(emitter, value, &i) {
+				return false
+			}
+			emitter.indention = false
+			spaces = false
+			breaks = false
+		}
+	}
+
+	emitter.whitespace = false
+	emitter.indention = false
 	return true
 }

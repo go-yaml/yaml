@@ -327,6 +327,15 @@ func yaml_scalar_event_initialize(event *yaml_event_t, anchor, tag, value []byte
 	return true
 }
 
+// Create COMMENT.
+func yaml_comment_event_initialize(event *yaml_event_t, value []byte) bool {
+	*event = yaml_event_t{
+		typ:   yaml_COMMENT_EVENT,
+		value: value,
+	}
+	return true
+}
+
 // Create SEQUENCE-START.
 func yaml_sequence_start_event_initialize(event *yaml_event_t, anchor, tag []byte, implicit bool, style yaml_sequence_style_t) bool {
 	*event = yaml_event_t{

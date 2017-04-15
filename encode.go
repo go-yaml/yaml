@@ -11,6 +11,8 @@ import (
 	"time"
 )
 
+var commentedMapItemType = reflect.TypeOf(CommentedMapItem{})
+
 type encoder struct {
 	emitter yaml_emitter_t
 	event   yaml_event_t
@@ -102,6 +104,8 @@ func (e *encoder) marshal(tag string, in reflect.Value) {
 	case reflect.Slice:
 		if in.Type().Elem() == mapItemType {
 			e.itemsv(tag, in)
+		} else if in.Type().Elem() == commentedMapItemType {
+			e.commenteditemsv(tag, in)
 		} else {
 			e.slicev(tag, in)
 		}
@@ -135,6 +139,19 @@ func (e *encoder) mapv(tag string, in reflect.Value) {
 	})
 }
 
+func (e *encoder) commenteditemsv(tag string, in reflect.Value) {
+	e.mappingv(tag, func() {
+		slice := in.Convert(reflect.TypeOf([]CommentedMapItem{})).Interface().([]CommentedMapItem)
+		for _, item := range slice {
+			if item.Comment != "" {
+				e.commentv(item.Comment)
+			}
+			e.marshal("", reflect.ValueOf(item.Key))
+			e.marshal("", reflect.ValueOf(item.Value))
+		}
+	})
+}
+
 func (e *encoder) itemsv(tag string, in reflect.Value) {
 	e.mappingv(tag, func() {
 		slice := in.Convert(reflect.TypeOf([]MapItem{})).Interface().([]MapItem)
@@ -160,6 +177,9 @@ func (e *encoder) structv(tag string, in reflect.Value) {
 			}
 			if info.OmitEmpty && isZero(value) {
 				continue
+			}
+			if info.Comment != "" {
+				e.commentv(info.Comment)
 			}
 			e.marshal("", reflect.ValueOf(info.Key))
 			e.flow = info.Flow
@@ -302,5 +322,10 @@ func (e *encoder) nilv() {
 func (e *encoder) emitScalar(value, anchor, tag string, style yaml_scalar_style_t) {
 	implicit := tag == ""
 	e.must(yaml_scalar_event_initialize(&e.event, []byte(anchor), []byte(tag), []byte(value), implicit, implicit, style))
+	e.emit()
+}
+
+func (e *encoder) commentv(value string) {
+	e.must(yaml_comment_event_initialize(&e.event, []byte(value)))
 	e.emit()
 }

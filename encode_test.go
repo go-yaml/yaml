@@ -216,6 +216,11 @@ var marshalTests = []struct {
 			} "a,flow"
 		}{struct{ B, D string }{"c", "e"}},
 		"a: {b: c, d: e}\n",
+	}, {
+		&struct {
+			A yaml.CommentedMapSlice "a,flow"
+		}{yaml.CommentedMapSlice{{yaml.MapItem{"a", 1}, "foo"}, {yaml.MapItem{"b", 2}, ""}, {yaml.MapItem{"c", 3}, "bar"}}},
+		"a: {a: 1, b: 2, c: 3}\n",
 	},
 
 	// Unexported field
@@ -289,6 +294,29 @@ var marshalTests = []struct {
 	{
 		&yaml.MapSlice{{"b", 2}, {"a", 1}, {"d", 4}, {"c", 3}, {"sub", yaml.MapSlice{{"e", 5}}}},
 		"b: 2\na: 1\nd: 4\nc: 3\nsub:\n  e: 5\n",
+	},
+
+	// Commented ordered maps.
+	{
+		&yaml.CommentedMapSlice{{yaml.MapItem{"b", 2}, "foo"}, {yaml.MapItem{"a", 1}, ""}, {yaml.MapItem{"d", 4}, ""},
+			{yaml.MapItem{"c", 3}, ""}, {yaml.MapItem{"sub", yaml.CommentedMapSlice{{yaml.MapItem{"e", 5}, "baz"}}}, "bar"}},
+		"# foo\nb: 2\na: 1\nd: 4\nc: 3\n# bar\nsub:\n  # baz\n  e: 5\n",
+	},
+
+	// Comment wrapping.
+	{
+		&yaml.CommentedMapSlice{{yaml.MapItem{"b", 2}, "foo bar\nbaz\n"},
+			{yaml.MapItem{"sub", yaml.CommentedMapSlice{{yaml.MapItem{"e", 5}, strings.Repeat("blah ", 50)}}}, "bar"}},
+		"# foo bar\n# baz\nb: 2\n# bar\nsub:\n" + strings.Repeat("  # "+strings.Repeat("blah ", 15)+"blah\n", 3) + "  # blah blah\n  e: 5\n",
+	},
+
+	// Comment via struct field
+	{
+		&struct {
+			A int `yaml:"a,omitempty" yamlComment:"does a thing"`
+			B int `yaml:"b,omitempty" yamlComment:"does something else"`
+		}{1, 0},
+		"# does a thing\na: 1\n",
 	},
 
 	// Encode unicode as utf-8 rather than in escaped form.

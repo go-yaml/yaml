@@ -193,6 +193,12 @@ var unmarshalTests = []struct {
 		map[string]string{"scalar": "\nliteral\n\n\ttext\n"},
 	},
 
+	// Literal block scalar with crlf
+	{
+		"scalar: | # Comment\n\r\n literal\r\n\r\n \ttext\r\n\n",
+		map[string]string{"scalar": "\r\nliteral\r\n\r\n\ttext\r\n"},
+	},
+
 	// Folded block scalar
 	{
 		"scalar: > # Comment\n\n folded\n line\n \n next\n line\n  * one\n  * two\n\n last\n line\n\n",

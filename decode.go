@@ -264,6 +264,11 @@ func (d *decoder) prepare(n *node, out reflect.Value) (newout reflect.Value, unm
 			again = true
 		}
 		if out.CanAddr() {
+			if in, ok := out.Addr().Interface().(Initiator); ok {
+				if err := in.BeforeUnmarshalYAML(); err != nil {
+					fail(err)
+				}
+			}
 			if u, ok := out.Addr().Interface().(Unmarshaler); ok {
 				good = d.callUnmarshaler(n, u)
 				return out, true, good

@@ -762,6 +762,42 @@ func (s *S) TestUnmarshalerTypeError(c *C) {
 	c.Assert(v.M["ghi"].value, Equals, 3)
 }
 
+type InitiatorType struct {
+	A            int
+	beforeCalled bool
+}
+
+func (o *InitiatorType) BeforeUnmarshalYAML() error {
+	(*o).beforeCalled = true
+	return nil
+}
+
+type initiatorPointer struct {
+	Field *InitiatorType
+}
+
+type initiatorValue struct {
+	Field InitiatorType
+}
+
+func (s *S) TestInitiatorPointerField(c *C) {
+	v1 := initiatorPointer{}
+	err := yaml.Unmarshal([]byte("field:\n   a: 1"), &v1)
+	c.Assert(err, IsNil)
+	c.Assert(v1.Field, NotNil)
+	c.Assert(v1.Field.A, Equals, 1)
+	c.Assert(v1.Field.beforeCalled, Equals, true)
+}
+
+func (s *S) TestInitiatorValueField(c *C) {
+	v1 := initiatorValue{}
+	err := yaml.Unmarshal([]byte("field:\n   a: 1"), &v1)
+	c.Assert(err, IsNil)
+	c.Assert(v1.Field, NotNil)
+	c.Assert(v1.Field.A, Equals, 1)
+	c.Assert(v1.Field.beforeCalled, Equals, true)
+}
+
 type proxyTypeError struct{}
 
 func (v *proxyTypeError) UnmarshalYAML(unmarshal func(interface{}) error) error {

@@ -7,10 +7,11 @@ import (
 	"strings"
 	"time"
 
-	. "gopkg.in/check.v1"
-	"gopkg.in/yaml.v2"
 	"net"
 	"os"
+
+	"github.com/projectcalico/go-yaml"
+	. "gopkg.in/check.v1"
 )
 
 var marshalIntTest = 123

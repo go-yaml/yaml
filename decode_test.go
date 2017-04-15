@@ -2,13 +2,14 @@ package yaml_test
 
 import (
 	"errors"
-	. "gopkg.in/check.v1"
-	"gopkg.in/yaml.v2"
 	"math"
 	"net"
 	"reflect"
 	"strings"
 	"time"
+
+	"github.com/projectcalico/go-yaml"
+	. "gopkg.in/check.v1"
 )
 
 var unmarshalIntTest = 123

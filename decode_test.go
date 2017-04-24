@@ -502,6 +502,12 @@ var unmarshalTests = []struct {
 		map[string]time.Duration{"a": 3 * time.Second},
 	},
 
+	// Octal
+	{
+		"a: 0660",
+		map[string]yaml.Octal{"a": 432},
+	},
+
 	// Issue #24.
 	{
 		"a: <foo>",

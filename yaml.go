@@ -237,9 +237,9 @@ func getStructInfo(st reflect.Type) (*structInfo, error) {
 		}
 
 		inline := false
-		fields := strings.Split(tag, ",")
-		if len(fields) > 1 {
-			for _, flag := range fields[1:] {
+		tags := strings.Split(tag, ",")
+		if len(tags) > 1 {
+			for _, flag := range tags[1:] {
 				switch flag {
 				case "omitempty":
 					info.OmitEmpty = true
@@ -251,7 +251,11 @@ func getStructInfo(st reflect.Type) (*structInfo, error) {
 					return nil, errors.New(fmt.Sprintf("Unsupported flag %q in tag %q of type %s", flag, tag, st))
 				}
 			}
-			tag = fields[0]
+			tag = tags[0]
+		}
+
+		if field.Type.Kind() == reflect.Struct && field.Anonymous {
+			inline = true
 		}
 
 		if inline {

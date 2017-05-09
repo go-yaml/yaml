@@ -12,10 +12,11 @@ import (
 )
 
 type encoder struct {
-	emitter yaml_emitter_t
-	event   yaml_event_t
-	out     []byte
-	flow    bool
+	emitter   yaml_emitter_t
+	event     yaml_event_t
+	out       []byte
+	flow      bool
+	innerFlow bool
 }
 
 func newEncoder() (e *encoder) {
@@ -163,12 +164,14 @@ func (e *encoder) structv(tag string, in reflect.Value) {
 			}
 			e.marshal("", reflect.ValueOf(info.Key))
 			e.flow = info.Flow
+			e.innerFlow = info.InnerFlow
 			e.marshal("", value)
 		}
 		if sinfo.InlineMap >= 0 {
 			m := in.Field(sinfo.InlineMap)
 			if m.Len() > 0 {
 				e.flow = false
+				e.innerFlow = false
 				keys := keyList(m.MapKeys())
 				sort.Sort(keys)
 				for _, k := range keys {
@@ -177,6 +180,7 @@ func (e *encoder) structv(tag string, in reflect.Value) {
 					}
 					e.marshal("", k)
 					e.flow = false
+					e.innerFlow = false
 					e.marshal("", m.MapIndex(k))
 				}
 			}
@@ -204,6 +208,10 @@ func (e *encoder) slicev(tag string, in reflect.Value) {
 	if e.flow {
 		e.flow = false
 		style = yaml_FLOW_SEQUENCE_STYLE
+	}
+	if e.innerFlow {
+		e.innerFlow = false
+		style = yaml_INNER_FLOW_SEQUENCE_STYLE
 	}
 	e.must(yaml_sequence_start_event_initialize(&e.event, nil, []byte(tag), implicit, style))
 	e.emit()

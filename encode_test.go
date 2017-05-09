@@ -7,10 +7,11 @@ import (
 	"strings"
 	"time"
 
-	. "gopkg.in/check.v1"
-	"gopkg.in/yaml.v2"
 	"net"
 	"os"
+
+	. "gopkg.in/check.v1"
+	"gopkg.in/yaml.v2"
 )
 
 var marshalIntTest = 123
@@ -216,6 +217,14 @@ var marshalTests = []struct {
 			} "a,flow"
 		}{struct{ B, D string }{"c", "e"}},
 		"a: {b: c, d: e}\n",
+	},
+
+	// Inner flow flag
+	{
+		&struct {
+			A [][]int "a,innerflow"
+		}{[][]int{[]int{1, 2, 3}, []int{4, 5, 6}}},
+		"a:\n- [1, 2, 3]\n- [4, 5, 6]\n",
 	},
 
 	// Unexported field

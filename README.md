@@ -63,39 +63,42 @@ a: Easy!
 b:
   c: 2
   d: [3, 4]
+  e:
+  - [5, 6]
 `
 
 type T struct {
         A string
         B struct {
-                RenamedC int   `yaml:"c"`
-                D        []int `yaml:",flow"`
+                RenamedC int     `yaml:"c"`
+                D        []int   `yaml:",flow"`
+                E        [][]int `yaml:",innerflow"`
         }
 }
 
 func main() {
         t := T{}
-    
+
         err := yaml.Unmarshal([]byte(data), &t)
         if err != nil {
                 log.Fatalf("error: %v", err)
         }
         fmt.Printf("--- t:\n%v\n\n", t)
-    
+
         d, err := yaml.Marshal(&t)
         if err != nil {
                 log.Fatalf("error: %v", err)
         }
         fmt.Printf("--- t dump:\n%s\n\n", string(d))
-    
+
         m := make(map[interface{}]interface{})
-    
+
         err = yaml.Unmarshal([]byte(data), &m)
         if err != nil {
                 log.Fatalf("error: %v", err)
         }
         fmt.Printf("--- m:\n%v\n\n", m)
-    
+
         d, err = yaml.Marshal(&m)
         if err != nil {
                 log.Fatalf("error: %v", err)
@@ -108,17 +111,19 @@ This example will generate the following output:
 
 ```
 --- t:
-{Easy! {2 [3 4]}}
+{Easy! {2 [3 4] [[5 6]]}}
 
 --- t dump:
 a: Easy!
 b:
   c: 2
   d: [3, 4]
+  e:
+  - [5, 6]
 
 
 --- m:
-map[a:Easy! b:map[c:2 d:[3 4]]]
+map[a:Easy! b:map[c:2 d:[3 4] e:[[5 6]]]]
 
 --- m dump:
 a: Easy!
@@ -127,5 +132,7 @@ b:
   d:
   - 3
   - 4
+  e:
+  - - 5
+    - 6
 ```
-

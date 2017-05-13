@@ -284,6 +284,12 @@ var marshalTests = []struct {
 		map[string]string{"a": strings.Repeat("\x90", 54)},
 		"a: !!binary |\n  " + strings.Repeat("kJCQ", 17) + "kJ\n  CQ\n",
 	},
+	{
+		&struct {
+			A string `yaml:",binary"`
+		}{A: "SGVsbG8="},
+		"a: !!binary SGVsbG8=\n",
+	},
 
 	// Ordered maps.
 	{

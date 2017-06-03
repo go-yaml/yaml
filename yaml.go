@@ -328,6 +328,8 @@ func isZero(v reflect.Value) bool {
 		return v.Float() == 0
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
 		return v.Uint() == 0
+	case reflect.Float32, reflect.Float64:
+		return v.Float() == 0.0
 	case reflect.Bool:
 		return !v.Bool()
 	case reflect.Struct:

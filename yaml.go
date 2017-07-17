@@ -14,6 +14,13 @@ import (
 	"sync"
 )
 
+// Parse parses the first document found within the in byte slice returns it.
+func Parse(in []byte) *Node {
+	p := NewParser(in)
+	defer p.Destroy()
+	return p.Parse()
+}
+
 // MapSlice encodes and decodes as a YAML map.
 // The order of keys is preserved when encoding and decoding.
 type MapSlice []MapItem
@@ -79,9 +86,9 @@ type Marshaler interface {
 func Unmarshal(in []byte, out interface{}) (err error) {
 	defer handleErr(&err)
 	d := newDecoder()
-	p := newParser(in)
-	defer p.destroy()
-	node := p.parse()
+	p := NewParser(in)
+	defer p.Destroy()
+	node := p.Parse()
 	if node != nil {
 		v := reflect.ValueOf(out)
 		if v.Kind() == reflect.Ptr && !v.IsNil() {

@@ -2,16 +2,21 @@ package yaml_test
 
 import (
 	"errors"
-	. "gopkg.in/check.v1"
-	"gopkg.in/yaml.v2"
 	"math"
 	"net"
 	"reflect"
+	"regexp"
 	"strings"
 	"time"
+
+	. "gopkg.in/check.v1"
+	"gopkg.in/yaml.v2"
 )
 
 var unmarshalIntTest = 123
+
+var restr = "^foo.*bar$"
+var unmarshalRegexpTest = regexp.MustCompile(restr)
 
 var unmarshalTests = []struct {
 	data  string
@@ -502,6 +507,28 @@ var unmarshalTests = []struct {
 		map[string]time.Duration{"a": 3 * time.Second},
 	},
 
+	// Regexp
+	{
+		restr,
+		unmarshalRegexpTest,
+	},
+	{
+		restr,
+		&unmarshalRegexpTest,
+	},
+	{
+		"a: " + restr,
+		map[string]*regexp.Regexp{"a": unmarshalRegexpTest},
+	},
+	{
+		"a:\n  - " + restr,
+		map[string][]*regexp.Regexp{"a": []*regexp.Regexp{unmarshalRegexpTest}},
+	},
+	{
+		"a: " + restr,
+		&struct{ A *regexp.Regexp }{A: unmarshalRegexpTest},
+	},
+
 	// Issue #24.
 	{
 		"a: <foo>",
@@ -977,6 +1004,89 @@ func (s *S) TestUnmarshalStrict(c *C) {
 	c.Check(err, IsNil)
 	err = yaml.UnmarshalStrict([]byte("a: 1\nb: 2\nc: 3"), &v)
 	c.Check(err, ErrorMatches, "yaml: unmarshal errors:\n  line 1: field c not found in struct struct { A int; B int }")
+}
+
+func (s *S) TestUnmarshalRegexp(c *C) {
+	for _, test := range []struct {
+		re string
+		ok bool
+	}{{
+		re: restr,
+		ok: true}, {
+		re: "(foo",
+		ok: false,
+	}} {
+		var re regexp.Regexp
+		err := yaml.Unmarshal([]byte(test.re), &re)
+		if test.ok {
+			c.Assert(err, IsNil)
+			c.Assert(re.String(), Equals, test.re)
+		} else {
+			c.Assert(err, Not(IsNil))
+		}
+		var pre *regexp.Regexp
+		err = yaml.Unmarshal([]byte(test.re), &pre)
+		if test.ok {
+			c.Assert(err, IsNil)
+			c.Assert(pre.String(), Equals, test.re)
+		} else {
+			c.Assert(err, Not(IsNil))
+		}
+		var sre struct {
+			Re regexp.Regexp
+		}
+		err = yaml.Unmarshal([]byte("re: "+test.re), &sre)
+		if test.ok {
+			c.Assert(err, IsNil)
+			c.Assert(sre.Re.String(), Equals, test.re)
+		} else {
+			c.Assert(err, Not(IsNil))
+		}
+		var spre struct {
+			Re *regexp.Regexp
+		}
+		err = yaml.Unmarshal([]byte("re: "+test.re), &spre)
+		if test.ok {
+			c.Assert(err, IsNil)
+			c.Assert(spre.Re.String(), Equals, test.re)
+		} else {
+			c.Assert(err, Not(IsNil))
+		}
+		var mre map[string]regexp.Regexp
+		err = yaml.Unmarshal([]byte("barfoo: "+test.re), &mre)
+		if test.ok {
+			c.Assert(err, IsNil)
+			e := mre["barfoo"]
+			c.Assert(e.String(), Equals, test.re)
+		} else {
+			c.Assert(err, Not(IsNil))
+		}
+		var mpre map[string]*regexp.Regexp
+		err = yaml.Unmarshal([]byte("barfoo: "+test.re), &mpre)
+		if test.ok {
+			c.Assert(err, IsNil)
+			pe := mpre["barfoo"]
+			c.Assert(pe.String(), Equals, test.re)
+		} else {
+			c.Assert(err, Not(IsNil))
+		}
+		var are []regexp.Regexp
+		err = yaml.Unmarshal([]byte("["+test.re+"]"), &are)
+		if test.ok {
+			c.Assert(err, IsNil)
+			c.Assert(are[0].String(), Equals, test.re)
+		} else {
+			c.Assert(err, Not(IsNil))
+		}
+		var apre []*regexp.Regexp
+		err = yaml.Unmarshal([]byte("["+test.re+"]"), &apre)
+		if test.ok {
+			c.Assert(err, IsNil)
+			c.Assert(apre[0].String(), Equals, test.re)
+		} else {
+			c.Assert(err, Not(IsNil))
+		}
+	}
 }
 
 //var data []byte

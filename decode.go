@@ -141,6 +141,7 @@ func (p *parser) node(kind NodeKind) *Node {
 
 func (p *parser) document() *Node {
 	n := p.node(DocumentNode)
+	n.Tag = string(p.event.tag)
 	n.Anchors = make(map[string]*Node)
 	p.doc = n
 	p.skip()
@@ -154,6 +155,7 @@ func (p *parser) document() *Node {
 
 func (p *parser) alias() *Node {
 	n := p.node(AliasNode)
+	n.Tag = string(p.event.tag)
 	n.Value = string(p.event.anchor)
 	p.skip()
 	return n
@@ -171,6 +173,7 @@ func (p *parser) scalar() *Node {
 
 func (p *parser) sequence() *Node {
 	n := p.node(SequenceNode)
+	n.Tag = string(p.event.tag)
 	p.anchor(n, p.event.anchor)
 	p.skip()
 	for p.event.typ != yaml_SEQUENCE_END_EVENT {
@@ -182,6 +185,7 @@ func (p *parser) sequence() *Node {
 
 func (p *parser) mapping() *Node {
 	n := p.node(MappingNode)
+	n.Tag = string(p.event.tag)
 	p.anchor(n, p.event.anchor)
 	p.skip()
 	for p.event.typ != yaml_MAPPING_END_EVENT {

@@ -97,9 +97,7 @@ func UnmarshalStrict(in []byte, out interface{}) (err error) {
 func unmarshal(in []byte, out interface{}, strict bool) (err error) {
 	defer handleErr(&err)
 	d := newDecoder(strict)
-	p := newParser(in)
-	defer p.destroy()
-	node := p.parse()
+	node := Parse(in)
 	if node != nil {
 		v := reflect.ValueOf(out)
 		if v.Kind() == reflect.Ptr && !v.IsNil() {

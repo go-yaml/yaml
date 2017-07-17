@@ -650,7 +650,7 @@ func (d *decoder) mappingStruct(n *Node, out reflect.Value) (good bool) {
 			d.unmarshal(n.Children[i+1], value)
 			inlineMap.SetMapIndex(name, value)
 		} else if d.strict {
-			d.terrors = append(d.terrors, fmt.Sprintf("line %d: field %s not found in struct %s", n.line+1, name.String(), out.Type()))
+			d.terrors = append(d.terrors, fmt.Sprintf("line %d: field %s not found in struct %s", n.Line+1, name.String(), out.Type()))
 		}
 	}
 	return true

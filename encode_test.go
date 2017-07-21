@@ -305,8 +305,13 @@ var marshalTests = []struct {
 		"a: 1.2.3.4\n",
 	},
 	{
-		map[string]time.Time{"a": time.Unix(1424801979, 0)},
-		"a: 2015-02-24T18:19:39Z\n",
+		map[string]time.Time{"a": time.Date(2015, 2, 24, 18, 19, 39, 0, time.UTC)},
+		"a: !!timestamp 2015-02-24T18:19:39Z\n",
+	},
+	// Ensure timestamp-like strings are quoted.
+	{
+		map[string]string{"a": "2015-02-24T18:19:39Z"},
+		"a: \"2015-02-24T18:19:39Z\"\n",
 	},
 
 	// Ensure strings containing ": " are quoted (reported as PR #43, but not reproducible).
@@ -330,7 +335,7 @@ func (s *S) TestMarshal(c *C) {
 	defer os.Setenv("TZ", os.Getenv("TZ"))
 	os.Setenv("TZ", "UTC")
 	for i, item := range marshalTests {
-		c.Logf("test %d. %q", i, item.data)
+		c.Logf("test %d: %q", i, item.data)
 		data, err := yaml.Marshal(item.value)
 		c.Assert(err, IsNil)
 		c.Assert(string(data), Equals, item.data)

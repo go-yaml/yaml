@@ -4,7 +4,6 @@ import (
 	"errors"
 	"io"
 	"math"
-	"net"
 	"reflect"
 	"strings"
 	"time"
@@ -576,22 +575,79 @@ var unmarshalTests = []struct {
 	// Support encoding.TextUnmarshaler.
 	{
 		"a: 1.2.3.4\n",
-		map[string]net.IP{"a": net.IPv4(1, 2, 3, 4)},
+		map[string]textUnmarshaler{"a": textUnmarshaler{S: "1.2.3.4"}},
 	},
 	{
 		"a: 2015-02-24T18:19:39Z\n",
-		map[string]time.Time{"a": time.Unix(1424801979, 0).In(time.UTC)},
+		map[string]textUnmarshaler{"a": textUnmarshaler{"2015-02-24T18:19:39Z"}},
+	},
+
+	// Timestamps
+	{
+		// Date only.
+		"a: 2015-01-01\n",
+		map[string]time.Time{"a": time.Date(2015, 1, 1, 0, 0, 0, 0, time.UTC)},
 	},
 	{
-		"a: 2015-01-01",
-		map[string]time.Time{"a": time.Unix(1420070400, 0)},
+		// RFC3339
+		"a: 2015-02-24T18:19:39.12Z\n",
+		map[string]time.Time{"a": time.Date(2015, 2, 24, 18, 19, 39, .12e9, time.UTC)},
 	},
 	{
+		// RFC3339 with short dates.
+		"a: 2015-2-3T3:4:5Z",
+		map[string]time.Time{"a": time.Date(2015, 2, 3, 3, 4, 5, 0, time.UTC)},
+	},
+	{
+		// ISO8601 lower case t
+		"a: 2015-02-24t18:19:39Z\n",
+		map[string]time.Time{"a": time.Date(2015, 2, 24, 18, 19, 39, 0, time.UTC)},
+	},
+	{
+		// space separate, no time zone
+		"a: 2015-02-24 18:19:39\n",
+		map[string]time.Time{"a": time.Date(2015, 2, 24, 18, 19, 39, 0, time.UTC)},
+	},
+	// Some cases not currently handled. Uncomment these when
+	// the code is fixed.
+	//	{
+	//		// space separated with time zone
+	//		"a: 2001-12-14 21:59:43.10 -5",
+	//		map[string]interface{}{"a": time.Date(2001, 12, 14, 21, 59, 43, .1e9, time.UTC)},
+	//	},
+	//	{
+	//		// arbitrary whitespace between fields
+	//		"a: 2001-12-14 \t\t \t21:59:43.10 \t Z",
+	//		map[string]interface{}{"a": time.Date(2001, 12, 14, 21, 59, 43, .1e9, time.UTC)},
+	//	},
+	{
+		// explicit string tag
 		"a: !!str 2015-01-01",
-		map[string]string{"a": "2015-01-01"},
+		map[string]interface{}{"a": "2015-01-01"},
 	},
 	{
+		// explicit timestamp tag on quoted string
+		"a: !!timestamp \"2015-01-01\"",
+		map[string]time.Time{"a": time.Date(2015, 1, 1, 0, 0, 0, 0, time.UTC)},
+	},
+	{
+		// explicit timestamp tag on unquoted string
+		"a: !!timestamp 2015-01-01",
+		map[string]time.Time{"a": time.Date(2015, 1, 1, 0, 0, 0, 0, time.UTC)},
+	},
+	{
+		// quoted string that's a valid timestamp
 		"a: \"2015-01-01\"",
+		map[string]interface{}{"a": "2015-01-01"},
+	},
+	{
+		// explicit timestamp tag into interface.
+		"a: !!timestamp \"2015-01-01\"",
+		map[string]interface{}{"a": "2015-01-01"},
+	},
+	{
+		// implicit timestamp tag into interface.
+		"a: 2015-01-01",
 		map[string]interface{}{"a": "2015-01-01"},
 	},
 
@@ -668,7 +724,7 @@ func (s *S) TestUnmarshal(c *C) {
 		if _, ok := err.(*yaml.TypeError); !ok {
 			c.Assert(err, IsNil)
 		}
-		c.Assert(value.Elem().Interface(), DeepEquals, item.value)
+		c.Assert(value.Elem().Interface(), DeepEquals, item.value, Commentf("error: %v", err))
 	}
 }
 
@@ -1175,6 +1231,15 @@ func (s *S) TestUnmarshalStrict(c *C) {
 		err = yaml.UnmarshalStrict([]byte(item.data), value.Interface())
 		c.Assert(err, ErrorMatches, item.error)
 	}
+}
+
+type textUnmarshaler struct {
+	S string
+}
+
+func (t *textUnmarshaler) UnmarshalText(s []byte) error {
+	t.S = string(s)
+	return nil
 }
 
 //var data []byte

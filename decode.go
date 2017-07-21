@@ -232,6 +232,7 @@ var (
 	durationType   = reflect.TypeOf(time.Duration(0))
 	defaultMapType = reflect.TypeOf(map[interface{}]interface{}{})
 	ifaceType      = defaultMapType.Elem()
+	timeType       = reflect.TypeOf(time.Time{})
 )
 
 func newDecoder(strict bool) *decoder {
@@ -360,7 +361,7 @@ func resetMap(out reflect.Value) {
 	}
 }
 
-func (d *decoder) scalar(n *node, out reflect.Value) (good bool) {
+func (d *decoder) scalar(n *node, out reflect.Value) bool {
 	var tag string
 	var resolved interface{}
 	if n.tag == "" && !n.implicit {
@@ -384,9 +385,26 @@ func (d *decoder) scalar(n *node, out reflect.Value) (good bool) {
 		}
 		return true
 	}
-	if s, ok := resolved.(string); ok && out.CanAddr() {
-		if u, ok := out.Addr().Interface().(encoding.TextUnmarshaler); ok {
-			err := u.UnmarshalText([]byte(s))
+	if resolvedv := reflect.ValueOf(resolved); out.Type() == resolvedv.Type() {
+		// We've resolved to exactly the type we want, so use that.
+		out.Set(resolvedv)
+		return true
+	}
+	// Perhaps we can use the value as a TextUnmarshaler to
+	// set its value.
+	if out.CanAddr() {
+		u, ok := out.Addr().Interface().(encoding.TextUnmarshaler)
+		if ok {
+			var text []byte
+			if tag == yaml_BINARY_TAG {
+				text = []byte(resolved.(string))
+			} else {
+				// We let any value be unmarshaled into TextUnmarshaler.
+				// That might be more lax than we'd like, but the
+				// TextUnmarshaler itself should bowl out any dubious values.
+				text = []byte(n.value)
+			}
+			err := u.UnmarshalText(text)
 			if err != nil {
 				fail(err)
 			}
@@ -397,46 +415,53 @@ func (d *decoder) scalar(n *node, out reflect.Value) (good bool) {
 	case reflect.String:
 		if tag == yaml_BINARY_TAG {
 			out.SetString(resolved.(string))
-			good = true
-		} else if resolved != nil {
+			return true
+		}
+		if resolved != nil {
 			out.SetString(n.value)
-			good = true
+			return true
 		}
 	case reflect.Interface:
 		if resolved == nil {
 			out.Set(reflect.Zero(out.Type()))
+		} else if tag == yaml_TIMESTAMP_TAG {
+			// It looks like a timestamp but for backward compatibility
+			// reasons we set it as a string, so that code that unmarshals
+			// timestamp-like values into interface{} will continue to
+			// see a string and not a time.Time.
+			out.Set(reflect.ValueOf(n.value))
 		} else {
 			out.Set(reflect.ValueOf(resolved))
 		}
-		good = true
+		return true
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		switch resolved := resolved.(type) {
 		case int:
 			if !out.OverflowInt(int64(resolved)) {
 				out.SetInt(int64(resolved))
-				good = true
+				return true
 			}
 		case int64:
 			if !out.OverflowInt(resolved) {
 				out.SetInt(resolved)
-				good = true
+				return true
 			}
 		case uint64:
 			if resolved <= math.MaxInt64 && !out.OverflowInt(int64(resolved)) {
 				out.SetInt(int64(resolved))
-				good = true
+				return true
 			}
 		case float64:
 			if resolved <= math.MaxInt64 && !out.OverflowInt(int64(resolved)) {
 				out.SetInt(int64(resolved))
-				good = true
+				return true
 			}
 		case string:
 			if out.Type() == durationType {
 				d, err := time.ParseDuration(resolved)
 				if err == nil {
 					out.SetInt(int64(d))
-					good = true
+					return true
 				}
 			}
 		}
@@ -445,49 +470,49 @@ func (d *decoder) scalar(n *node, out reflect.Value) (good bool) {
 		case int:
 			if resolved >= 0 && !out.OverflowUint(uint64(resolved)) {
 				out.SetUint(uint64(resolved))
-				good = true
+				return true
 			}
 		case int64:
 			if resolved >= 0 && !out.OverflowUint(uint64(resolved)) {
 				out.SetUint(uint64(resolved))
-				good = true
+				return true
 			}
 		case uint64:
 			if !out.OverflowUint(uint64(resolved)) {
 				out.SetUint(uint64(resolved))
-				good = true
+				return true
 			}
 		case float64:
 			if resolved <= math.MaxUint64 && !out.OverflowUint(uint64(resolved)) {
 				out.SetUint(uint64(resolved))
-				good = true
+				return true
 			}
 		}
 	case reflect.Bool:
 		switch resolved := resolved.(type) {
 		case bool:
 			out.SetBool(resolved)
-			good = true
+			return true
 		}
 	case reflect.Float32, reflect.Float64:
 		switch resolved := resolved.(type) {
 		case int:
 			out.SetFloat(float64(resolved))
-			good = true
+			return true
 		case int64:
 			out.SetFloat(float64(resolved))
-			good = true
+			return true
 		case uint64:
 			out.SetFloat(float64(resolved))
-			good = true
+			return true
 		case float64:
 			out.SetFloat(resolved)
-			good = true
+			return true
 		}
 	case reflect.Struct:
-		if out.Type() == reflect.TypeOf(resolved) {
-			out.Set(reflect.ValueOf(resolved))
-			good = true
+		if resolvedv := reflect.ValueOf(resolved); out.Type() == resolvedv.Type() {
+			out.Set(resolvedv)
+			return true
 		}
 	case reflect.Ptr:
 		if out.Type().Elem() == reflect.TypeOf(resolved) {
@@ -495,13 +520,11 @@ func (d *decoder) scalar(n *node, out reflect.Value) (good bool) {
 			elem := reflect.New(out.Type().Elem())
 			elem.Elem().Set(reflect.ValueOf(resolved))
 			out.Set(elem)
-			good = true
+			return true
 		}
 	}
-	if !good {
-		d.terror(n, tag, out)
-	}
-	return good
+	d.terror(n, tag, out)
+	return false
 }
 
 func settableValueOf(i interface{}) reflect.Value {

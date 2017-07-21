@@ -303,7 +303,7 @@ var marshalTests = []struct {
 		"a: 1.2.3.4\n",
 	},
 	{
-		map[string]time.Time{"a": time.Unix(1424801979, 0)},
+		map[string]time.Time{"a": time.Date(2015, 2, 24, 18, 19, 39, 0, time.UTC)},
 		"a: 2015-02-24T18:19:39Z\n",
 	},
 
@@ -327,7 +327,8 @@ var marshalTests = []struct {
 func (s *S) TestMarshal(c *C) {
 	defer os.Setenv("TZ", os.Getenv("TZ"))
 	os.Setenv("TZ", "UTC")
-	for _, item := range marshalTests {
+	for i, item := range marshalTests {
+		c.Logf("test %d: %q", i, item.data)
 		data, err := yaml.Marshal(item.value)
 		c.Assert(err, IsNil)
 		c.Assert(string(data), Equals, item.data)

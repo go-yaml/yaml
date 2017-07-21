@@ -126,34 +126,12 @@ func resolve(tag string, in string) (rtag string, out interface{}) {
 
 		case 'D', 'S':
 			// Int, float, or timestamp.
-
-			// Handle custom timestamp formats as described on http://yaml.org/type/timestamp.html
-			// RFC3339 is handled automatically by the time.Time implementation of the
-			// encoding.TextUnmarshaler interface but we are going to explicitly
-			// handle it here. We should only perform timestamp manipulation if
-			// there is either no quotes on the value or there is an explicit !!timestamp tag.
-
-			if shortTag(tag) == shortTag(yaml_TIMESTAMP_TAG) || tag == "" {
-				var possibleTime time.Time
-				if tryTime(time.RFC3339, in, &possibleTime) {
-					return yaml_TIMESTAMP_TAG, possibleTime
-				}
-
-				// valid iso8601
-				if tryTime("2006-01-02t15:04:05.99-07:00", in, &possibleTime) {
-					return yaml_TIMESTAMP_TAG, possibleTime
-				}
-				// space separated
-				if tryTime("2006-01-02 15:04:05.99 -7", in, &possibleTime) {
-					return yaml_TIMESTAMP_TAG, possibleTime
-				}
-				// no time zone
-				if tryTime("2006-01-02 15:04:05.99", in, &possibleTime) {
-					return yaml_TIMESTAMP_TAG, possibleTime
-				}
-				// date (00:00:00Z)
-				if tryTime("2006-01-02", in, &possibleTime) {
-					return yaml_TIMESTAMP_TAG, possibleTime
+			// Only try values as a timestamp if the value is unquoted or there's an explicit
+			// !!timestamp tag.
+			if tag == "" || tag == yaml_TIMESTAMP_TAG {
+				t, ok := parseTimestamp(in)
+				if ok {
+					return yaml_TIMESTAMP_TAG, t
 				}
 			}
 
@@ -212,16 +190,6 @@ func resolve(tag string, in string) (rtag string, out interface{}) {
 	return yaml_BINARY_TAG, encodeBase64(in)
 }
 
-func tryTime(format, value string, t *time.Time) bool {
-	attempt, err := time.Parse(format, value)
-	if err == nil {
-		*t = attempt
-		return true
-	} else {
-		return false
-	}
-}
-
 // encodeBase64 encodes s as base64 that is broken up into multiple lines
 // as appropriate for the resulting length.
 func encodeBase64(s string) string {
@@ -245,4 +213,40 @@ func encodeBase64(s string) string {
 		}
 	}
 	return string(out[:k])
+}
+
+// This is a subset of the formats allowed by the regular expression
+// defined at http://yaml.org/type/timestamp.html.
+var allowedTimestampFormats = []string{
+	"2006-1-2T15:4:5Z07:00",
+	"2006-1-2t15:4:5Z07:00", // RFC3339 with lower-case "t".
+	"2006-1-2 15:4:5",       // space separated with no time zone
+	"2006-1-2",              // date only
+	// Notable exception: time.Parse cannot handle: "2001-12-14 21:59:43.10 -5"
+	// from the set of examples.
+}
+
+// parseTimestamp parses s as a timestamp string and
+// returns the timestamp and reports whether it succeeded.
+// Timestamp formats are defined at http://yaml.org/type/timestamp.html
+func parseTimestamp(s string) (time.Time, bool) {
+	// TODO write code to check all the formats supported by
+	// http://yaml.org/type/timestamp.html instead of using time.Parse.
+
+	// Quick check: all date formats start with YYYY-.
+	i := 0
+	for ; i < len(s); i++ {
+		if c := s[i]; c < '0' || c > '9' {
+			break
+		}
+	}
+	if i != 4 || i == len(s) || s[i] != '-' {
+		return time.Time{}, false
+	}
+	for _, format := range allowedTimestampFormats {
+		if t, err := time.Parse(format, s); err == nil {
+			return t, true
+		}
+	}
+	return time.Time{}, false
 }

@@ -454,8 +454,8 @@ func (d *decoder) scalar(n *node, out reflect.Value) (good bool) {
 			good = true
 		}
 	case reflect.Struct:
-		if out.Type() == reflect.TypeOf(resolved) {
-			out.Set(reflect.ValueOf(resolved))
+		if resolvedv := reflect.ValueOf(resolved); out.Type() == resolvedv.Type() {
+			out.Set(resolvedv)
 			good = true
 		}
 	case reflect.Ptr:

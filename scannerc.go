@@ -2002,12 +2002,6 @@ func yaml_parser_scan_tag_uri(parser *yaml_parser_t, directive bool, head []byte
 		}
 	}
 
-	// Check if the tag is non-empty.
-	if len(s) == 0 {
-		yaml_parser_set_scanner_tag_error(parser, directive,
-			start_mark, "did not find expected tag URI")
-		return false
-	}
 	*uri = s
 	return true
 }

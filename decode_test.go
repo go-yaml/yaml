@@ -403,6 +403,12 @@ var unmarshalTests = []struct {
 	}, {
 		"%TAG !y! tag:yaml.org,2002:\n---\nv: !y!int '1'",
 		map[string]interface{}{"v": 1},
+	}, {
+		"v: ! 12",
+		map[string]interface{}{"v": "12"},
+	}, {
+		"seq: ! [A, B]",
+		map[string]interface{}{"seq": []interface{}{"A", "B"}},
 	},
 
 	// Anchors and aliases.

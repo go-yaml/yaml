@@ -156,6 +156,21 @@ func Marshal(in interface{}) (out []byte, err error) {
 	return
 }
 
+// Individual apps can use SetPreserveCase(true) to mimic the encoding/json
+// behavior that preserves the case of struct fields.
+var preserveFieldCase bool = false
+
+// SetPreserveFieldCase allows consumers of the library to modify the behavior
+// of key name matching/generation to match encoding/json.
+// SetPreserveFieldCase(true) keeps the original case of field names (or uses
+// the provided yaml: struct tag), where stock behavior is to use ToLower()
+// on struct field names.
+// This function is not thread-safe, and should be called once from an
+// init() function to set behavior for the application.
+func SetPreserveFieldCase(b bool) {
+	preserveFieldCase = b
+}
+
 func handleErr(err *error) {
 	if v := recover(); v != nil {
 		if e, ok := v.(yamlError); ok {
@@ -302,6 +317,8 @@ func getStructInfo(st reflect.Type) (*structInfo, error) {
 
 		if tag != "" {
 			info.Key = tag
+		} else if preserveFieldCase {
+			info.Key = field.Name
 		} else {
 			info.Key = strings.ToLower(field.Name)
 		}

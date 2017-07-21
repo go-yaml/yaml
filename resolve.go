@@ -6,6 +6,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 	"unicode/utf8"
 )
 
@@ -75,7 +76,7 @@ func longTag(tag string) string {
 
 func resolvableTag(tag string) bool {
 	switch tag {
-	case "", yaml_STR_TAG, yaml_BOOL_TAG, yaml_INT_TAG, yaml_FLOAT_TAG, yaml_NULL_TAG:
+	case "", yaml_STR_TAG, yaml_BOOL_TAG, yaml_INT_TAG, yaml_FLOAT_TAG, yaml_NULL_TAG, yaml_TIMESTAMP_TAG:
 		return true
 	}
 	return false
@@ -125,6 +126,37 @@ func resolve(tag string, in string) (rtag string, out interface{}) {
 
 		case 'D', 'S':
 			// Int, float, or timestamp.
+
+			// Handle custom timestamp formats as described on http://yaml.org/type/timestamp.html
+			// RFC3339 is handled automatically by the time.Time implementation of the
+			// encoding.TextUnmarshaler interface but we are going to explicitly
+			// handle it here. We should only perform timestamp manipulation if
+			// there is either no quotes on the value or there is an explicit !!timestamp tag.
+
+			if shortTag(tag) == shortTag(yaml_TIMESTAMP_TAG) || tag == "" {
+				var possibleTime time.Time
+				if tryTime(time.RFC3339, in, &possibleTime) {
+					return yaml_TIMESTAMP_TAG, possibleTime
+				}
+
+				// valid iso8601
+				if tryTime("2006-01-02t15:04:05.99-07:00", in, &possibleTime) {
+					return yaml_TIMESTAMP_TAG, possibleTime
+				}
+				// space separated
+				if tryTime("2006-01-02 15:04:05.99 -7", in, &possibleTime) {
+					return yaml_TIMESTAMP_TAG, possibleTime
+				}
+				// no time zone
+				if tryTime("2006-01-02 15:04:05.99", in, &possibleTime) {
+					return yaml_TIMESTAMP_TAG, possibleTime
+				}
+				// date (00:00:00Z)
+				if tryTime("2006-01-02", in, &possibleTime) {
+					return yaml_TIMESTAMP_TAG, possibleTime
+				}
+			}
+
 			plain := strings.Replace(in, "_", "", -1)
 			intv, err := strconv.ParseInt(plain, 0, 64)
 			if err == nil {
@@ -167,8 +199,6 @@ func resolve(tag string, in string) (rtag string, out interface{}) {
 					}
 				}
 			}
-			// XXX Handle timestamps here.
-
 		default:
 			panic("resolveTable item not yet handled: " + string(rune(hint)) + " (with " + in + ")")
 		}
@@ -180,6 +210,16 @@ func resolve(tag string, in string) (rtag string, out interface{}) {
 		return yaml_STR_TAG, in
 	}
 	return yaml_BINARY_TAG, encodeBase64(in)
+}
+
+func tryTime(format, value string, t *time.Time) bool {
+	attempt, err := time.Parse(format, value)
+	if err == nil {
+		*t = attempt
+		return true
+	} else {
+		return false
+	}
 }
 
 // encodeBase64 encodes s as base64 that is broken up into multiple lines

@@ -405,6 +405,12 @@ var unmarshalTests = []struct {
 		map[string]interface{}{"v": 1},
 	},
 
+	// Non-specific tag (Issue #75)
+	{
+		"v: ! test",
+		map[string]interface{}{"v": "test"},
+	},
+
 	// Anchors and aliases.
 	{
 		"a: &x 1\nb: &y 2\nc: *x\nd: *y\n",

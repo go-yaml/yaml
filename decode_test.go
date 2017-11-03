@@ -1083,14 +1083,35 @@ func (s *S) TestUnmarshalSliceOnPreset(c *C) {
 }
 
 func (s *S) TestUnmarshalStrict(c *C) {
-	v := struct{ A, B int }{}
+	v := struct {
+		A, B int
+		Z    map[string]string
+	}{}
 
 	err := yaml.UnmarshalStrict([]byte("a: 1\nb: 2"), &v)
 	c.Check(err, IsNil)
 	err = yaml.Unmarshal([]byte("a: 1\nb: 2\nc: 3"), &v)
 	c.Check(err, IsNil)
 	err = yaml.UnmarshalStrict([]byte("a: 1\nb: 2\nc: 3"), &v)
-	c.Check(err, ErrorMatches, "yaml: unmarshal errors:\n  line 3: field c not found in struct struct { A int; B int }")
+	c.Check(err, ErrorMatches, "yaml: unmarshal errors:\n  line 3: field c not found in type struct { A int; B int; Z map\\[string\\]string }")
+	err = yaml.UnmarshalStrict([]byte("a: 1\na: 2"), &v)
+	c.Check(err, ErrorMatches, "yaml: unmarshal errors:\n  line 1: field a already set in type struct { A int; B int; Z map\\[string\\]string }")
+	err = yaml.UnmarshalStrict([]byte("z:\n  a: 1\n  a: 1"), &v)
+	c.Check(err, ErrorMatches, "yaml: unmarshal errors:\n  line 2: field a already set in map")
+
+	err = yaml.UnmarshalStrict([]byte("a: 1\nb: 2\na: 3\n"), &struct {
+		A int
+		C map[string]int `yaml:",inline"`
+	}{})
+	c.Check(err, ErrorMatches, "yaml: unmarshal errors:\n  line 1: field a already set in type struct { A int; C map\\[string\\]int \\\"yaml:\\\\\",inline\\\\\"\\\" }")
+
+	err = yaml.UnmarshalStrict([]byte("b: 1\na: 2\nb: 3\n"), &struct {
+		A struct {
+			B int
+		} `yaml:",inline"`
+		C map[string]int `yaml:",inline"`
+	}{})
+	c.Check(err, ErrorMatches, "yaml: unmarshal errors:\n  line 1: field b already set in type struct { A struct { B int } \\\"yaml:\\\\\",inline\\\\\"\\\"; C map\\[string\\]int \\\"yaml:\\\\\",inline\\\\\"\\\" }")
 }
 
 //var data []byte

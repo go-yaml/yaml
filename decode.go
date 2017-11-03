@@ -538,6 +538,16 @@ func (d *decoder) sequence(n *node, out reflect.Value) (good bool) {
 	return true
 }
 
+func (d *decoder) setMapIndex(n *node, out, k, v reflect.Value) {
+	if d.strict {
+		if out.MapIndex(k) != zeroValue {
+			d.terrors = append(d.terrors, fmt.Sprintf("line %d: field %s already set in map", n.line+1, k.String()))
+			return
+		}
+	}
+	out.SetMapIndex(k, v)
+}
+
 func (d *decoder) mapping(n *node, out reflect.Value) (good bool) {
 	switch out.Kind() {
 	case reflect.Struct:
@@ -592,7 +602,7 @@ func (d *decoder) mapping(n *node, out reflect.Value) (good bool) {
 			}
 			e := reflect.New(et).Elem()
 			if d.unmarshal(n.children[i+1], e) {
-				out.SetMapIndex(k, e)
+				d.setMapIndex(n, out, k, e)
 			}
 		}
 	}
@@ -647,6 +657,7 @@ func (d *decoder) mappingStruct(n *node, out reflect.Value) (good bool) {
 		elemType = inlineMap.Type().Elem()
 	}
 
+	doneFieldNames := make(map[string]bool)
 	for i := 0; i < l; i += 2 {
 		ni := n.children[i]
 		if isMerge(ni) {
@@ -656,7 +667,15 @@ func (d *decoder) mappingStruct(n *node, out reflect.Value) (good bool) {
 		if !d.unmarshal(ni, name) {
 			continue
 		}
-		if info, ok := sinfo.FieldsMap[name.String()]; ok {
+		ns := name.String()
+		if d.strict {
+			if doneFieldNames[ns] {
+				d.terrors = append(d.terrors, fmt.Sprintf("line %d: field %s already set in type %s", n.line+1, ns, out.Type()))
+				break
+			}
+			doneFieldNames[ns] = true
+		}
+		if info, ok := sinfo.FieldsMap[ns]; ok {
 			var field reflect.Value
 			if info.Inline == nil {
 				field = out.Field(info.Num)
@@ -670,9 +689,9 @@ func (d *decoder) mappingStruct(n *node, out reflect.Value) (good bool) {
 			}
 			value := reflect.New(elemType).Elem()
 			d.unmarshal(n.children[i+1], value)
-			inlineMap.SetMapIndex(name, value)
+			d.setMapIndex(n, inlineMap, name, value)
 		} else if d.strict {
-			d.terrors = append(d.terrors, fmt.Sprintf("line %d: field %s not found in struct %s", ni.line+1, name.String(), out.Type()))
+			d.terrors = append(d.terrors, fmt.Sprintf("line %d: field %s not found in type %s", ni.line+1, ns, out.Type()))
 		}
 	}
 	return true

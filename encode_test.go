@@ -342,7 +342,7 @@ var marshalErrorTests = []struct {
 		B       int
 		inlineB ",inline"
 	}{1, inlineB{2, inlineC{3}}},
-	panic: `Duplicated key 'b' in struct struct \{ B int; .*`,
+	panic: `duplicated key "b" in struct struct \{ B int; .*`,
 }, {
 	value: &struct {
 		A int

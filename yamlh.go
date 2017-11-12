@@ -616,6 +616,48 @@ const (
 	yaml_EMIT_END_STATE                        // Expect nothing.
 )
 
+func (es yaml_emitter_state_t) String() string {
+	switch es {
+	case yaml_EMIT_STREAM_START_STATE:
+		return "yaml_EMIT_STREAM_START_STATE"
+	case yaml_EMIT_FIRST_DOCUMENT_START_STATE:
+		return "yaml_EMIT_FIRST_DOCUMENT_START_STATE"
+	case yaml_EMIT_DOCUMENT_START_STATE:
+		return "yaml_EMIT_DOCUMENT_START_STATE"
+	case yaml_EMIT_DOCUMENT_CONTENT_STATE:
+		return "yaml_EMIT_DOCUMENT_CONTENT_STATE"
+	case yaml_EMIT_DOCUMENT_END_STATE:
+		return "yaml_EMIT_DOCUMENT_END_STATE"
+	case yaml_EMIT_FLOW_SEQUENCE_FIRST_ITEM_STATE:
+		return "yaml_EMIT_FLOW_SEQUENCE_FIRST_ITEM_STATE"
+	case yaml_EMIT_FLOW_SEQUENCE_ITEM_STATE:
+		return "yaml_EMIT_FLOW_SEQUENCE_ITEM_STATE"
+	case yaml_EMIT_FLOW_MAPPING_FIRST_KEY_STATE:
+		return "yaml_EMIT_FLOW_MAPPING_FIRST_KEY_STATE"
+	case yaml_EMIT_FLOW_MAPPING_KEY_STATE:
+		return "yaml_EMIT_FLOW_MAPPING_KEY_STATE"
+	case yaml_EMIT_FLOW_MAPPING_SIMPLE_VALUE_STATE:
+		return "yaml_EMIT_FLOW_MAPPING_SIMPLE_VALUE_STATE"
+	case yaml_EMIT_FLOW_MAPPING_VALUE_STATE:
+		return "yaml_EMIT_FLOW_MAPPING_VALUE_STATE"
+	case yaml_EMIT_BLOCK_SEQUENCE_FIRST_ITEM_STATE:
+		return "yaml_EMIT_BLOCK_SEQUENCE_FIRST_ITEM_STATE"
+	case yaml_EMIT_BLOCK_SEQUENCE_ITEM_STATE:
+		return "yaml_EMIT_BLOCK_SEQUENCE_ITEM_STATE"
+	case yaml_EMIT_BLOCK_MAPPING_FIRST_KEY_STATE:
+		return "yaml_EMIT_BLOCK_MAPPING_FIRST_KEY_STATE"
+	case yaml_EMIT_BLOCK_MAPPING_KEY_STATE:
+		return "yaml_EMIT_BLOCK_MAPPING_KEY_STATE"
+	case yaml_EMIT_BLOCK_MAPPING_SIMPLE_VALUE_STATE:
+		return "yaml_EMIT_BLOCK_MAPPING_SIMPLE_VALUE_STATE"
+	case yaml_EMIT_BLOCK_MAPPING_VALUE_STATE:
+		return "yaml_EMIT_BLOCK_MAPPING_VALUE_STATE"
+	case yaml_EMIT_END_STATE:
+		return "yaml_EMIT_END_STATE"
+	}
+	return "<unknown parser state>"
+}
+
 // The emitter structure.
 //
 // All members are internal.  Manage the structure using the @c yaml_emitter_

@@ -49,6 +49,7 @@ type Encoder struct {
 
 func (enc *Encoder) Encode(in interface{}) (err error) {
 	defer handleErr(&err)
+	enc.e.init()
 	enc.e.begin()
 	enc.e.marshal("", reflect.ValueOf(in))
 	enc.e.end()

@@ -36,9 +36,12 @@ func newFileEncoder(w io.Writer) (e *encoder) {
 	e.must(yaml_emitter_initialize(&e.emitter))
 	yaml_emitter_set_output_file(&e.emitter, w)
 	yaml_emitter_set_unicode(&e.emitter, true)
+	return e
+}
+
+func (e *encoder) init() {
 	e.must(yaml_stream_start_event_initialize(&e.event, yaml_UTF8_ENCODING))
 	e.emit()
-	return e
 }
 
 func (e *encoder) begin() {
@@ -64,6 +67,7 @@ func (e *encoder) destroy() {
 }
 
 func (e *encoder) emit() {
+	//trace("Emit: ", e.emitter.state.String())
 	// This will internally delete the e.event value.
 	if !yaml_emitter_emit(&e.emitter, &e.event) && e.event.typ != yaml_DOCUMENT_END_EVENT && e.event.typ != yaml_STREAM_END_EVENT {
 		e.must(false)

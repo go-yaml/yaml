@@ -436,3 +436,15 @@ func (s *S) TestEncode(c *C) {
 		c.Assert(buf.String(), Equals, item.data)
 	}
 }
+
+func (s *S) TestEncodeError(c *C) {
+	for _, item := range marshalErrorTests {
+		var buf = bytes.NewBuffer(nil)
+		if item.panic != "" {
+			c.Assert(func() { NewEncoder(buf).Encode(item.value) }, PanicMatches, item.panic)
+		} else {
+			err := NewEncoder(buf).Encode(item.value)
+			c.Assert(err, ErrorMatches, item.error)
+		}
+	}
+}

@@ -270,10 +270,10 @@ func getStructInfo(st reflect.Type) (*structInfo, error) {
 			switch field.Type.Kind() {
 			case reflect.Map:
 				if inlineMap >= 0 {
-					return nil, errors.New("Multiple ,inline maps in struct " + st.String())
+					return nil, fmt.Errorf("multiple, inline maps in struct %s", st)
 				}
 				if field.Type.Key() != reflect.TypeOf("") {
-					return nil, errors.New("Option ,inline needs a map with string keys in struct " + st.String())
+					return nil, fmt.Errorf("option, inline needs a map with string keys in struct %s", st)
 				}
 				inlineMap = info.Num
 			case reflect.Struct:
@@ -284,8 +284,7 @@ func getStructInfo(st reflect.Type) (*structInfo, error) {
 				}
 				for _, finfo := range sinfo.FieldsList {
 					if _, found = fieldsMap[finfo.Key]; found {
-						msg := "Duplicated key '" + finfo.Key + "' in struct " + st.String()
-						return nil, errors.New(msg)
+						return nil, fmt.Errorf("duplicated key %q in struct %s", finfo.Key, st)
 					}
 					if finfo.Inline == nil {
 						finfo.Inline = []int{i, finfo.Num}
@@ -297,7 +296,7 @@ func getStructInfo(st reflect.Type) (*structInfo, error) {
 				}
 			default:
 				//return nil, errors.New("Option ,inline needs a struct value or map field")
-				return nil, errors.New("option ,inline needs a struct value field")
+				return nil, errors.New("option, inline needs a struct value field")
 			}
 			continue
 		}
@@ -309,8 +308,7 @@ func getStructInfo(st reflect.Type) (*structInfo, error) {
 		}
 
 		if _, found = fieldsMap[info.Key]; found {
-			msg := "Duplicated key '" + info.Key + "' in struct " + st.String()
-			return nil, errors.New(msg)
+			return nil, fmt.Errorf("duplicated key %q in struct %s", info.Key, st)
 		}
 
 		fieldsList = append(fieldsList, info)

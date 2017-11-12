@@ -1,11 +1,11 @@
-package yaml_test
+package yaml
 
 import (
 	"bytes"
-	. "gopkg.in/check.v1"
-	"gopkg.in/yaml.v2"
 	"io"
 	"reflect"
+
+	. "gopkg.in/check.v1"
 )
 
 var decodeStreamTest = []struct {
@@ -46,7 +46,7 @@ action: grand slam
 	},
 }
 
-func testDecode(c *C, v reflect.Value, decoder *yaml.Decoder) {
+func testDecode(c *C, v reflect.Value, decoder *Decoder) {
 	t := v.Type()
 	var value interface{}
 	switch t.Kind() {
@@ -60,7 +60,7 @@ func testDecode(c *C, v reflect.Value, decoder *yaml.Decoder) {
 		c.Fatalf("missing case for %s", t)
 	}
 	err := decoder.Decode(value)
-	if _, ok := err.(*yaml.TypeError); !ok {
+	if _, ok := err.(*TypeError); !ok {
 		if err != io.EOF {
 			c.Assert(err, IsNil)
 		}
@@ -77,7 +77,7 @@ func (s *S) TestDecode(c *C) {
 	for _, item := range testCases {
 		// prepare YAML Decoder
 		buf := bytes.NewBufferString(item.data)
-		decoder := yaml.NewDecoder(buf)
+		decoder := NewDecoder(buf)
 
 		// test agains reference
 		ref := reflect.ValueOf(item.value)
@@ -95,12 +95,22 @@ func (s *S) TestDecode(c *C) {
 }
 
 func (s *S) TestDecodeError(c *C) {
+	// NotStrict
 	for _, item := range unmarshalErrorTests {
 		// prepare YAML Decoder
 		buf := bytes.NewBufferString(item.data)
-		decoder := yaml.NewDecoder(buf)
+		decoder := NewDecoder(buf)
 		var value interface{}
 		err := decoder.Decode(&value)
+		c.Assert(err, ErrorMatches, item.error, Commentf("Partial unmarshal: %#v", value))
+	}
+	// Strict
+	for _, item := range unmarshalErrorTests {
+		// prepare YAML Decoder
+		buf := bytes.NewBufferString(item.data)
+		decoder := NewDecoder(buf)
+		var value interface{}
+		err := decoder.DecodeStrict(&value)
 		c.Assert(err, ErrorMatches, item.error, Commentf("Partial unmarshal: %#v", value))
 	}
 }

@@ -54,8 +54,6 @@ func yaml_parser_determine_encoding(parser *yaml_parser_t) bool {
 
 // Update the raw buffer.
 func yaml_parser_update_raw_buffer(parser *yaml_parser_t) bool {
-	size_read := 0
-
 	// Return if the raw buffer is full.
 	if parser.raw_buffer_pos == 0 && len(parser.raw_buffer) == cap(parser.raw_buffer) {
 		return true
@@ -357,7 +355,7 @@ func yaml_parser_update_buffer(parser *yaml_parser_t, length int) bool {
 			if value <= 0x7F {
 				// 0000 0000-0000 007F . 0xxxxxxx
 				parser.buffer[buffer_len+0] = byte(value)
-				buffer_len += 1
+				buffer_len++
 			} else if value <= 0x7FF {
 				// 0000 0080-0000 07FF . 110xxxxx 10xxxxxx
 				parser.buffer[buffer_len+0] = byte(0xC0 + (value >> 6))

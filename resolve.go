@@ -130,9 +130,8 @@ func resolve(tag string, in string) (rtag string, out interface{}) {
 			if err == nil {
 				if intv == int64(int(intv)) {
 					return yaml_INT_TAG, int(intv)
-				} else {
-					return yaml_INT_TAG, intv
 				}
+				return yaml_INT_TAG, intv
 			}
 			uintv, err := strconv.ParseUint(plain, 0, 64)
 			if err == nil {
@@ -149,9 +148,8 @@ func resolve(tag string, in string) (rtag string, out interface{}) {
 				if err == nil {
 					if intv == int64(int(intv)) {
 						return yaml_INT_TAG, int(intv)
-					} else {
-						return yaml_INT_TAG, intv
 					}
+					return yaml_INT_TAG, intv
 				}
 				uintv, err := strconv.ParseUint(plain[2:], 2, 64)
 				if err == nil {
@@ -162,9 +160,8 @@ func resolve(tag string, in string) (rtag string, out interface{}) {
 				if err == nil {
 					if intv == int64(int(intv)) {
 						return yaml_INT_TAG, -int(intv)
-					} else {
-						return yaml_INT_TAG, -intv
 					}
+					return yaml_INT_TAG, -intv
 				}
 			}
 			// XXX Handle timestamps here.

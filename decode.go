@@ -133,7 +133,7 @@ func (p *parser) parse() *node {
 		// Happens when attempting to decode an empty buffer.
 		return nil
 	default:
-		trace("yaml_parser_state_machine", "state:", p.event.typ, p.parser.state.String())
+		//trace("yaml_parser_state_machine", "state:", p.event.typ, p.parser.state.String())
 		panic("attempted to parse unknown event: " + strconv.Itoa(int(p.event.typ)))
 	}
 }

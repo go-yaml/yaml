@@ -513,6 +513,18 @@ var unmarshalTests = []struct {
 		map[string]interface{}{"a": "50cent_of_dollar"},
 	},
 
+	// issue #295 (allow scalars with colons in flow mappings and sequences)
+	{
+		"a: {b: https://github.com/go-yaml/yaml}",
+		map[string]interface{}{"a": map[interface{}]interface{}{
+			"b": "https://github.com/go-yaml/yaml",
+		}},
+	},
+	{
+		"a: [https://github.com/go-yaml/yaml]",
+		map[string]interface{}{"a": []interface{}{"https://github.com/go-yaml/yaml"}},
+	},
+
 	// Duration
 	{
 		"a: 3s",

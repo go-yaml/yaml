@@ -557,7 +557,7 @@ var unmarshalTests = []struct {
 	},
 	{
 		"a: 2015-02-24T18:19:39Z\n",
-		map[string]time.Time{"a": time.Unix(1424801979, 0).UTC()},
+		map[string]time.Time{"a": time.Unix(1424801979, 0).In(time.UTC)},
 	},
 
 	// Encode empty lists as zero-length slices.
@@ -984,7 +984,7 @@ func (s *S) TestUnmarshalStrict(c *C) {
 	err = Unmarshal([]byte("a: 1\nb: 2\nc: 3"), &v)
 	c.Check(err, IsNil)
 	err = UnmarshalStrict([]byte("a: 1\nb: 2\nc: 3"), &v)
-	c.Check(err, ErrorMatches, "yaml: unmarshal errors:\n  line 1: field c not found in struct struct { A int; B int }")
+	c.Check(err, ErrorMatches, "yaml: unmarshal errors:\n  line 3: field c not found in struct struct { A int; B int }")
 }
 
 //var data []byte

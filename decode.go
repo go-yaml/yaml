@@ -22,10 +22,12 @@ type node struct {
 	kind         int
 	line, column int
 	tag          string
-	value        string
-	implicit     bool
-	children     []*node
-	anchors      map[string]*node
+	// For an alias node, alias holds the resolved alias.
+	alias    *node
+	value    string
+	implicit bool
+	children []*node
+	anchors  map[string]*node
 }
 
 // ----------------------------------------------------------------------------
@@ -146,6 +148,10 @@ func (p *parser) document() *node {
 func (p *parser) alias() *node {
 	n := p.node(aliasNode)
 	n.value = string(p.event.anchor)
+	n.alias = p.doc.anchors[n.value]
+	if n.alias == nil {
+		failf("unknown anchor '%s' referenced", n.value)
+	}
 	p.skip()
 	return n
 }
@@ -187,7 +193,7 @@ func (p *parser) mapping() *node {
 
 type decoder struct {
 	doc     *node
-	aliases map[string]bool
+	aliases map[*node]bool
 	mapType reflect.Type
 	terrors []string
 	strict  bool
@@ -202,7 +208,7 @@ var (
 
 func newDecoder(strict bool) *decoder {
 	d := &decoder{mapType: defaultMapType, strict: strict}
-	d.aliases = make(map[string]bool)
+	d.aliases = make(map[*node]bool)
 	return d
 }
 
@@ -308,16 +314,13 @@ func (d *decoder) document(n *node, out reflect.Value) (good bool) {
 }
 
 func (d *decoder) alias(n *node, out reflect.Value) (good bool) {
-	an, ok := d.doc.anchors[n.value]
-	if !ok {
-		failf("unknown anchor '%s' referenced", n.value)
-	}
-	if d.aliases[n.value] {
+	if d.aliases[n] {
+		// TODO this could actually be allowed in some circumstances.
 		failf("anchor '%s' value contains itself", n.value)
 	}
-	d.aliases[n.value] = true
-	good = d.unmarshal(an, out)
-	delete(d.aliases, n.value)
+	d.aliases[n] = true
+	good = d.unmarshal(n.alias, out)
+	delete(d.aliases, n)
 	return good
 }
 

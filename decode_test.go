@@ -2,13 +2,14 @@ package yaml_test
 
 import (
 	"errors"
-	. "gopkg.in/check.v1"
-	"gopkg.in/yaml.v2"
 	"math"
 	"net"
 	"reflect"
 	"strings"
 	"time"
+
+	. "gopkg.in/check.v1"
+	"gopkg.in/yaml.v2"
 )
 
 var unmarshalIntTest = 123
@@ -425,13 +426,6 @@ var unmarshalTests = []struct {
 	}, {
 		"a: &a [1, 2]\nb: *a",
 		&struct{ B []int }{[]int{1, 2}},
-	}, {
-		"b: *a\na: &a {c: 1}",
-		&struct {
-			A, B struct {
-				C int
-			}
-		}{struct{ C int }{1}, struct{ C int }{1}},
 	},
 
 	// Bug #1133337
@@ -611,6 +605,16 @@ var unmarshalTests = []struct {
 		"a: 123456E1\n",
 		M{"a": "123456E1"},
 	},
+	// yaml-test-suite 3GZX: Spec Example 7.1. Alias Nodes
+	{
+		"First occurrence: &anchor Foo\nSecond occurrence: *anchor\nOverride anchor: &anchor Bar\nReuse anchor: *anchor\n",
+		map[interface{}]interface{}{
+			"Reuse anchor":      "Bar",
+			"First occurrence":  "Foo",
+			"Second occurrence": "Foo",
+			"Override anchor":   "Bar",
+		},
+	},
 }
 
 type M map[interface{}]interface{}
@@ -670,6 +674,7 @@ var unmarshalErrorTests = []struct {
 	{"a: !!binary ==", "yaml: !!binary value contains invalid base64 data"},
 	{"{[.]}", `yaml: invalid map key: \[\]interface \{\}\{"\."\}`},
 	{"{{.}}", `yaml: invalid map key: map\[interface\ \{\}\]interface \{\}\{".":interface \{\}\(nil\)\}`},
+	{"b: *a\na: &a {c: 1}", `yaml: unknown anchor 'a' referenced`},
 	{"%TAG !%79! tag:yaml.org,2002:\n---\nv: !%79!int '1'", "yaml: did not find expected whitespace"},
 }
 

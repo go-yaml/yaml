@@ -9,6 +9,7 @@ package yaml
 import (
 	"errors"
 	"fmt"
+	"io"
 	"reflect"
 	"strings"
 	"sync"
@@ -85,6 +86,51 @@ func Unmarshal(in []byte, out interface{}) (err error) {
 // an error.
 func UnmarshalStrict(in []byte, out interface{}) (err error) {
 	return unmarshal(in, out, true)
+}
+
+// A Decorder reads and decodes YAML values from an input stream.
+type Decoder struct {
+	strict bool
+	parser *parser
+}
+
+// NewDecoder returns a new decoder that reads from r.
+//
+// The decoder introduces its own buffering and may read
+// data from r beyond the YAML values requested.
+func NewDecoder(r io.Reader) *Decoder {
+	return &Decoder{
+		parser: newParserFromReader(r),
+	}
+}
+
+// SetStrict sets whether strict decoding behaviour is enabled when
+// decoding items in the data. By default, decoding is not strict.
+func (dec *Decoder) SetStrict(strict bool) {
+	dec.strict = strict
+}
+
+// Decode reads the next YAML-encoded value from its input
+// and stores it in the value pointed to by v.
+//
+// See the documentation for Unmarshal for details about the
+// conversion of YAML into a Go value.
+func (dec *Decoder) Decode(v interface{}) (err error) {
+	d := newDecoder(dec.strict)
+	defer handleErr(&err)
+	node := dec.parser.parse()
+	if node == nil {
+		return io.EOF
+	}
+	out := reflect.ValueOf(v)
+	if out.Kind() == reflect.Ptr && !out.IsNil() {
+		out = out.Elem()
+	}
+	d.unmarshal(node, out)
+	if len(d.terrors) > 0 {
+		return &TypeError{d.terrors}
+	}
+	return nil
 }
 
 func unmarshal(in []byte, out interface{}, strict bool) (err error) {

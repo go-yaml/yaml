@@ -2,7 +2,6 @@ package yaml
 
 import (
 	"io"
-	"os"
 )
 
 func yaml_insert_token(parser *yaml_parser_t, pos int, token *yaml_token_t) {
@@ -48,9 +47,9 @@ func yaml_string_read_handler(parser *yaml_parser_t, buffer []byte) (n int, err 
 	return n, nil
 }
 
-// File read handler.
-func yaml_file_read_handler(parser *yaml_parser_t, buffer []byte) (n int, err error) {
-	return parser.input_file.Read(buffer)
+// Reader read handler.
+func yaml_reader_read_handler(parser *yaml_parser_t, buffer []byte) (n int, err error) {
+	return parser.input_reader.Read(buffer)
 }
 
 // Set a string input.
@@ -64,12 +63,12 @@ func yaml_parser_set_input_string(parser *yaml_parser_t, input []byte) {
 }
 
 // Set a file input.
-func yaml_parser_set_input_file(parser *yaml_parser_t, file *os.File) {
+func yaml_parser_set_input_reader(parser *yaml_parser_t, r io.Reader) {
 	if parser.read_handler != nil {
 		panic("must set the input source only once")
 	}
-	parser.read_handler = yaml_file_read_handler
-	parser.input_file = file
+	parser.read_handler = yaml_reader_read_handler
+	parser.input_reader = r
 }
 
 // Set the source encoding.

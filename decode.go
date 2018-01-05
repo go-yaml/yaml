@@ -4,6 +4,7 @@ import (
 	"encoding"
 	"encoding/base64"
 	"fmt"
+	"io"
 	"math"
 	"reflect"
 	"strconv"
@@ -34,9 +35,10 @@ type node struct {
 // Parser, produces a node tree out of a libyaml event stream.
 
 type parser struct {
-	parser yaml_parser_t
-	event  yaml_event_t
-	doc    *node
+	parser   yaml_parser_t
+	event    yaml_event_t
+	doc      *node
+	doneInit bool
 }
 
 func newParser(b []byte) *parser {
@@ -44,19 +46,32 @@ func newParser(b []byte) *parser {
 	if !yaml_parser_initialize(&p.parser) {
 		panic("failed to initialize YAML emitter")
 	}
-
 	if len(b) == 0 {
 		b = []byte{'\n'}
 	}
-
 	yaml_parser_set_input_string(&p.parser, b)
+	return &p
+}
 
+func newParserFromReader(r io.Reader) *parser {
+	p := parser{}
+	if !yaml_parser_initialize(&p.parser) {
+		panic("failed to initialize YAML emitter")
+	}
+	yaml_parser_set_input_reader(&p.parser, r)
+	return &p
+}
+
+func (p *parser) init() {
+	if p.doneInit {
+		return
+	}
 	p.skip()
 	if p.event.typ != yaml_STREAM_START_EVENT {
 		panic("expected stream start event, got " + strconv.Itoa(int(p.event.typ)))
 	}
 	p.skip()
-	return &p
+	p.doneInit = true
 }
 
 func (p *parser) destroy() {
@@ -105,6 +120,7 @@ func (p *parser) anchor(n *node, anchor []byte) {
 }
 
 func (p *parser) parse() *node {
+	p.init()
 	switch p.event.typ {
 	case yaml_SCALAR_EVENT:
 		return p.scalar()

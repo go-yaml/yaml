@@ -2,6 +2,7 @@ package yaml_test
 
 import (
 	"errors"
+	"io"
 	"math"
 	"net"
 	"reflect"
@@ -20,8 +21,9 @@ var unmarshalTests = []struct {
 }{
 	{
 		"",
-		&struct{}{},
-	}, {
+		(*struct{})(nil),
+	},
+	{
 		"{}", &struct{}{},
 	}, {
 		"v: hi",
@@ -632,27 +634,85 @@ func (s *S) TestUnmarshal(c *C) {
 	for i, item := range unmarshalTests {
 		c.Logf("test %d: %q", i, item.data)
 		t := reflect.ValueOf(item.value).Type()
-		var value interface{}
-		switch t.Kind() {
-		case reflect.Map:
-			value = reflect.MakeMap(t).Interface()
-		case reflect.String:
-			value = reflect.New(t).Interface()
-		case reflect.Ptr:
-			value = reflect.New(t.Elem()).Interface()
-		default:
-			c.Fatalf("missing case for %s", t)
-		}
-		err := yaml.Unmarshal([]byte(item.data), value)
+		value := reflect.New(t)
+		err := yaml.Unmarshal([]byte(item.data), value.Interface())
 		if _, ok := err.(*yaml.TypeError); !ok {
 			c.Assert(err, IsNil)
 		}
-		if t.Kind() == reflect.String {
-			c.Assert(*value.(*string), Equals, item.value)
-		} else {
-			c.Assert(value, DeepEquals, item.value)
-		}
+		c.Assert(value.Elem().Interface(), DeepEquals, item.value)
 	}
+}
+
+func (s *S) TestDecoderSingleDocument(c *C) {
+	// Test that Decoder.Decode works as expected on
+	// all the unmarshal tests.
+	for i, item := range unmarshalTests {
+		c.Logf("test %d: %q", i, item.data)
+		if item.data == "" {
+			// Behaviour differs when there's no YAML.
+			continue
+		}
+		t := reflect.ValueOf(item.value).Type()
+		value := reflect.New(t)
+		err := yaml.NewDecoder(strings.NewReader(item.data)).Decode(value.Interface())
+		if _, ok := err.(*yaml.TypeError); !ok {
+			c.Assert(err, IsNil)
+		}
+		c.Assert(value.Elem().Interface(), DeepEquals, item.value)
+	}
+}
+
+var decoderTests = []struct {
+	data   string
+	values []interface{}
+}{{
+	"",
+	nil,
+}, {
+	"a: b",
+	[]interface{}{
+		map[interface{}]interface{}{"a": "b"},
+	},
+}, {
+	"---\na: b\n...\n",
+	[]interface{}{
+		map[interface{}]interface{}{"a": "b"},
+	},
+}, {
+	"---\n'hello'\n...\n---\ngoodbye\n...\n",
+	[]interface{}{
+		"hello",
+		"goodbye",
+	},
+}}
+
+func (s *S) TestDecoder(c *C) {
+	for i, item := range decoderTests {
+		c.Logf("test %d: %q", i, item.data)
+		var values []interface{}
+		dec := yaml.NewDecoder(strings.NewReader(item.data))
+		for {
+			var value interface{}
+			err := dec.Decode(&value)
+			if err == io.EOF {
+				break
+			}
+			c.Assert(err, IsNil)
+			values = append(values, value)
+		}
+		c.Assert(values, DeepEquals, item.values)
+	}
+}
+
+type errReader struct{}
+
+func (errReader) Read([]byte) (int, error) {
+	return 0, errors.New("some read error")
+}
+
+func (s *S) TestDecoderReadError(c *C) {
+	err := yaml.NewDecoder(errReader{}).Decode(&struct{}{})
+	c.Assert(err, ErrorMatches, `yaml: input error: some read error`)
 }
 
 func (s *S) TestUnmarshalNaN(c *C) {
@@ -679,9 +739,18 @@ var unmarshalErrorTests = []struct {
 }
 
 func (s *S) TestUnmarshalErrors(c *C) {
-	for _, item := range unmarshalErrorTests {
+	for i, item := range unmarshalErrorTests {
+		c.Logf("test %d: %q", i, item.data)
 		var value interface{}
 		err := yaml.Unmarshal([]byte(item.data), &value)
+		c.Assert(err, ErrorMatches, item.error, Commentf("Partial unmarshal: %#v", value))
+	}
+}
+
+func (s *S) TestDecoderErrors(c *C) {
+	for _, item := range unmarshalErrorTests {
+		var value interface{}
+		err := yaml.NewDecoder(strings.NewReader(item.data)).Decode(&value)
 		c.Assert(err, ErrorMatches, item.error, Commentf("Partial unmarshal: %#v", value))
 	}
 }

@@ -196,10 +196,45 @@ func Marshal(in interface{}) (out []byte, err error) {
 	defer handleErr(&err)
 	e := newEncoder()
 	defer e.destroy()
-	e.marshal("", reflect.ValueOf(in))
+	e.marshalDoc("", reflect.ValueOf(in))
 	e.finish()
 	out = e.out
 	return
+}
+
+// An Encoder writes YAML values to an output stream.
+type Encoder struct {
+	encoder *encoder
+}
+
+// NewEncoder returns a new encoder that writes to w.
+// The Encoder should be closed after use to flush all data
+// to w.
+func NewEncoder(w io.Writer) *Encoder {
+	return &Encoder{
+		encoder: newEncoderWithWriter(w),
+	}
+}
+
+// Encode writes the YAML encoding of v to the stream.
+// If multiple items are encoded to the stream, the
+// second and subsequent document will be preceded
+// with a "---" document separator, but the first will not.
+//
+// See the documentation for Marshal for details about the conversion of Go
+// values to YAML.
+func (e *Encoder) Encode(v interface{}) (err error) {
+	defer handleErr(&err)
+	e.encoder.marshalDoc("", reflect.ValueOf(v))
+	return nil
+}
+
+// Close closes the encoder by writing any remaining data.
+// It does not write a stream terminating string "...".
+func (e *Encoder) Close() (err error) {
+	defer handleErr(&err)
+	e.encoder.finish()
+	return nil
 }
 
 func handleErr(err *error) {

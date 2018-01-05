@@ -30,7 +30,7 @@ func ExampleUnmarshal_embedded() {
 
 	err := Unmarshal([]byte(data), &b)
 	if err != nil {
-		log.Fatal("cannot unmarshal data: ", err)
+		log.Fatalf("cannot unmarshal data: %v", err)
 	}
 	fmt.Println(b.A)
 	fmt.Println(b.B)
@@ -45,7 +45,7 @@ func ExampleDecoder_embedded() {
 	buf := bytes.NewBufferString(data)
 	err := NewDecoder(buf).Decode(&b)
 	if err != nil {
-		log.Fatal("cannot unmarshal data: ", err)
+		log.Fatalf("cannot unmarshal data: %v", err)
 	}
 	fmt.Println(b.A)
 	fmt.Println(b.B)

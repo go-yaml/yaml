@@ -66,11 +66,7 @@ func (p *parser) init() {
 	if p.doneInit {
 		return
 	}
-	p.skip()
-	if p.event.typ != yaml_STREAM_START_EVENT {
-		panic("expected stream start event, got " + strconv.Itoa(int(p.event.typ)))
-	}
-	p.skip()
+	p.expect(yaml_STREAM_START_EVENT)
 	p.doneInit = true
 }
 
@@ -81,16 +77,35 @@ func (p *parser) destroy() {
 	yaml_parser_delete(&p.parser)
 }
 
-func (p *parser) skip() {
-	if p.event.typ != yaml_NO_EVENT {
-		if p.event.typ == yaml_STREAM_END_EVENT {
-			failf("attempted to go past the end of stream; corrupted value?")
+// expect consumes an event from the event stream and
+// checks that it's of the expected type.
+func (p *parser) expect(e yaml_event_type_t) {
+	if p.event.typ == yaml_NO_EVENT {
+		if !yaml_parser_parse(&p.parser, &p.event) {
+			p.fail()
 		}
-		yaml_event_delete(&p.event)
+	}
+	if p.event.typ == yaml_STREAM_END_EVENT {
+		failf("attempted to go past the end of stream; corrupted value?")
+	}
+	if p.event.typ != e {
+		p.parser.problem = fmt.Sprintf("expected %s event but got %s", e, p.event.typ)
+		p.fail()
+	}
+	yaml_event_delete(&p.event)
+	p.event.typ = yaml_NO_EVENT
+}
+
+// peek peeks at the next event in the event stream,
+// puts the results into p.event and returns the event type.
+func (p *parser) peek() yaml_event_type_t {
+	if p.event.typ != yaml_NO_EVENT {
+		return p.event.typ
 	}
 	if !yaml_parser_parse(&p.parser, &p.event) {
 		p.fail()
 	}
+	return p.event.typ
 }
 
 func (p *parser) fail() {
@@ -121,7 +136,7 @@ func (p *parser) anchor(n *node, anchor []byte) {
 
 func (p *parser) parse() *node {
 	p.init()
-	switch p.event.typ {
+	switch p.peek() {
 	case yaml_SCALAR_EVENT:
 		return p.scalar()
 	case yaml_ALIAS_EVENT:
@@ -136,7 +151,7 @@ func (p *parser) parse() *node {
 		// Happens when attempting to decode an empty buffer.
 		return nil
 	default:
-		panic("attempted to parse unknown event: " + strconv.Itoa(int(p.event.typ)))
+		panic("attempted to parse unknown event: " + p.event.typ.String())
 	}
 }
 
@@ -152,12 +167,9 @@ func (p *parser) document() *node {
 	n := p.node(documentNode)
 	n.anchors = make(map[string]*node)
 	p.doc = n
-	p.skip()
+	p.expect(yaml_DOCUMENT_START_EVENT)
 	n.children = append(n.children, p.parse())
-	if p.event.typ != yaml_DOCUMENT_END_EVENT {
-		panic("expected end of document event but got " + strconv.Itoa(int(p.event.typ)))
-	}
-	p.skip()
+	p.expect(yaml_DOCUMENT_END_EVENT)
 	return n
 }
 
@@ -168,7 +180,7 @@ func (p *parser) alias() *node {
 	if n.alias == nil {
 		failf("unknown anchor '%s' referenced", n.value)
 	}
-	p.skip()
+	p.expect(yaml_ALIAS_EVENT)
 	return n
 }
 
@@ -178,29 +190,29 @@ func (p *parser) scalar() *node {
 	n.tag = string(p.event.tag)
 	n.implicit = p.event.implicit
 	p.anchor(n, p.event.anchor)
-	p.skip()
+	p.expect(yaml_SCALAR_EVENT)
 	return n
 }
 
 func (p *parser) sequence() *node {
 	n := p.node(sequenceNode)
 	p.anchor(n, p.event.anchor)
-	p.skip()
-	for p.event.typ != yaml_SEQUENCE_END_EVENT {
+	p.expect(yaml_SEQUENCE_START_EVENT)
+	for p.peek() != yaml_SEQUENCE_END_EVENT {
 		n.children = append(n.children, p.parse())
 	}
-	p.skip()
+	p.expect(yaml_SEQUENCE_END_EVENT)
 	return n
 }
 
 func (p *parser) mapping() *node {
 	n := p.node(mappingNode)
 	p.anchor(n, p.event.anchor)
-	p.skip()
-	for p.event.typ != yaml_MAPPING_END_EVENT {
+	p.expect(yaml_MAPPING_START_EVENT)
+	for p.peek() != yaml_MAPPING_END_EVENT {
 		n.children = append(n.children, p.parse(), p.parse())
 	}
-	p.skip()
+	p.expect(yaml_MAPPING_END_EVENT)
 	return n
 }
 

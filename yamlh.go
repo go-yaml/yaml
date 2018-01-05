@@ -1,6 +1,7 @@
 package yaml
 
 import (
+	"fmt"
 	"io"
 )
 
@@ -238,6 +239,27 @@ const (
 	yaml_MAPPING_START_EVENT  // A MAPPING-START event.
 	yaml_MAPPING_END_EVENT    // A MAPPING-END event.
 )
+
+var eventStrings = []string{
+	yaml_NO_EVENT:             "none",
+	yaml_STREAM_START_EVENT:   "stream start",
+	yaml_STREAM_END_EVENT:     "stream end",
+	yaml_DOCUMENT_START_EVENT: "document start",
+	yaml_DOCUMENT_END_EVENT:   "document end",
+	yaml_ALIAS_EVENT:          "alias",
+	yaml_SCALAR_EVENT:         "scalar",
+	yaml_SEQUENCE_START_EVENT: "sequence start",
+	yaml_SEQUENCE_END_EVENT:   "sequence end",
+	yaml_MAPPING_START_EVENT:  "mapping start",
+	yaml_MAPPING_END_EVENT:    "mapping end",
+}
+
+func (e yaml_event_type_t) String() string {
+	if e < 0 || int(e) >= len(eventStrings) {
+		return fmt.Sprintf("unknown event %d", e)
+	}
+	return eventStrings[e]
+}
 
 // The event structure.
 type yaml_event_t struct {

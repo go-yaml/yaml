@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math"
 	"reflect"
+	"regexp"
 	"strconv"
 	"time"
 )
@@ -198,6 +199,7 @@ var (
 	durationType   = reflect.TypeOf(time.Duration(0))
 	defaultMapType = reflect.TypeOf(map[interface{}]interface{}{})
 	ifaceType      = defaultMapType.Elem()
+	regexpType     = reflect.TypeOf(regexp.Regexp{})
 )
 
 func newDecoder(strict bool) *decoder {
@@ -460,6 +462,16 @@ func (d *decoder) scalar(n *node, out reflect.Value) (good bool) {
 			elem.Elem().Set(reflect.ValueOf(resolved))
 			out.Set(elem)
 			good = true
+		}
+	case reflect.Struct:
+		if out.Type() == regexpType {
+			if s, ok := resolved.(string); ok {
+				re, err := regexp.Compile(s)
+				if err == nil {
+					out.Set(reflect.ValueOf(re).Elem())
+					good = true
+				}
+			}
 		}
 	}
 	if !good {

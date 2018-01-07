@@ -82,7 +82,8 @@ func Unmarshal(in []byte, out interface{}) (err error) {
 }
 
 // UnmarshalStrict is like Unmarshal except that any fields that are found
-// in the data that do not have corresponding struct members will result in
+// in the data that do not have corresponding struct members, or mapping
+// keys that are duplicates, will result in
 // an error.
 func UnmarshalStrict(in []byte, out interface{}) (err error) {
 	return unmarshal(in, out, true)
@@ -105,7 +106,7 @@ func NewDecoder(r io.Reader) *Decoder {
 }
 
 // SetStrict sets whether strict decoding behaviour is enabled when
-// decoding items in the data. By default, decoding is not strict.
+// decoding items in the data (see UnmarshalStrict). By default, decoding is not strict.
 func (dec *Decoder) SetStrict(strict bool) {
 	dec.strict = strict
 }
@@ -257,6 +258,9 @@ type fieldInfo struct {
 	Num       int
 	OmitEmpty bool
 	Flow      bool
+	// Id holds the unique field identifier, so we can cheaply
+	// check for field duplicates without maintaining an extra map.
+	Id int
 
 	// Inline holds the field index if the field is part of an inlined struct.
 	Inline []int
@@ -336,6 +340,7 @@ func getStructInfo(st reflect.Type) (*structInfo, error) {
 					} else {
 						finfo.Inline = append([]int{i}, finfo.Inline...)
 					}
+					finfo.Id = len(fieldsList)
 					fieldsMap[finfo.Key] = finfo
 					fieldsList = append(fieldsList, finfo)
 				}
@@ -357,11 +362,16 @@ func getStructInfo(st reflect.Type) (*structInfo, error) {
 			return nil, errors.New(msg)
 		}
 
+		info.Id = len(fieldsList)
 		fieldsList = append(fieldsList, info)
 		fieldsMap[info.Key] = info
 	}
 
-	sinfo = &structInfo{fieldsMap, fieldsList, inlineMap}
+	sinfo = &structInfo{
+		FieldsMap:  fieldsMap,
+		FieldsList: fieldsList,
+		InlineMap:  inlineMap,
+	}
 
 	fieldMapMutex.Lock()
 	structMap[st] = sinfo

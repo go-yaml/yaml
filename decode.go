@@ -453,6 +453,11 @@ func (d *decoder) scalar(n *node, out reflect.Value) (good bool) {
 			out.SetFloat(resolved)
 			good = true
 		}
+	case reflect.Struct:
+		if resolvedv := reflect.ValueOf(resolved); out.Type() == resolvedv.Type() {
+			out.Set(resolvedv)
+			good = true
+		}
 	case reflect.Ptr:
 		if out.Type().Elem() == reflect.TypeOf(resolved) {
 			// TODO DOes this make sense? When is out a Ptr except when decoding a nil value?

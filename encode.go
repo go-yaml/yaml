@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"unicode/utf8"
 )
 
 type encoder struct {
@@ -87,7 +88,8 @@ func (e *encoder) marshal(tag string, in reflect.Value) {
 		return
 	}
 	iface := in.Interface()
-	if m, ok := iface.(Marshaler); ok {
+	switch m := iface.(type) {
+	case Marshaler:
 		v, err := m.MarshalYAML()
 		if err != nil {
 			fail(err)
@@ -97,7 +99,12 @@ func (e *encoder) marshal(tag string, in reflect.Value) {
 			return
 		}
 		in = reflect.ValueOf(v)
-	} else if m, ok := iface.(encoding.TextMarshaler); ok {
+	case time.Time:
+		// Although time.Time implements TextMarshaler,
+		// we don't want to treat it as a string for YAML
+		// purposes because YAML has special support for
+		// timestamps.
+	case encoding.TextMarshaler:
 		text, err := m.MarshalText()
 		if err != nil {
 			fail(err)
@@ -120,7 +127,11 @@ func (e *encoder) marshal(tag string, in reflect.Value) {
 			e.marshal(tag, in.Elem())
 		}
 	case reflect.Struct:
-		e.structv(tag, in)
+		if in.Type() == timeType {
+			e.timev(tag, in)
+		} else {
+			e.structv(tag, in)
+		}
 	case reflect.Slice:
 		if in.Type().Elem() == mapItemType {
 			e.itemsv(tag, in)
@@ -262,23 +273,36 @@ var base60float = regexp.MustCompile(`^[-+]?[0-9][0-9_]*(?::[0-5]?[0-9])+(?:\.[0
 func (e *encoder) stringv(tag string, in reflect.Value) {
 	var style yaml_scalar_style_t
 	s := in.String()
-	rtag, rs := resolve("", s)
-	if rtag == yaml_BINARY_TAG {
-		if tag == "" || tag == yaml_STR_TAG {
-			tag = rtag
-			s = rs.(string)
-		} else if tag == yaml_BINARY_TAG {
+	canUsePlain := true
+	switch {
+	case !utf8.ValidString(s):
+		if tag == yaml_BINARY_TAG {
 			failf("explicitly tagged !!binary data must be base64-encoded")
-		} else {
+		}
+		if tag != "" {
 			failf("cannot marshal invalid UTF-8 data as %s", shortTag(tag))
 		}
+		// It can't be encoded directly as YAML so use a binary tag
+		// and encode it as base64.
+		tag = yaml_BINARY_TAG
+		s = encodeBase64(s)
+	case tag == "":
+		// Check to see if it would resolve to a specific
+		// tag when encoded unquoted. If it doesn't,
+		// there's no need to quote it.
+		rtag, _ := resolve("", s)
+		canUsePlain = rtag == yaml_STR_TAG && !isBase60Float(s)
 	}
-	if tag == "" && (rtag != yaml_STR_TAG || isBase60Float(s)) {
-		style = yaml_DOUBLE_QUOTED_SCALAR_STYLE
-	} else if strings.Contains(s, "\n") {
+	// Note: it's possible for user code to emit invalid YAML
+	// if they explicitly specify a tag and a string containing
+	// text that's incompatible with that tag.
+	switch {
+	case strings.Contains(s, "\n"):
 		style = yaml_LITERAL_SCALAR_STYLE
-	} else {
+	case canUsePlain:
 		style = yaml_PLAIN_SCALAR_STYLE
+	default:
+		style = yaml_DOUBLE_QUOTED_SCALAR_STYLE
 	}
 	e.emitScalar(s, "", tag, style)
 }
@@ -301,6 +325,14 @@ func (e *encoder) intv(tag string, in reflect.Value) {
 func (e *encoder) uintv(tag string, in reflect.Value) {
 	s := strconv.FormatUint(in.Uint(), 10)
 	e.emitScalar(s, "", tag, yaml_PLAIN_SCALAR_STYLE)
+}
+
+func (e *encoder) timev(tag string, in reflect.Value) {
+	t := in.Interface().(time.Time)
+	if tag == "" {
+		tag = yaml_TIMESTAMP_TAG
+	}
+	e.emitScalar(t.Format(time.RFC3339Nano), "", tag, yaml_PLAIN_SCALAR_STYLE)
 }
 
 func (e *encoder) floatv(tag string, in reflect.Value) {

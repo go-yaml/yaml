@@ -1,9 +1,10 @@
 language: go
-
+cache:
+  directories:
+    - $GOPATH/src/github.com/${TRAVIS_REPO_SLUG}/vendor
+install:
+  - go get -u github.com/golang/dep/cmd/dep
+  - dep ensure -v -vendor-only
 go:
-    - 1.4
-    - 1.5
-    - 1.6
-    - tip
-
-go_import_path: gopkg.in/yaml.v2
+  - 1.8.x
+  - 1.9.x

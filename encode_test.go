@@ -1,16 +1,15 @@
-package yaml_test
+package yaml
 
 import (
 	"fmt"
 	"math"
+	"net"
+	"os"
 	"strconv"
 	"strings"
 	"time"
 
 	. "gopkg.in/check.v1"
-	"gopkg.in/yaml.v2"
-	"net"
-	"os"
 )
 
 var marshalIntTest = 123
@@ -89,13 +88,13 @@ var marshalTests = []struct {
 		map[string]interface{}{"v": ""},
 		"v: \"\"\n",
 	}, {
-		map[string][]string{"v": []string{"A", "B"}},
+		map[string][]string{"v": {"A", "B"}},
 		"v:\n- A\n- B\n",
 	}, {
-		map[string][]string{"v": []string{"A", "B\nC"}},
+		map[string][]string{"v": {"A", "B\nC"}},
 		"v:\n- A\n- |-\n  B\n  C\n",
 	}, {
-		map[string][]interface{}{"v": []interface{}{"A", 1, map[string][]int{"B": []int{2, 3}}}},
+		map[string][]interface{}{"v": {"A", 1, map[string][]int{"B": {2, 3}}}},
 		"v:\n- A\n- 1\n- B:\n  - 2\n  - 3\n",
 	}, {
 		map[string]interface{}{"a": map[interface{}]interface{}{"b": "c"}},
@@ -287,7 +286,7 @@ var marshalTests = []struct {
 
 	// Ordered maps.
 	{
-		&yaml.MapSlice{{"b", 2}, {"a", 1}, {"d", 4}, {"c", 3}, {"sub", yaml.MapSlice{{"e", 5}}}},
+		&MapSlice{{"b", 2}, {"a", 1}, {"d", 4}, {"c", 3}, {"sub", MapSlice{{"e", 5}}}},
 		"b: 2\na: 1\nd: 4\nc: 3\nsub:\n  e: 5\n",
 	},
 
@@ -328,7 +327,7 @@ func (s *S) TestMarshal(c *C) {
 	defer os.Setenv("TZ", os.Getenv("TZ"))
 	os.Setenv("TZ", "UTC")
 	for _, item := range marshalTests {
-		data, err := yaml.Marshal(item.value)
+		data, err := Marshal(item.value)
 		c.Assert(err, IsNil)
 		c.Assert(string(data), Equals, item.data)
 	}
@@ -343,7 +342,7 @@ var marshalErrorTests = []struct {
 		B       int
 		inlineB ",inline"
 	}{1, inlineB{2, inlineC{3}}},
-	panic: `Duplicated key 'b' in struct struct \{ B int; .*`,
+	panic: `duplicated key "b" in struct struct \{ B int; .*`,
 }, {
 	value: &struct {
 		A int
@@ -355,9 +354,9 @@ var marshalErrorTests = []struct {
 func (s *S) TestMarshalErrors(c *C) {
 	for _, item := range marshalErrorTests {
 		if item.panic != "" {
-			c.Assert(func() { yaml.Marshal(item.value) }, PanicMatches, item.panic)
+			c.Assert(func() { Marshal(item.value) }, PanicMatches, item.panic)
 		} else {
-			_, err := yaml.Marshal(item.value)
+			_, err := Marshal(item.value)
 			c.Assert(err, ErrorMatches, item.error)
 		}
 	}
@@ -368,12 +367,12 @@ func (s *S) TestMarshalTypeCache(c *C) {
 	var err error
 	func() {
 		type T struct{ A int }
-		data, err = yaml.Marshal(&T{})
+		data, err = Marshal(&T{})
 		c.Assert(err, IsNil)
 	}()
 	func() {
 		type T struct{ B int }
-		data, err = yaml.Marshal(&T{})
+		data, err = Marshal(&T{})
 		c.Assert(err, IsNil)
 	}()
 	c.Assert(string(data), Equals, "b: 0\n")
@@ -410,7 +409,7 @@ func (s *S) TestMarshaler(c *C) {
 	for _, item := range marshalerTests {
 		obj := &marshalerValue{}
 		obj.Field.value = item.value
-		data, err := yaml.Marshal(obj)
+		data, err := Marshal(obj)
 		c.Assert(err, IsNil)
 		c.Assert(string(data), Equals, string(item.data))
 	}
@@ -419,7 +418,7 @@ func (s *S) TestMarshaler(c *C) {
 func (s *S) TestMarshalerWholeDocument(c *C) {
 	obj := &marshalerType{}
 	obj.value = map[string]string{"hello": "world!"}
-	data, err := yaml.Marshal(obj)
+	data, err := Marshal(obj)
 	c.Assert(err, IsNil)
 	c.Assert(string(data), Equals, "hello: world!\n")
 }
@@ -427,12 +426,12 @@ func (s *S) TestMarshalerWholeDocument(c *C) {
 type failingMarshaler struct{}
 
 func (ft *failingMarshaler) MarshalYAML() (interface{}, error) {
-	return nil, failingErr
+	return nil, errFailing
 }
 
 func (s *S) TestMarshalerError(c *C) {
-	_, err := yaml.Marshal(&failingMarshaler{})
-	c.Assert(err, Equals, failingErr)
+	_, err := Marshal(&failingMarshaler{})
+	c.Assert(err, Equals, errFailing)
 }
 
 func (s *S) TestSortedOutput(c *C) {
@@ -478,7 +477,7 @@ func (s *S) TestSortedOutput(c *C) {
 	for _, k := range order {
 		m[k] = 1
 	}
-	data, err := yaml.Marshal(m)
+	data, err := Marshal(m)
 	c.Assert(err, IsNil)
 	out := "\n" + string(data)
 	last := 0

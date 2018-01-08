@@ -31,10 +31,10 @@ func put_break(emitter *yaml_emitter_t) bool {
 	switch emitter.line_break {
 	case yaml_CR_BREAK:
 		emitter.buffer[emitter.buffer_pos] = '\r'
-		emitter.buffer_pos += 1
+		emitter.buffer_pos++
 	case yaml_LN_BREAK:
 		emitter.buffer[emitter.buffer_pos] = '\n'
-		emitter.buffer_pos += 1
+		emitter.buffer_pos++
 	case yaml_CRLN_BREAK:
 		emitter.buffer[emitter.buffer_pos+0] = '\r'
 		emitter.buffer[emitter.buffer_pos+1] = '\n'
@@ -982,22 +982,22 @@ func yaml_emitter_analyze_tag(emitter *yaml_emitter_t, tag []byte) bool {
 // Check if a scalar is valid.
 func yaml_emitter_analyze_scalar(emitter *yaml_emitter_t, value []byte) bool {
 	var (
-		block_indicators   = false
-		flow_indicators    = false
-		line_breaks        = false
-		special_characters = false
+		block_indicators   bool
+		flow_indicators    bool
+		line_breaks        bool
+		special_characters bool
 
-		leading_space  = false
-		leading_break  = false
-		trailing_space = false
-		trailing_break = false
-		break_space    = false
-		space_break    = false
+		leading_space  bool
+		leading_break  bool
+		trailing_space bool
+		trailing_break bool
+		break_space    bool
+		space_break    bool
 
-		preceded_by_whitespace = false
-		followed_by_whitespace = false
-		previous_space         = false
-		previous_break         = false
+		preceded_by_whitespace bool
+		followed_by_whitespace bool
+		previous_space         bool
+		previous_break         bool
 	)
 
 	emitter.scalar_data.value = value
@@ -1017,7 +1017,8 @@ func yaml_emitter_analyze_scalar(emitter *yaml_emitter_t, value []byte) bool {
 	}
 
 	preceded_by_whitespace = true
-	for i, w := 0, 0; i < len(value); i += w {
+	var w, i int
+	for i = 0; i < len(value); i += w {
 		w = width(value[i])
 		followed_by_whitespace = i+w >= len(value) || is_blank(value, i+w)
 
@@ -1227,7 +1228,7 @@ func yaml_emitter_write_indicator(emitter *yaml_emitter_t, indicator []byte, nee
 		return false
 	}
 	emitter.whitespace = is_whitespace
-	emitter.indention = (emitter.indention && is_indention)
+	emitter.indention = emitter.indention && is_indention
 	emitter.open_ended = false
 	return true
 }

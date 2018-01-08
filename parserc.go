@@ -598,10 +598,9 @@ func yaml_parser_parse_block_sequence_entry(parser *yaml_parser_t, event *yaml_e
 		if token.typ != yaml_BLOCK_ENTRY_TOKEN && token.typ != yaml_BLOCK_END_TOKEN {
 			parser.states = append(parser.states, yaml_PARSE_BLOCK_SEQUENCE_ENTRY_STATE)
 			return yaml_parser_parse_node(parser, event, true, false)
-		} else {
-			parser.state = yaml_PARSE_BLOCK_SEQUENCE_ENTRY_STATE
-			return yaml_parser_process_empty_scalar(parser, event, mark)
 		}
+		parser.state = yaml_PARSE_BLOCK_SEQUENCE_ENTRY_STATE
+		return yaml_parser_process_empty_scalar(parser, event, mark)
 	}
 	if token.typ == yaml_BLOCK_END_TOKEN {
 		parser.state = parser.states[len(parser.states)-1]
@@ -696,10 +695,9 @@ func yaml_parser_parse_block_mapping_key(parser *yaml_parser_t, event *yaml_even
 			token.typ != yaml_BLOCK_END_TOKEN {
 			parser.states = append(parser.states, yaml_PARSE_BLOCK_MAPPING_VALUE_STATE)
 			return yaml_parser_parse_node(parser, event, true, true)
-		} else {
-			parser.state = yaml_PARSE_BLOCK_MAPPING_VALUE_STATE
-			return yaml_parser_process_empty_scalar(parser, event, mark)
 		}
+		parser.state = yaml_PARSE_BLOCK_MAPPING_VALUE_STATE
+		return yaml_parser_process_empty_scalar(parser, event, mark)
 	} else if token.typ == yaml_BLOCK_END_TOKEN {
 		parser.state = parser.states[len(parser.states)-1]
 		parser.states = parser.states[:len(parser.states)-1]
@@ -858,7 +856,7 @@ func yaml_parser_parse_flow_sequence_entry_mapping_value(parser *yaml_parser_t, 
 	}
 	if token.typ == yaml_VALUE_TOKEN {
 		skip_token(parser)
-		token := peek_token(parser)
+		token = peek_token(parser)
 		if token == nil {
 			return false
 		}
@@ -941,10 +939,9 @@ func yaml_parser_parse_flow_mapping_key(parser *yaml_parser_t, event *yaml_event
 				token.typ != yaml_FLOW_MAPPING_END_TOKEN {
 				parser.states = append(parser.states, yaml_PARSE_FLOW_MAPPING_VALUE_STATE)
 				return yaml_parser_parse_node(parser, event, false, false)
-			} else {
-				parser.state = yaml_PARSE_FLOW_MAPPING_VALUE_STATE
-				return yaml_parser_process_empty_scalar(parser, event, token.start_mark)
 			}
+			parser.state = yaml_PARSE_FLOW_MAPPING_VALUE_STATE
+			return yaml_parser_process_empty_scalar(parser, event, token.start_mark)
 		} else if token.typ != yaml_FLOW_MAPPING_END_TOKEN {
 			parser.states = append(parser.states, yaml_PARSE_FLOW_MAPPING_EMPTY_VALUE_STATE)
 			return yaml_parser_parse_node(parser, event, false, false)

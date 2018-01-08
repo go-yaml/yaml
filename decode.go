@@ -4,6 +4,7 @@ import (
 	"encoding"
 	"encoding/base64"
 	"fmt"
+	"io"
 	"math"
 	"reflect"
 	"strconv"
@@ -54,6 +55,17 @@ func newParser(b []byte) *parser {
 		panic("expected stream start event, got " + strconv.Itoa(int(p.event.typ)))
 	}
 	p.skip()
+	return &p
+}
+
+func newFileParser(r io.Reader) *parser {
+	p := parser{}
+	if !yaml_parser_initialize(&p.parser) {
+		panic("failed to initialize YAML emitter")
+	}
+
+	yaml_parser_set_input_file(&p.parser, r)
+
 	return &p
 }
 
@@ -114,10 +126,14 @@ func (p *parser) parse() *node {
 		return p.sequence()
 	case yaml_DOCUMENT_START_EVENT:
 		return p.document()
+	case yaml_NO_EVENT, yaml_STREAM_START_EVENT:
+		p.skip()
+		return p.parse()
 	case yaml_STREAM_END_EVENT:
 		// Happens when attempting to decode an empty buffer.
 		return nil
 	default:
+		//trace("yaml_parser_state_machine", "state:", p.event.typ, p.parser.state.String())
 		panic("attempted to parse unknown event: " + strconv.Itoa(int(p.event.typ)))
 	}
 }

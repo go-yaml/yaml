@@ -1,10 +1,9 @@
-package yaml_test
+package yaml
 
 import (
+	"bytes"
 	"fmt"
 	"log"
-
-	"gopkg.in/yaml.v2"
 )
 
 // An example showing how to unmarshal embedded
@@ -29,7 +28,22 @@ b: a string from struct B
 func ExampleUnmarshal_embedded() {
 	var b StructB
 
-	err := yaml.Unmarshal([]byte(data), &b)
+	err := Unmarshal([]byte(data), &b)
+	if err != nil {
+		log.Fatalf("cannot unmarshal data: %v", err)
+	}
+	fmt.Println(b.A)
+	fmt.Println(b.B)
+	// Output:
+	// a string from struct A
+	// a string from struct B
+}
+
+func ExampleDecoder_embedded() {
+	var b StructB
+
+	buf := bytes.NewBufferString(data)
+	err := NewDecoder(buf).Decode(&b)
 	if err != nil {
 		log.Fatalf("cannot unmarshal data: %v", err)
 	}

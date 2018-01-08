@@ -2,7 +2,6 @@ package yaml
 
 import (
 	"io"
-	"os"
 )
 
 func yaml_insert_token(parser *yaml_parser_t, pos int, token *yaml_token_t) {
@@ -64,7 +63,7 @@ func yaml_parser_set_input_string(parser *yaml_parser_t, input []byte) {
 }
 
 // Set a file input.
-func yaml_parser_set_input_file(parser *yaml_parser_t, file *os.File) {
+func yaml_parser_set_input_file(parser *yaml_parser_t, file io.Reader) {
 	if parser.read_handler != nil {
 		panic("must set the input source only once")
 	}

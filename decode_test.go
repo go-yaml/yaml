@@ -1082,15 +1082,87 @@ func (s *S) TestUnmarshalSliceOnPreset(c *C) {
 	c.Assert(v.A, DeepEquals, []int{2})
 }
 
-func (s *S) TestUnmarshalStrict(c *C) {
-	v := struct{ A, B int }{}
+var unmarshalStrictTests = []struct {
+	data  string
+	value interface{}
+	error string
+}{{
+	data:  "a: 1\nc: 2\n",
+	value: struct{ A, B int }{A: 1},
+	error: `yaml: unmarshal errors:\n  line 2: field c not found in type struct { A int; B int }`,
+}, {
+	data:  "a: 1\nb: 2\na: 3\n",
+	value: struct{ A, B int }{A: 3, B: 2},
+	error: `yaml: unmarshal errors:\n  line 3: field a already set in type struct { A int; B int }`,
+}, {
+	data: "c: 3\na: 1\nb: 2\nc: 4\n",
+	value: struct {
+		A       int
+		inlineB `yaml:",inline"`
+	}{
+		A: 1,
+		inlineB: inlineB{
+			B: 2,
+			inlineC: inlineC{
+				C: 4,
+			},
+		},
+	},
+	error: `yaml: unmarshal errors:\n  line 4: field c already set in type struct { A int; yaml_test.inlineB "yaml:\\",inline\\"" }`,
+}, {
+	data: "c: 0\na: 1\nb: 2\nc: 1\n",
+	value: struct {
+		A       int
+		inlineB `yaml:",inline"`
+	}{
+		A: 1,
+		inlineB: inlineB{
+			B: 2,
+			inlineC: inlineC{
+				C: 1,
+			},
+		},
+	},
+	error: `yaml: unmarshal errors:\n  line 4: field c already set in type struct { A int; yaml_test.inlineB "yaml:\\",inline\\"" }`,
+}, {
+	data: "c: 1\na: 1\nb: 2\nc: 3\n",
+	value: struct {
+		A int
+		M map[string]interface{} `yaml:",inline"`
+	}{
+		A: 1,
+		M: map[string]interface{}{
+			"b": 2,
+			"c": 3,
+		},
+	},
+	error: `yaml: unmarshal errors:\n  line 4: key "c" already set in map`,
+}, {
+	data: "a: 1\n9: 2\nnull: 3\n9: 4",
+	value: map[interface{}]interface{}{
+		"a": 1,
+		nil: 3,
+		9:   4,
+	},
+	error: `yaml: unmarshal errors:\n  line 4: key 9 already set in map`,
+}}
 
-	err := yaml.UnmarshalStrict([]byte("a: 1\nb: 2"), &v)
-	c.Check(err, IsNil)
-	err = yaml.Unmarshal([]byte("a: 1\nb: 2\nc: 3"), &v)
-	c.Check(err, IsNil)
-	err = yaml.UnmarshalStrict([]byte("a: 1\nb: 2\nc: 3"), &v)
-	c.Check(err, ErrorMatches, "yaml: unmarshal errors:\n  line 3: field c not found in struct struct { A int; B int }")
+func (s *S) TestUnmarshalStrict(c *C) {
+	for i, item := range unmarshalStrictTests {
+		c.Logf("test %d: %q", i, item.data)
+		// First test that normal Unmarshal unmarshals to the expected value.
+		t := reflect.ValueOf(item.value).Type()
+		value := reflect.New(t)
+		err := yaml.Unmarshal([]byte(item.data), value.Interface())
+		c.Assert(err, Equals, nil)
+		c.Assert(value.Elem().Interface(), DeepEquals, item.value)
+
+		// Then test that UnmarshalStrict fails on the same thing.
+		t = reflect.ValueOf(item.value).Type()
+		value = reflect.New(t)
+		err = yaml.UnmarshalStrict([]byte(item.data), value.Interface())
+		c.Assert(err, ErrorMatches, item.error)
+	}
 }
 
 //var data []byte

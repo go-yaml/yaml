@@ -25,6 +25,9 @@ var marshalTests = []struct {
 		nil,
 		"null\n",
 	}, {
+		(*marshalerType)(nil),
+		"null\n",
+	}, {
 		&struct{}{},
 		"{}\n",
 	}, {

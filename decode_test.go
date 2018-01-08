@@ -405,6 +405,12 @@ var unmarshalTests = []struct {
 		map[string]interface{}{"v": 1},
 	},
 
+	// Non-specific tag (Issue #75)
+	{
+		"v: ! test",
+		map[string]interface{}{"v": "test"},
+	},
+
 	// Anchors and aliases.
 	{
 		"a: &x 1\nb: &y 2\nc: *x\nd: *y\n",
@@ -434,9 +440,24 @@ var unmarshalTests = []struct {
 		map[string]*string{"foo": new(string)},
 	}, {
 		"foo: null",
+		map[string]*string{"foo": nil},
+	}, {
+		"foo: null",
 		map[string]string{"foo": ""},
 	}, {
 		"foo: null",
+		map[string]interface{}{"foo": nil},
+	},
+
+	// Support for ~
+	{
+		"foo: ~",
+		map[string]*string{"foo": nil},
+	}, {
+		"foo: ~",
+		map[string]string{"foo": ""},
+	}, {
+		"foo: ~",
 		map[string]interface{}{"foo": nil},
 	},
 
@@ -551,7 +572,66 @@ var unmarshalTests = []struct {
 	},
 	{
 		"a: 2015-02-24T18:19:39Z\n",
-		map[string]time.Time{"a": time.Unix(1424801979, 0)},
+		map[string]time.Time{"a": time.Date(2015, 2, 24, 18, 19, 39, 0, time.UTC)},
+	},
+
+	// Timestamps
+	{
+		// Date only.
+		"a: 2015-01-01\n",
+		map[string]interface{}{"a": time.Date(2015, 1, 1, 0, 0, 0, 0, time.UTC)},
+	},
+	{
+		// RFC3339
+		"a: 2015-02-24T18:19:39.12Z\n",
+		map[string]interface{}{"a": time.Date(2015, 2, 24, 18, 19, 39, .12e9, time.UTC)},
+	},
+	{
+		// RFC3339 with short dates.
+		"a: 2015-2-3T3:4:5Z",
+		map[string]interface{}{"a": time.Date(2015, 2, 3, 3, 4, 5, 0, time.UTC)},
+	},
+	{
+		// ISO8601 lower case t
+		"a: 2015-02-24t18:19:39Z\n",
+		map[string]interface{}{"a": time.Date(2015, 2, 24, 18, 19, 39, 0, time.UTC)},
+	},
+	{
+		// space separate, no time zone
+		"a: 2015-02-24 18:19:39\n",
+		map[string]interface{}{"a": time.Date(2015, 2, 24, 18, 19, 39, 0, time.UTC)},
+	},
+	// Some cases not currently handled. Uncomment these when
+	// the code is fixed.
+	//	{
+	//		// space separated with time zone
+	//		"a: 2001-12-14 21:59:43.10 -5",
+	//		map[string]interface{}{"a": time.Date(2001, 12, 14, 21, 59, 43, .1e9, time.UTC)},
+	//	},
+	//	{
+	//		// arbitrary whitespace between fields
+	//		"a: 2001-12-14 \t\t \t21:59:43.10 \t Z",
+	//		map[string]interface{}{"a": time.Date(2001, 12, 14, 21, 59, 43, .1e9, time.UTC)},
+	//	},
+	{
+		// explicit string tag
+		"a: !!str 2015-01-01",
+		map[string]interface{}{"a": "2015-01-01"},
+	},
+	{
+		// explicit timestamp tag on quoted string
+		"a: !!timestamp \"2015-01-01\"",
+		map[string]interface{}{"a": time.Date(2015, 1, 1, 0, 0, 0, 0, time.UTC)},
+	},
+	{
+		// explicit timestamp tag on unquoted string
+		"a: !!timestamp 2015-01-01",
+		map[string]interface{}{"a": time.Date(2015, 1, 1, 0, 0, 0, 0, time.UTC)},
+	},
+	{
+		// quoted string that's a valid timestamp
+		"a: \"2015-01-01\"",
+		map[string]interface{}{"a": "2015-01-01"},
 	},
 
 	// Encode empty lists as zero-length slices.
@@ -581,6 +661,15 @@ var unmarshalTests = []struct {
 		"\xfe\xff\x00\xf1\x00o\x00\xf1\x00o\x00:\x00 \x00v\x00e\x00r\x00y\x00 \x00y\x00e\x00s\x00 \xd8=\xdf\xd4\x00\n",
 		M{"ñoño": "very yes 🟔"},
 	},
+
+	// YAML Float regex shouldn't match this
+	{
+		"a: 123456e1\n",
+		M{"a": "123456e1"},
+	}, {
+		"a: 123456E1\n",
+		M{"a": "123456E1"},
+	},
 }
 
 type M map[interface{}]interface{}
@@ -595,7 +684,8 @@ type inlineC struct {
 }
 
 func (s *S) TestUnmarshal(c *C) {
-	for _, item := range unmarshalTests {
+	for i, item := range unmarshalTests {
+		c.Logf("test %d: %q", i, item.data)
 		t := reflect.ValueOf(item.value).Type()
 		var value interface{}
 		switch t.Kind() {
@@ -639,6 +729,7 @@ var unmarshalErrorTests = []struct {
 	{"a: !!binary ==", "yaml: !!binary value contains invalid base64 data"},
 	{"{[.]}", `yaml: invalid map key: \[\]interface \{\}\{"\."\}`},
 	{"{{.}}", `yaml: invalid map key: map\[interface\ \{\}\]interface \{\}\{".":interface \{\}\(nil\)\}`},
+	{"%TAG !%79! tag:yaml.org,2002:\n---\nv: !%79!int '1'", "yaml: did not find expected whitespace"},
 }
 
 func (s *S) TestUnmarshalErrors(c *C) {
@@ -957,6 +1048,17 @@ func (s *S) TestUnmarshalSliceOnPreset(c *C) {
 	v := struct{ A []int }{[]int{1}}
 	yaml.Unmarshal([]byte("a: [2]"), &v)
 	c.Assert(v.A, DeepEquals, []int{2})
+}
+
+func (s *S) TestUnmarshalStrict(c *C) {
+	v := struct{ A, B int }{}
+
+	err := yaml.UnmarshalStrict([]byte("a: 1\nb: 2"), &v)
+	c.Check(err, IsNil)
+	err = yaml.Unmarshal([]byte("a: 1\nb: 2\nc: 3"), &v)
+	c.Check(err, IsNil)
+	err = yaml.UnmarshalStrict([]byte("a: 1\nb: 2\nc: 3"), &v)
+	c.Check(err, ErrorMatches, "yaml: unmarshal errors:\n  line 3: field c not found in struct struct { A int; B int }")
 }
 
 //var data []byte

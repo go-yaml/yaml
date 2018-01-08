@@ -267,13 +267,19 @@ func (e *encoder) stringv(tag string, in reflect.Value) {
 			failf("cannot marshal invalid UTF-8 data as %s", shortTag(tag))
 		}
 	}
-	if tag == "" && (rtag != yaml_STR_TAG || isBase60Float(s)) {
-		style = yaml_DOUBLE_QUOTED_SCALAR_STYLE
-	} else if strings.Contains(s, "\n") {
-		style = yaml_LITERAL_SCALAR_STYLE
-	} else if isDate(s) {
+	switch {
+	case isDate(s):
 		style = yaml_SINGLE_QUOTED_SCALAR_STYLE
-	} else {
+	case rtag == yaml_TIMESTAMP_TAG:
+		// TODO with the current code, there's no way for tag to be non-empty,
+		// but what should this function do if (for example) tag is yaml_BOOL_TAG
+		// and rtag is something incompatible with it?
+		style = yaml_PLAIN_SCALAR_STYLE
+	case tag == "" && (rtag != yaml_STR_TAG || isBase60Float(s)):
+		style = yaml_DOUBLE_QUOTED_SCALAR_STYLE
+	case strings.Contains(s, "\n"):
+		style = yaml_LITERAL_SCALAR_STYLE
+	default:
 		style = yaml_PLAIN_SCALAR_STYLE
 	}
 	e.emitScalar(s, "", tag, style)

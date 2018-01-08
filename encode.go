@@ -3,6 +3,7 @@ package yaml
 import (
 	"encoding"
 	"fmt"
+	"io"
 	"reflect"
 	"regexp"
 	"sort"
@@ -16,25 +17,39 @@ type encoder struct {
 	event   yaml_event_t
 	out     []byte
 	flow    bool
+	// doneInit holds whether the initial stream_start_event has been
+	// emitted.
+	doneInit bool
 }
 
-func newEncoder() (e *encoder) {
-	e = &encoder{}
-	e.must(yaml_emitter_initialize(&e.emitter))
+func newEncoder() *encoder {
+	e := &encoder{}
+	yaml_emitter_initialize(&e.emitter)
 	yaml_emitter_set_output_string(&e.emitter, &e.out)
 	yaml_emitter_set_unicode(&e.emitter, true)
-	e.must(yaml_stream_start_event_initialize(&e.event, yaml_UTF8_ENCODING))
-	e.emit()
-	e.must(yaml_document_start_event_initialize(&e.event, nil, nil, true))
-	e.emit()
 	return e
 }
 
-func (e *encoder) finish() {
-	e.must(yaml_document_end_event_initialize(&e.event, true))
+func newEncoderWithWriter(w io.Writer) *encoder {
+	e := &encoder{}
+	yaml_emitter_initialize(&e.emitter)
+	yaml_emitter_set_output_writer(&e.emitter, w)
+	yaml_emitter_set_unicode(&e.emitter, true)
+	return e
+}
+
+func (e *encoder) init() {
+	if e.doneInit {
+		return
+	}
+	yaml_stream_start_event_initialize(&e.event, yaml_UTF8_ENCODING)
 	e.emit()
+	e.doneInit = true
+}
+
+func (e *encoder) finish() {
 	e.emitter.open_ended = false
-	e.must(yaml_stream_end_event_initialize(&e.event))
+	yaml_stream_end_event_initialize(&e.event)
 	e.emit()
 }
 
@@ -44,9 +59,7 @@ func (e *encoder) destroy() {
 
 func (e *encoder) emit() {
 	// This will internally delete the e.event value.
-	if !yaml_emitter_emit(&e.emitter, &e.event) && e.event.typ != yaml_DOCUMENT_END_EVENT && e.event.typ != yaml_STREAM_END_EVENT {
-		e.must(false)
-	}
+	e.must(yaml_emitter_emit(&e.emitter, &e.event))
 }
 
 func (e *encoder) must(ok bool) {
@@ -57,6 +70,15 @@ func (e *encoder) must(ok bool) {
 		}
 		failf("%s", msg)
 	}
+}
+
+func (e *encoder) marshalDoc(tag string, in reflect.Value) {
+	e.init()
+	yaml_document_start_event_initialize(&e.event, nil, nil, true)
+	e.emit()
+	e.marshal(tag, in)
+	yaml_document_end_event_initialize(&e.event, true)
+	e.emit()
 }
 
 func (e *encoder) marshal(tag string, in reflect.Value) {
@@ -191,10 +213,10 @@ func (e *encoder) mappingv(tag string, f func()) {
 		e.flow = false
 		style = yaml_FLOW_MAPPING_STYLE
 	}
-	e.must(yaml_mapping_start_event_initialize(&e.event, nil, []byte(tag), implicit, style))
+	yaml_mapping_start_event_initialize(&e.event, nil, []byte(tag), implicit, style)
 	e.emit()
 	f()
-	e.must(yaml_mapping_end_event_initialize(&e.event))
+	yaml_mapping_end_event_initialize(&e.event)
 	e.emit()
 }
 

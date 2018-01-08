@@ -654,7 +654,7 @@ type yaml_emitter_t struct {
 	write_handler yaml_write_handler_t // Write handler.
 
 	output_buffer *[]byte   // String output data.
-	output_file   io.Writer // File output data.
+	output_writer io.Writer // File output data.
 
 	buffer     []byte // The working buffer.
 	buffer_pos int    // The current position of the buffer.

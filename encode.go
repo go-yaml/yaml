@@ -110,6 +110,8 @@ func (e *encoder) marshal(tag string, in reflect.Value) {
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		if in.Type() == durationType {
 			e.stringv(tag, reflect.ValueOf(iface.(time.Duration).String()))
+		} else if in.Type() == octalType {
+			e.octalv(tag, reflect.ValueOf(iface.(Octal).String()))
 		} else {
 			e.intv(tag, in)
 		}
@@ -274,6 +276,10 @@ func (e *encoder) boolv(tag string, in reflect.Value) {
 func (e *encoder) intv(tag string, in reflect.Value) {
 	s := strconv.FormatInt(in.Int(), 10)
 	e.emitScalar(s, "", tag, yaml_PLAIN_SCALAR_STYLE)
+}
+
+func (e *encoder) octalv(tag string, in reflect.Value) {
+	e.emitScalar(in.String(), "", tag, yaml_PLAIN_SCALAR_STYLE)
 }
 
 func (e *encoder) uintv(tag string, in reflect.Value) {

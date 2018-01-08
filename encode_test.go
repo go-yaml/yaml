@@ -306,6 +306,10 @@ var marshalTests = []struct {
 		map[string]time.Time{"a": time.Date(2015, 2, 24, 18, 19, 39, 0, time.UTC)},
 		"a: 2015-02-24T18:19:39Z\n",
 	},
+	{
+		map[string]string{"a": "2015-02-24T18:19:39Z"},
+		"a: '2015-02-24T18:19:39Z'\n",
+	},
 
 	// Ensure strings containing ": " are quoted (reported as PR #43, but not reproducible).
 	{

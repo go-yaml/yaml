@@ -1,8 +1,6 @@
 package yaml
 
-import (
-	"bytes"
-)
+import "bytes"
 
 // Flush the buffer if needed.
 func flush(emitter *yaml_emitter_t) bool {
@@ -231,6 +229,12 @@ func yaml_emitter_state_machine(emitter *yaml_emitter_t, event *yaml_event_t) bo
 
 	case yaml_EMIT_FLOW_SEQUENCE_ITEM_STATE:
 		return yaml_emitter_emit_flow_sequence_item(emitter, event, false)
+
+	case yaml_EMIT_INNER_FLOW_SEQUENCE_FIRST_ITEM_STATE:
+		return yaml_emitter_emit_inner_flow_sequence_item(emitter, event, true)
+
+	case yaml_EMIT_INNER_FLOW_SEQUENCE_ITEM_STATE:
+		return yaml_emitter_emit_inner_flow_sequence_item(emitter, event, false)
 
 	case yaml_EMIT_FLOW_MAPPING_FIRST_KEY_STATE:
 		return yaml_emitter_emit_flow_mapping_key(emitter, event, true)
@@ -500,6 +504,32 @@ func yaml_emitter_emit_flow_sequence_item(emitter *yaml_emitter_t, event *yaml_e
 	return yaml_emitter_emit_node(emitter, event, false, true, false, false)
 }
 
+// Expect an inner flow item node.
+func yaml_emitter_emit_inner_flow_sequence_item(emitter *yaml_emitter_t, event *yaml_event_t, first bool) bool {
+	if first {
+		if !yaml_emitter_increase_indent(emitter, false, emitter.mapping_context && !emitter.indention) {
+			return false
+		}
+		emitter.inner_flow_level++
+	}
+	if event.typ == yaml_SEQUENCE_END_EVENT {
+		emitter.inner_flow_level--
+		emitter.indent = emitter.indents[len(emitter.indents)-1]
+		emitter.indents = emitter.indents[:len(emitter.indents)-1]
+		emitter.state = emitter.states[len(emitter.states)-1]
+		emitter.states = emitter.states[:len(emitter.states)-1]
+		return true
+	}
+	if !yaml_emitter_write_indent(emitter) {
+		return false
+	}
+	if !yaml_emitter_write_indicator(emitter, []byte{'-'}, true, false, true) {
+		return false
+	}
+	emitter.states = append(emitter.states, yaml_EMIT_INNER_FLOW_SEQUENCE_ITEM_STATE)
+	return yaml_emitter_emit_node(emitter, event, false, true, false, false)
+}
+
 // Expect a flow key node.
 func yaml_emitter_emit_flow_mapping_key(emitter *yaml_emitter_t, event *yaml_event_t, first bool) bool {
 	if first {
@@ -710,8 +740,10 @@ func yaml_emitter_emit_sequence_start(emitter *yaml_emitter_t, event *yaml_event
 	if !yaml_emitter_process_tag(emitter) {
 		return false
 	}
-	if emitter.flow_level > 0 || emitter.canonical || event.sequence_style() == yaml_FLOW_SEQUENCE_STYLE ||
-		yaml_emitter_check_empty_sequence(emitter) {
+	if event.sequence_style() == yaml_INNER_FLOW_SEQUENCE_STYLE {
+		emitter.state = yaml_EMIT_INNER_FLOW_SEQUENCE_FIRST_ITEM_STATE
+	} else if emitter.inner_flow_level > 0 || emitter.flow_level > 0 || emitter.canonical ||
+		event.sequence_style() == yaml_FLOW_SEQUENCE_STYLE || yaml_emitter_check_empty_sequence(emitter) {
 		emitter.state = yaml_EMIT_FLOW_SEQUENCE_FIRST_ITEM_STATE
 	} else {
 		emitter.state = yaml_EMIT_BLOCK_SEQUENCE_FIRST_ITEM_STATE

@@ -88,8 +88,9 @@ const (
 	// Let the emitter choose the style.
 	yaml_ANY_SEQUENCE_STYLE yaml_sequence_style_t = iota
 
-	yaml_BLOCK_SEQUENCE_STYLE // The block sequence style.
-	yaml_FLOW_SEQUENCE_STYLE  // The flow sequence style.
+	yaml_BLOCK_SEQUENCE_STYLE      // The block sequence style.
+	yaml_FLOW_SEQUENCE_STYLE       // The flow sequence style.
+	yaml_INNER_FLOW_SEQUENCE_STYLE // The innerflow sequence style.
 )
 
 type yaml_mapping_style_t yaml_style_t
@@ -597,23 +598,25 @@ const (
 	// Expect STREAM-START.
 	yaml_EMIT_STREAM_START_STATE yaml_emitter_state_t = iota
 
-	yaml_EMIT_FIRST_DOCUMENT_START_STATE       // Expect the first DOCUMENT-START or STREAM-END.
-	yaml_EMIT_DOCUMENT_START_STATE             // Expect DOCUMENT-START or STREAM-END.
-	yaml_EMIT_DOCUMENT_CONTENT_STATE           // Expect the content of a document.
-	yaml_EMIT_DOCUMENT_END_STATE               // Expect DOCUMENT-END.
-	yaml_EMIT_FLOW_SEQUENCE_FIRST_ITEM_STATE   // Expect the first item of a flow sequence.
-	yaml_EMIT_FLOW_SEQUENCE_ITEM_STATE         // Expect an item of a flow sequence.
-	yaml_EMIT_FLOW_MAPPING_FIRST_KEY_STATE     // Expect the first key of a flow mapping.
-	yaml_EMIT_FLOW_MAPPING_KEY_STATE           // Expect a key of a flow mapping.
-	yaml_EMIT_FLOW_MAPPING_SIMPLE_VALUE_STATE  // Expect a value for a simple key of a flow mapping.
-	yaml_EMIT_FLOW_MAPPING_VALUE_STATE         // Expect a value of a flow mapping.
-	yaml_EMIT_BLOCK_SEQUENCE_FIRST_ITEM_STATE  // Expect the first item of a block sequence.
-	yaml_EMIT_BLOCK_SEQUENCE_ITEM_STATE        // Expect an item of a block sequence.
-	yaml_EMIT_BLOCK_MAPPING_FIRST_KEY_STATE    // Expect the first key of a block mapping.
-	yaml_EMIT_BLOCK_MAPPING_KEY_STATE          // Expect the key of a block mapping.
-	yaml_EMIT_BLOCK_MAPPING_SIMPLE_VALUE_STATE // Expect a value for a simple key of a block mapping.
-	yaml_EMIT_BLOCK_MAPPING_VALUE_STATE        // Expect a value of a block mapping.
-	yaml_EMIT_END_STATE                        // Expect nothing.
+	yaml_EMIT_FIRST_DOCUMENT_START_STATE           // Expect the first DOCUMENT-START or STREAM-END.
+	yaml_EMIT_DOCUMENT_START_STATE                 // Expect DOCUMENT-START or STREAM-END.
+	yaml_EMIT_DOCUMENT_CONTENT_STATE               // Expect the content of a document.
+	yaml_EMIT_DOCUMENT_END_STATE                   // Expect DOCUMENT-END.
+	yaml_EMIT_FLOW_SEQUENCE_FIRST_ITEM_STATE       // Expect the first item of a flow sequence.
+	yaml_EMIT_FLOW_SEQUENCE_ITEM_STATE             // Expect an item of a flow sequence.
+	yaml_EMIT_INNER_FLOW_SEQUENCE_FIRST_ITEM_STATE // Expect the first item of an inner flow sequence.
+	yaml_EMIT_INNER_FLOW_SEQUENCE_ITEM_STATE       // Expect an item of an inner flow sequence.
+	yaml_EMIT_FLOW_MAPPING_FIRST_KEY_STATE         // Expect the first key of a flow mapping.
+	yaml_EMIT_FLOW_MAPPING_KEY_STATE               // Expect a key of a flow mapping.
+	yaml_EMIT_FLOW_MAPPING_SIMPLE_VALUE_STATE      // Expect a value for a simple key of a flow mapping.
+	yaml_EMIT_FLOW_MAPPING_VALUE_STATE             // Expect a value of a flow mapping.
+	yaml_EMIT_BLOCK_SEQUENCE_FIRST_ITEM_STATE      // Expect the first item of a block sequence.
+	yaml_EMIT_BLOCK_SEQUENCE_ITEM_STATE            // Expect an item of a block sequence.
+	yaml_EMIT_BLOCK_MAPPING_FIRST_KEY_STATE        // Expect the first key of a block mapping.
+	yaml_EMIT_BLOCK_MAPPING_KEY_STATE              // Expect the key of a block mapping.
+	yaml_EMIT_BLOCK_MAPPING_SIMPLE_VALUE_STATE     // Expect a value for a simple key of a block mapping.
+	yaml_EMIT_BLOCK_MAPPING_VALUE_STATE            // Expect a value of a block mapping.
+	yaml_EMIT_END_STATE                            // Expect nothing.
 )
 
 // The emitter structure.
@@ -662,7 +665,8 @@ type yaml_emitter_t struct {
 
 	indent int // The current indentation level.
 
-	flow_level int // The current flow level.
+	flow_level       int // The current flow level.
+	inner_flow_level int // The current outer level before flow level.
 
 	root_context       bool // Is it the document root context?
 	sequence_context   bool // Is it a sequence context?

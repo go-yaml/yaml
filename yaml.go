@@ -211,6 +211,7 @@ type fieldInfo struct {
 	Num       int
 	OmitEmpty bool
 	Flow      bool
+	InnerFlow bool
 
 	// Inline holds the field index if the field is part of an inlined struct.
 	Inline []int
@@ -256,6 +257,8 @@ func getStructInfo(st reflect.Type) (*structInfo, error) {
 					info.OmitEmpty = true
 				case "flow":
 					info.Flow = true
+				case "innerflow":
+					info.InnerFlow = true
 				case "inline":
 					inline = true
 				default:

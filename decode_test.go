@@ -412,6 +412,11 @@ var unmarshalTests = []struct {
 		"v: ! test",
 		map[string]interface{}{"v": "test"},
 	},
+	// Non-specific tag with resolvable item.
+	{
+		"v: ! 99",
+		map[string]interface{}{"v": "99"},
+	},
 
 	// Anchors and aliases.
 	{
@@ -1080,6 +1085,7 @@ inlineSequenceMap:
   # Inlined map in sequence
   << : [ *CENTER, {"r": 10} ]
   label: center/big
+
 `
 
 func (s *S) TestMerge(c *C) {

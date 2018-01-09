@@ -356,6 +356,17 @@ var marshalTests = []struct {
 		map[string]string{"a": "你好 #comment"},
 		"a: '你好 #comment'\n",
 	},
+
+	// << should be quoted so that it's not treated as a merge key.
+	{
+		map[string]string{"<<": "x"},
+		"\"<<\": x\n",
+	},
+	// Explicit merge tag key is left unquoted.
+	{
+		map[interface{}]interface{}{yaml.MergeTag: map[string]string{"a": "b"}},
+		"<<:\n  a: b\n",
+	},
 }
 
 func (s *S) TestMarshal(c *C) {

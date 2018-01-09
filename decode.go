@@ -234,6 +234,7 @@ var (
 	ifaceType      = defaultMapType.Elem()
 	timeType       = reflect.TypeOf(time.Time{})
 	ptrTimeType    = reflect.TypeOf(&time.Time{})
+	mergeTagType   = reflect.TypeOf(MergeTag)
 )
 
 func newDecoder(strict bool) *decoder {
@@ -760,5 +761,11 @@ func (d *decoder) merge(n *node, out reflect.Value) {
 }
 
 func isMerge(n *node) bool {
-	return n.kind == scalarNode && n.value == "<<" && (n.implicit == true || n.tag == yaml_MERGE_TAG)
+	// Quick test so we avoid the overhead of calling resolve
+	// unless we're pretty sure it can be a merge node.
+	if n.kind != scalarNode || n.value != "<<" {
+		return false
+	}
+	_, v := resolve(n.tag, n.value)
+	return v == MergeTag
 }

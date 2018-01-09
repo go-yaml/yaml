@@ -202,6 +202,25 @@ var marshalTests = []struct {
 		}{1, 0},
 		"a: 1\n",
 	},
+	{
+		&struct {
+			T1 time.Time  "t1,omitempty"
+			T2 time.Time  "t2,omitempty"
+			T3 *time.Time "t3,omitempty"
+			T4 *time.Time "t4,omitempty"
+		}{
+			T2: time.Date(2018, 1, 9, 10, 40, 47, 0, time.UTC),
+			T4: newTime(time.Date(2098, 1, 9, 10, 40, 47, 0, time.UTC)),
+		},
+		"t2: !!timestamp 2018-01-09T10:40:47Z\nt4: !!timestamp 2098-01-09T10:40:47Z\n",
+	},
+	// Nil interface that implements Marshaler.
+	{
+		map[string]yaml.Marshaler{
+			"a": nil,
+		},
+		"a: null\n",
+	},
 
 	// Flow flag
 	{
@@ -307,8 +326,13 @@ var marshalTests = []struct {
 		map[string]net.IP{"a": net.IPv4(1, 2, 3, 4)},
 		"a: 1.2.3.4\n",
 	},
+	// time.Time gets a timestamp tag.
 	{
 		map[string]time.Time{"a": time.Date(2015, 2, 24, 18, 19, 39, 0, time.UTC)},
+		"a: !!timestamp 2015-02-24T18:19:39Z\n",
+	},
+	{
+		map[string]*time.Time{"a": newTime(time.Date(2015, 2, 24, 18, 19, 39, 0, time.UTC))},
 		"a: !!timestamp 2015-02-24T18:19:39Z\n",
 	},
 	// Ensure timestamp-like strings are quoted.
@@ -546,4 +570,8 @@ func (s *S) TestSortedOutput(c *C) {
 		}
 		last = index
 	}
+}
+
+func newTime(t time.Time) *time.Time {
+	return &t
 }

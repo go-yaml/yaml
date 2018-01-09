@@ -172,7 +172,10 @@ func unmarshal(in []byte, out interface{}, strict bool) (err error) {
 //
 //     omitempty    Only include the field if it's not set to the zero
 //                  value for the type or to empty slices or maps.
-//                  Does not apply to zero valued structs.
+//                  Zero valued structs will be omitted if all their public
+//                  fields are zero, unless they implement an IsZero
+//                  method (see the IsZeroer interface type), in which
+//                  case the field will be included if that method returns true.
 //
 //     flow         Marshal using a flow style (useful for structs,
 //                  sequences and maps).
@@ -414,8 +417,23 @@ func getStructInfo(st reflect.Type) (*structInfo, error) {
 	return sinfo, nil
 }
 
+// IsZeroer is used to check whether an object is zero to
+// determine whether it should be omitted when marshaling
+// with the omitempty flag. One notable implementation
+// is time.Time.
+type IsZeroer interface {
+	IsZero() bool
+}
+
 func isZero(v reflect.Value) bool {
-	switch v.Kind() {
+	kind := v.Kind()
+	if z, ok := v.Interface().(IsZeroer); ok {
+		if (kind == reflect.Ptr || kind == reflect.Interface) && v.IsNil() {
+			return true
+		}
+		return z.IsZero()
+	}
+	switch kind {
 	case reflect.String:
 		return len(v.String()) == 0
 	case reflect.Interface, reflect.Ptr:

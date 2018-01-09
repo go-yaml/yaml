@@ -89,6 +89,11 @@ func (e *encoder) marshal(tag string, in reflect.Value) {
 	}
 	iface := in.Interface()
 	switch m := iface.(type) {
+	case time.Time, *time.Time:
+		// Although time.Time implements TextMarshaler,
+		// we don't want to treat it as a string for YAML
+		// purposes because YAML has special support for
+		// timestamps.
 	case Marshaler:
 		v, err := m.MarshalYAML()
 		if err != nil {
@@ -99,30 +104,24 @@ func (e *encoder) marshal(tag string, in reflect.Value) {
 			return
 		}
 		in = reflect.ValueOf(v)
-	case time.Time:
-		// Although time.Time implements TextMarshaler,
-		// we don't want to treat it as a string for YAML
-		// purposes because YAML has special support for
-		// timestamps.
 	case encoding.TextMarshaler:
 		text, err := m.MarshalText()
 		if err != nil {
 			fail(err)
 		}
 		in = reflect.ValueOf(string(text))
+	case nil:
+		e.nilv()
+		return
 	}
 	switch in.Kind() {
 	case reflect.Interface:
-		if in.IsNil() {
-			e.nilv()
-		} else {
-			e.marshal(tag, in.Elem())
-		}
+		e.marshal(tag, in.Elem())
 	case reflect.Map:
 		e.mapv(tag, in)
 	case reflect.Ptr:
-		if in.IsNil() {
-			e.nilv()
+		if in.Type() == ptrTimeType {
+			e.timev(tag, in.Elem())
 		} else {
 			e.marshal(tag, in.Elem())
 		}

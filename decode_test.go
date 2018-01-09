@@ -1242,6 +1242,26 @@ func (t *textUnmarshaler) UnmarshalText(s []byte) error {
 	return nil
 }
 
+func (s *S) TestDynamic(c *C) {
+	type Parent struct {
+		Child interface{} `yaml:"child"`
+	}
+
+	type ChildStruct struct {
+		Foo int `yaml:"foo"`
+	}
+
+	data := []byte("child:\n  foo: 42")
+
+	out := Parent{Child: &ChildStruct{}}
+	yaml.Unmarshal([]byte(data), &out)
+
+	c.Assert(out, DeepEquals, Parent{Child: &ChildStruct{Foo: 42}})
+	if _, ok := out.Child.(*ChildStruct); !ok {
+		c.Fail()
+	}
+}
+
 //var data []byte
 //func init() {
 //	var err error

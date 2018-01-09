@@ -336,8 +336,7 @@ func (e *encoder) timev(tag string, in reflect.Value) {
 }
 
 func (e *encoder) floatv(tag string, in reflect.Value) {
-	// FIXME: Handle 64 bits here.
-	s := strconv.FormatFloat(float64(in.Float()), 'g', -1, 32)
+	s := strconv.FormatFloat(in.Float(), 'g', -1, 64)
 	switch s {
 	case "+Inf":
 		s = ".inf"

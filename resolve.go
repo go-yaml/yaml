@@ -14,20 +14,28 @@ type resolveMapItem struct {
 	tag   string
 }
 
+// MergeTag is the value used for a merge tag (!!merge "<<").
+// When marshaled as a map key, the << will not be quoted,
+// which makes it possible to include merge tags explicitly
+// when encoding YAML values.
+var MergeTag = mergeTag{}
+
+type mergeTag struct{}
+
 var resolveTable = make([]byte, 256)
 var resolveMap = make(map[string]resolveMapItem)
 
 func init() {
 	t := resolveTable
-	t[int('+')] = 'S' // Sign
-	t[int('-')] = 'S'
+	t['+'] = 'S' // Sign
+	t['-'] = 'S'
 	for _, c := range "0123456789" {
-		t[int(c)] = 'D' // Digit
+		t[c] = 'D' // Digit
 	}
-	for _, c := range "yYnNtTfFoO~" {
-		t[int(c)] = 'M' // In map
+	for _, c := range "yYnNtTfFoO~<" {
+		t[c] = 'M' // In resolveMap
 	}
-	t[int('.')] = '.' // Float (potentially in map)
+	t['.'] = '.' // Float (potentially in map)
 
 	var resolveMapList = []struct {
 		v   interface{}
@@ -45,7 +53,7 @@ func init() {
 		{math.Inf(+1), yaml_FLOAT_TAG, []string{".inf", ".Inf", ".INF"}},
 		{math.Inf(+1), yaml_FLOAT_TAG, []string{"+.inf", "+.Inf", "+.INF"}},
 		{math.Inf(-1), yaml_FLOAT_TAG, []string{"-.inf", "-.Inf", "-.INF"}},
-		{"<<", yaml_MERGE_TAG, []string{"<<"}},
+		{MergeTag, yaml_MERGE_TAG, []string{"<<"}},
 	}
 
 	m := resolveMap
@@ -75,7 +83,7 @@ func longTag(tag string) string {
 
 func resolvableTag(tag string) bool {
 	switch tag {
-	case "", yaml_STR_TAG, yaml_BOOL_TAG, yaml_INT_TAG, yaml_FLOAT_TAG, yaml_NULL_TAG, yaml_TIMESTAMP_TAG:
+	case "", yaml_STR_TAG, yaml_BOOL_TAG, yaml_INT_TAG, yaml_FLOAT_TAG, yaml_NULL_TAG, yaml_TIMESTAMP_TAG, yaml_MERGE_TAG:
 		return true
 	}
 	return false

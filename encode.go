@@ -126,9 +126,12 @@ func (e *encoder) marshal(tag string, in reflect.Value) {
 			e.marshal(tag, in.Elem())
 		}
 	case reflect.Struct:
-		if in.Type() == timeType {
+		switch in.Type() {
+		case timeType:
 			e.timev(tag, in)
-		} else {
+		case mergeTagType:
+			e.mergeTagv(tag)
+		default:
 			e.structv(tag, in)
 		}
 	case reflect.Slice:
@@ -332,6 +335,10 @@ func (e *encoder) timev(tag string, in reflect.Value) {
 		tag = yaml_TIMESTAMP_TAG
 	}
 	e.emitScalar(t.Format(time.RFC3339Nano), "", tag, yaml_PLAIN_SCALAR_STYLE)
+}
+
+func (e *encoder) mergeTagv(tag string) {
+	e.emitScalar("<<", "", tag, yaml_PLAIN_SCALAR_STYLE)
 }
 
 func (e *encoder) floatv(tag string, in reflect.Value) {

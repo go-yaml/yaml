@@ -99,6 +99,8 @@ func (e *encoder) marshal(tag string, in reflect.Value) {
 		}
 	case reflect.Struct:
 		e.structv(tag, in)
+	case reflect.Array:
+		fallthrough
 	case reflect.Slice:
 		if in.Type().Elem() == mapItemType {
 			e.itemsv(tag, in)

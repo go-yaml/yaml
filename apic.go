@@ -314,7 +314,7 @@ func yaml_document_end_event_initialize(event *yaml_event_t, implicit bool) bool
 //}
 
 // Create SCALAR.
-func yaml_scalar_event_initialize(event *yaml_event_t, anchor, tag, value []byte, plain_implicit, quoted_implicit bool, style yaml_scalar_style_t) bool {
+func yaml_scalar_event_initialize(event *yaml_event_t, anchor, tag, value []byte, plain_implicit, quoted_implicit bool, style yaml_scalar_style_t, info fieldInfo) bool {
 	*event = yaml_event_t{
 		typ:             yaml_SCALAR_EVENT,
 		anchor:          anchor,
@@ -323,6 +323,7 @@ func yaml_scalar_event_initialize(event *yaml_event_t, anchor, tag, value []byte
 		implicit:        plain_implicit,
 		quoted_implicit: quoted_implicit,
 		style:           yaml_style_t(style),
+		allow_breaks:    !info.NoWrap,
 	}
 	return true
 }

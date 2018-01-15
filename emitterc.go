@@ -890,13 +890,13 @@ func yaml_emitter_process_tag(emitter *yaml_emitter_t) bool {
 func yaml_emitter_process_scalar(emitter *yaml_emitter_t) bool {
 	switch emitter.scalar_data.style {
 	case yaml_PLAIN_SCALAR_STYLE:
-		return yaml_emitter_write_plain_scalar(emitter, emitter.scalar_data.value, !emitter.simple_key_context)
+		return yaml_emitter_write_plain_scalar(emitter, emitter.scalar_data.value, !emitter.simple_key_context && emitter.scalar_data.allow_breaks)
 
 	case yaml_SINGLE_QUOTED_SCALAR_STYLE:
-		return yaml_emitter_write_single_quoted_scalar(emitter, emitter.scalar_data.value, !emitter.simple_key_context)
+		return yaml_emitter_write_single_quoted_scalar(emitter, emitter.scalar_data.value, !emitter.simple_key_context && emitter.scalar_data.allow_breaks)
 
 	case yaml_DOUBLE_QUOTED_SCALAR_STYLE:
-		return yaml_emitter_write_double_quoted_scalar(emitter, emitter.scalar_data.value, !emitter.simple_key_context)
+		return yaml_emitter_write_double_quoted_scalar(emitter, emitter.scalar_data.value, !emitter.simple_key_context && emitter.scalar_data.allow_breaks)
 
 	case yaml_LITERAL_SCALAR_STYLE:
 		return yaml_emitter_write_literal_scalar(emitter, emitter.scalar_data.value)
@@ -980,7 +980,7 @@ func yaml_emitter_analyze_tag(emitter *yaml_emitter_t, tag []byte) bool {
 }
 
 // Check if a scalar is valid.
-func yaml_emitter_analyze_scalar(emitter *yaml_emitter_t, value []byte) bool {
+func yaml_emitter_analyze_scalar(emitter *yaml_emitter_t, value []byte, allow_breaks bool) bool {
 	var (
 		block_indicators   = false
 		flow_indicators    = false
@@ -1001,6 +1001,7 @@ func yaml_emitter_analyze_scalar(emitter *yaml_emitter_t, value []byte) bool {
 	)
 
 	emitter.scalar_data.value = value
+	emitter.scalar_data.allow_breaks = allow_breaks
 
 	if len(value) == 0 {
 		emitter.scalar_data.multiline = false
@@ -1153,7 +1154,7 @@ func yaml_emitter_analyze_event(emitter *yaml_emitter_t, event *yaml_event_t) bo
 				return false
 			}
 		}
-		if !yaml_emitter_analyze_scalar(emitter, event.value) {
+		if !yaml_emitter_analyze_scalar(emitter, event.value, event.allow_breaks) {
 			return false
 		}
 

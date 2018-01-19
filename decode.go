@@ -81,6 +81,10 @@ func (p *parser) fail() {
 	var line int
 	if p.parser.problem_mark.line != 0 {
 		line = p.parser.problem_mark.line
+		// Scanner errors don't iterate line before returning error
+		if p.parser.error == yaml_SCANNER_ERROR {
+			line++
+		}
 	} else if p.parser.context_mark.line != 0 {
 		line = p.parser.context_mark.line
 	}

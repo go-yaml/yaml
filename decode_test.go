@@ -252,6 +252,27 @@ var unmarshalTests = []struct {
 		&struct{ A bool }{true},
 	},
 
+	// Struct with overriding merge
+	{
+		"" +
+			"x: &x\n" +
+			"  foo:\n" +
+			"    bar: 1\n" +
+			"  test: 6\n" +
+			"\n" +
+			"y:\n" +
+			"  <<: *x\n" +
+			"  foo:\n" +
+			"    baz: 2\n",
+		map[string]struct {
+			Foo  map[string]int
+			Test int
+		}{
+			"x": {Foo: map[string]int{"bar": 1}, Test: 6},
+			"y": {Foo: map[string]int{"baz": 2}, Test: 6},
+		},
+	},
+
 	// Some cross type conversions
 	{
 		"v: 42",

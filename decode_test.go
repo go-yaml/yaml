@@ -707,6 +707,15 @@ var unmarshalTests = []struct {
 		"---\nhello\n...\n}not yaml",
 		"hello",
 	},
+	// Single element decoding while the slice was provided.
+	{
+		"a: foo",
+		map[string][]string{"a": []string{"foo"}},
+	},
+	{
+		"a: bar\nb:\n - b_one\n - b_two",
+		map[string][]string{"a": []string{"bar"}, "b": []string{"b_one", "b_two"}},
+	},
 }
 
 type M map[interface{}]interface{}

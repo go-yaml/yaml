@@ -524,6 +524,15 @@ func (d *decoder) scalar(n *node, out reflect.Value) bool {
 			out.Set(elem)
 			return true
 		}
+	// case reflect.Array:
+	// TBD ...
+	case reflect.Slice:
+		elem := reflect.Indirect(reflect.New(out.Type().Elem()))
+		if d.scalar(n, elem) {
+			slice := reflect.MakeSlice(reflect.SliceOf(out.Type().Elem()), 0, 1)
+			out.Set(reflect.Append(slice, elem))
+			return true
+		}
 	}
 	d.terror(n, tag, out)
 	return false

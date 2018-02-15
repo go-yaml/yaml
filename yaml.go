@@ -220,6 +220,13 @@ func NewEncoder(w io.Writer) *Encoder {
 	}
 }
 
+// SetLineWidth sets the preferred line width.
+// To disable long line breaks set width lower than zero.
+// By default, line width is set to 80.
+func (e *Encoder) SetLineWidth(width int) {
+	e.encoder.setWidth(width)
+}
+
 // Encode writes the YAML encoding of v to the stream.
 // If multiple items are encoded to the stream, the
 // second and subsequent document will be preceded

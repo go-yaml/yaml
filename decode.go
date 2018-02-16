@@ -647,11 +647,21 @@ func (d *decoder) mappingSlice(n *node, out reflect.Value) (good bool) {
 	mapType := d.mapType
 	d.mapType = outt
 
-	var slice []MapItem
-	var l = len(n.children)
-	for i := 0; i < l; i += 2 {
+	var keys []interface{}
+	kv := make(map[interface{}]interface{})
+
+	for i := 0; i < len(n.children); i += 2 {
 		if isMerge(n.children[i]) {
 			d.merge(n.children[i+1], out)
+			for i := 0; i < out.Len(); i++ {
+				item := out.Index(i).Interface().(MapItem)
+				_, ok := kv[item.Key]
+				kv[item.Key] = item.Value
+				if !ok {
+					keys = append(keys, item.Key)
+				}
+			}
+
 			continue
 		}
 		item := MapItem{}
@@ -659,11 +669,19 @@ func (d *decoder) mappingSlice(n *node, out reflect.Value) (good bool) {
 		if d.unmarshal(n.children[i], k) {
 			v := reflect.ValueOf(&item.Value).Elem()
 			if d.unmarshal(n.children[i+1], v) {
-				slice = append(slice, item)
+				_, ok := kv[item.Key]
+				kv[item.Key] = item.Value
+				if !ok {
+					keys = append(keys, item.Key)
+				}
 			}
 		}
 	}
-	out.Set(reflect.ValueOf(slice))
+	var output []MapItem
+	for _, key := range keys {
+		output = append(output, MapItem{key, kv[key]})
+	}
+	out.Set(reflect.ValueOf(output))
 	d.mapType = mapType
 	return true
 }
@@ -741,6 +759,30 @@ func (d *decoder) merge(n *node, out reflect.Value) {
 		}
 		d.unmarshal(n, out)
 	case sequenceNode:
+		if out.Kind() == reflect.Slice {
+			kv := make(map[interface{}]interface{})
+			var keys []interface{}
+			for i := len(n.children) - 1; i >= 0; i-- {
+				d.unmarshal(n.children[i], out)
+				var subitems []interface{}
+				for j := 0; j < out.Len(); j++ {
+					item := out.Index(j).Interface().(MapItem)
+					_, ok := kv[item.Key]
+					kv[item.Key] = item.Value
+					if !ok {
+						subitems = append(subitems, item.Key)
+					}
+				}
+				keys = append(subitems, keys...)
+			}
+			var output []MapItem
+			for _, key := range keys {
+				output = append(output, MapItem{key, kv[key]})
+			}
+			out.Set(reflect.ValueOf(output))
+			return
+		}
+
 		// Step backwards as earlier nodes take precedence.
 		for i := len(n.children) - 1; i >= 0; i-- {
 			ni := n.children[i]
@@ -754,9 +796,11 @@ func (d *decoder) merge(n *node, out reflect.Value) {
 			}
 			d.unmarshal(ni, out)
 		}
+
 	default:
 		failWantMap()
 	}
+
 }
 
 func isMerge(n *node) bool {

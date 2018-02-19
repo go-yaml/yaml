@@ -33,6 +33,14 @@ type Unmarshaler interface {
 	UnmarshalYAML(unmarshal func(interface{}) error) error
 }
 
+// The TagUnmarshaler interface may be implemented by types to customize their
+// behavior when being unmarshaled from a YAML document. It works in the
+// same way as the Unmarshaler interface, except that the current tag
+// is also provided.
+type TagUnmarshaler interface {
+	UnmarshalYAMLWithTag(unmarshal func(interface{}) error, tag string) error
+}
+
 // The Marshaler interface may be implemented by types to customize their
 // behavior when being marshaled into a YAML document. The returned value
 // is marshaled in place of the original value implementing Marshaler.
@@ -41,6 +49,14 @@ type Unmarshaler interface {
 // and returns with the provided error.
 type Marshaler interface {
 	MarshalYAML() (interface{}, error)
+}
+
+// The TagMarshaler interface may be implemented by types to customize their
+// behavior when being marshaled into a YAML document. It works in the same
+// was as the Marshaler interface, except that the tag for the node
+// to be marshalled can be returned.
+type TagMarshaler interface {
+	MarshalYAMLWithTag() (interface{}, string, error)
 }
 
 // Unmarshal decodes the first document found within the in byte slice
@@ -91,8 +107,9 @@ func UnmarshalStrict(in []byte, out interface{}) (err error) {
 
 // A Decorder reads and decodes YAML values from an input stream.
 type Decoder struct {
-	strict bool
-	parser *parser
+	strict     bool
+	parser     *parser
+	customTags bool
 }
 
 // NewDecoder returns a new decoder that reads from r.
@@ -111,13 +128,19 @@ func (dec *Decoder) SetStrict(strict bool) {
 	dec.strict = strict
 }
 
+// SetCustomTags sets whether strict decoding behaviour is enabled when
+// decoding items in the data (see UnmarshalStrict). By default, decoding is not strict.
+func (dec *Decoder) SetCustomTags(customTags bool) {
+	dec.customTags = customTags
+}
+
 // Decode reads the next YAML-encoded value from its input
 // and stores it in the value pointed to by v.
 //
 // See the documentation for Unmarshal for details about the
 // conversion of YAML into a Go value.
 func (dec *Decoder) Decode(v interface{}) (err error) {
-	d := newDecoder(dec.strict)
+	d := newDecoder(dec.strict, dec.customTags)
 	defer handleErr(&err)
 	node := dec.parser.parse()
 	if node == nil {
@@ -136,7 +159,7 @@ func (dec *Decoder) Decode(v interface{}) (err error) {
 
 func unmarshal(in []byte, out interface{}, strict bool) (err error) {
 	defer handleErr(&err)
-	d := newDecoder(strict)
+	d := newDecoder(strict, false)
 	p := newParser(in)
 	defer p.destroy()
 	node := p.parse()
@@ -239,6 +262,33 @@ func (e *Encoder) Close() (err error) {
 	defer handleErr(&err)
 	e.encoder.finish()
 	return nil
+}
+
+// TaggedValue represents a yaml node with its associated tag.
+// Generation of TaggedValues, if the tag is not understood, can
+// be enabled on a particular decoder by calling SetCustomTags(true).
+type TaggedValue struct {
+	Tag   string
+	Value interface{}
+}
+
+// UnmarshalYAMLWithTag for the TaggedValue struct allows tags to be
+// parsed into user generated structs.
+func (c *TaggedValue) UnmarshalYAMLWithTag(unmarshal func(interface{}) error, tag string) error {
+	if c.Tag == "" {
+		c.Tag = tag
+	} else if c.Tag != tag {
+		return &TypeError{[]string{
+			fmt.Sprintf("unexpected tag (expected %q, got %q)", c.Tag, tag)}}
+	}
+	return unmarshal(c.Value)
+}
+
+// MarshalYAMLWithTag enables TaggedValue structs to be marshalled as expected
+// into YAML. In particular, this enables loss-less processing of YAML documents
+// when tags are not understood if SetCustomTags(true) is called on the decoder.
+func (c *TaggedValue) MarshalYAMLWithTag() (interface{}, string, error) {
+	return c.Value, c.Tag, nil
 }
 
 func handleErr(err *error) {

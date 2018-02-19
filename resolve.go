@@ -89,6 +89,30 @@ func resolvableTag(tag string) bool {
 	return false
 }
 
+func isScalarTag(tag string) bool {
+	switch tag {
+	case yaml_STR_TAG, yaml_BOOL_TAG, yaml_INT_TAG, yaml_FLOAT_TAG, yaml_NULL_TAG, yaml_TIMESTAMP_TAG, yaml_BINARY_TAG:
+		return true
+	}
+	return false
+}
+
+func isMappingTag(tag string) bool {
+	return tag == yaml_MAP_TAG
+}
+
+func isSequenceTag(tag string) bool {
+	return tag == yaml_SEQ_TAG
+}
+
+func isBuiltinTag(tag string) bool {
+	return isMappingTag(tag) || isSequenceTag(tag) || isScalarTag(tag) || tag == yaml_MERGE_TAG
+}
+
+func isCustomTag(tag string) bool {
+	return tag != "" && !isBuiltinTag(tag)
+}
+
 var yamlStyleFloat = regexp.MustCompile(`^[-+]?[0-9]*\.?[0-9]+([eE][-+][0-9]+)?$`)
 
 func resolve(tag string, in string) (rtag string, out interface{}) {

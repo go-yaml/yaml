@@ -94,6 +94,17 @@ func (e *encoder) marshal(tag string, in reflect.Value) {
 		// we don't want to treat it as a string for YAML
 		// purposes because YAML has special support for
 		// timestamps.
+	case TagMarshaler:
+		v, newtag, err := m.MarshalYAMLWithTag()
+		if err != nil {
+			fail(err)
+		}
+		if v == nil {
+			e.nilv()
+			return
+		}
+		in = reflect.ValueOf(v)
+		tag = newtag
 	case Marshaler:
 		v, err := m.MarshalYAML()
 		if err != nil {

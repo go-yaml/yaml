@@ -196,6 +196,7 @@ func (p *parser) scalar() *node {
 
 func (p *parser) sequence() *node {
 	n := p.node(sequenceNode)
+	n.tag = string(p.event.tag)
 	p.anchor(n, p.event.anchor)
 	p.expect(yaml_SEQUENCE_START_EVENT)
 	for p.peek() != yaml_SEQUENCE_END_EVENT {
@@ -207,6 +208,7 @@ func (p *parser) sequence() *node {
 
 func (p *parser) mapping() *node {
 	n := p.node(mappingNode)
+	n.tag = string(p.event.tag)
 	p.anchor(n, p.event.anchor)
 	p.expect(yaml_MAPPING_START_EVENT)
 	for p.peek() != yaml_MAPPING_END_EVENT {
@@ -220,11 +222,12 @@ func (p *parser) mapping() *node {
 // Decoder, unmarshals a node into a provided value.
 
 type decoder struct {
-	doc     *node
-	aliases map[*node]bool
-	mapType reflect.Type
-	terrors []string
-	strict  bool
+	doc        *node
+	aliases    map[*node]bool
+	mapType    reflect.Type
+	terrors    []string
+	strict     bool
+	customTags bool
 }
 
 var (
@@ -237,8 +240,8 @@ var (
 	mergeTagType   = reflect.TypeOf(MergeTag)
 )
 
-func newDecoder(strict bool) *decoder {
-	d := &decoder{mapType: defaultMapType, strict: strict}
+func newDecoder(strict bool, customTags bool) *decoder {
+	d := &decoder{mapType: defaultMapType, strict: strict, customTags: customTags}
 	d.aliases = make(map[*node]bool)
 	return d
 }
@@ -258,9 +261,13 @@ func (d *decoder) terror(n *node, tag string, out reflect.Value) {
 	d.terrors = append(d.terrors, fmt.Sprintf("line %d: cannot unmarshal %s%s into %s", n.line+1, shortTag(tag), value, out.Type()))
 }
 
-func (d *decoder) callUnmarshaler(n *node, u Unmarshaler) (good bool) {
+func (d *decoder) tagError(n *node, kind string) {
+	d.terrors = append(d.terrors, fmt.Sprintf("line %d: %s has incompatible tag %q", n.line+1, kind, shortTag(n.tag)))
+}
+
+func (d *decoder) callUnmarshaler(n *node, u interface{}) (good bool, ok bool) {
 	terrlen := len(d.terrors)
-	err := u.UnmarshalYAML(func(v interface{}) (err error) {
+	unmarshalCallback := func(v interface{}) (err error) {
 		defer handleErr(&err)
 		d.unmarshal(n, reflect.ValueOf(v))
 		if len(d.terrors) > terrlen {
@@ -269,15 +276,26 @@ func (d *decoder) callUnmarshaler(n *node, u Unmarshaler) (good bool) {
 			return &TypeError{issues}
 		}
 		return nil
-	})
+	}
+
+	var err error
+	switch typedUnmarshaler := u.(type) {
+	case Unmarshaler:
+		err = typedUnmarshaler.UnmarshalYAML(unmarshalCallback)
+	case TagUnmarshaler:
+		err = typedUnmarshaler.UnmarshalYAMLWithTag(unmarshalCallback, n.tag)
+	default:
+		return false, false
+	}
+
 	if e, ok := err.(*TypeError); ok {
 		d.terrors = append(d.terrors, e.Errors...)
-		return false
+		return false, true
 	}
 	if err != nil {
 		fail(err)
 	}
-	return true
+	return true, true
 }
 
 // d.prepare initializes and dereferences pointers and calls UnmarshalYAML
@@ -302,8 +320,7 @@ func (d *decoder) prepare(n *node, out reflect.Value) (newout reflect.Value, unm
 			again = true
 		}
 		if out.CanAddr() {
-			if u, ok := out.Addr().Interface().(Unmarshaler); ok {
-				good = d.callUnmarshaler(n, u)
+			if good, ok := d.callUnmarshaler(n, out.Addr().Interface()); ok {
 				return out, true, good
 			}
 		}
@@ -322,6 +339,7 @@ func (d *decoder) unmarshal(n *node, out reflect.Value) (good bool) {
 	if unmarshaled {
 		return good
 	}
+
 	switch n.kind {
 	case scalarNode:
 		good = d.scalar(n, out)
@@ -364,6 +382,10 @@ func resetMap(out reflect.Value) {
 }
 
 func (d *decoder) scalar(n *node, out reflect.Value) bool {
+	if isMappingTag(n.tag) || isSequenceTag(n.tag) {
+		d.tagError(n, "scalar")
+		return false
+	}
 	var tag string
 	var resolved interface{}
 	if n.tag == "" && !n.implicit {
@@ -424,16 +446,22 @@ func (d *decoder) scalar(n *node, out reflect.Value) bool {
 			return true
 		}
 	case reflect.Interface:
+		var val reflect.Value
 		if resolved == nil {
-			out.Set(reflect.Zero(out.Type()))
+			val = reflect.Zero(out.Type())
 		} else if tag == yaml_TIMESTAMP_TAG {
 			// It looks like a timestamp but for backward compatibility
 			// reasons we set it as a string, so that code that unmarshals
 			// timestamp-like values into interface{} will continue to
 			// see a string and not a time.Time.
-			out.Set(reflect.ValueOf(n.value))
+			val = reflect.ValueOf(n.value)
 		} else {
-			out.Set(reflect.ValueOf(resolved))
+			val = reflect.ValueOf(resolved)
+		}
+		if isCustomTag(n.tag) && d.customTags {
+			out.Set(reflect.ValueOf(TaggedValue{n.tag, val.Interface()}))
+		} else {
+			out.Set(val)
 		}
 		return true
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
@@ -537,6 +565,11 @@ func settableValueOf(i interface{}) reflect.Value {
 }
 
 func (d *decoder) sequence(n *node, out reflect.Value) (good bool) {
+	if isMappingTag(n.tag) || isScalarTag(n.tag) {
+		d.tagError(n, "sequence")
+		return false
+	}
+
 	l := len(n.children)
 
 	var iface reflect.Value
@@ -563,12 +596,21 @@ func (d *decoder) sequence(n *node, out reflect.Value) (good bool) {
 	}
 	out.Set(out.Slice(0, j))
 	if iface.IsValid() {
-		iface.Set(out)
+		if isCustomTag(n.tag) && d.customTags {
+			iface.Set(reflect.ValueOf(TaggedValue{n.tag, out.Interface()}))
+		} else {
+			iface.Set(out)
+		}
 	}
 	return true
 }
 
 func (d *decoder) mapping(n *node, out reflect.Value) (good bool) {
+	if isSequenceTag(n.tag) || isScalarTag(n.tag) {
+		d.tagError(n, "mapping")
+		return false
+	}
+
 	switch out.Kind() {
 	case reflect.Struct:
 		return d.mappingStruct(n, out)
@@ -580,7 +622,11 @@ func (d *decoder) mapping(n *node, out reflect.Value) (good bool) {
 		if d.mapType.Kind() == reflect.Map {
 			iface := out
 			out = reflect.MakeMap(d.mapType)
-			iface.Set(out)
+			if isCustomTag(n.tag) && d.customTags {
+				iface.Set(reflect.ValueOf(TaggedValue{n.tag, out.Interface()}))
+			} else {
+				iface.Set(out)
+			}
 		} else {
 			slicev := reflect.New(d.mapType).Elem()
 			if !d.mappingSlice(n, slicev) {

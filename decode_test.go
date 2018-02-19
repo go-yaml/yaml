@@ -752,6 +752,44 @@ func (s *S) TestDecoderSingleDocument(c *C) {
 	}
 }
 
+var customTagUnmarshalTests = []struct {
+	data  string
+	value interface{}
+}{
+	{
+		"!foo v",
+		yaml.TaggedValue{"!foo", "v"},
+	},
+	{
+		"!foo [a, b, c]",
+		yaml.TaggedValue{"!foo", []interface{}{"a", "b", "c"}},
+	},
+	{
+		"!foo {a: b}",
+		yaml.TaggedValue{"!foo", map[interface{}]interface{}{"a": "b"}},
+	},
+}
+
+func (s *S) TestDecoderWithCustomTags(c *C) {
+	// Test that Decoder.Decode works as expected on
+	// all the unmarshal tests.
+	for i, item := range customTagUnmarshalTests {
+		c.Logf("test %d: %q", i, item.data)
+		if item.data == "" {
+			// Behaviour differs when there's no YAML.
+			continue
+		}
+		var value interface{}
+		decoder := yaml.NewDecoder(strings.NewReader(item.data))
+		decoder.SetCustomTags(true)
+		err := decoder.Decode(&value)
+		if _, ok := err.(*yaml.TypeError); !ok {
+			c.Assert(err, IsNil)
+		}
+		c.Assert(value, DeepEquals, item.value)
+	}
+}
+
 var decoderTests = []struct {
 	data   string
 	values []interface{}
@@ -826,6 +864,12 @@ var unmarshalErrorTests = []struct {
 	{"{{.}}", `yaml: invalid map key: map\[interface\ \{\}\]interface \{\}\{".":interface \{\}\(nil\)\}`},
 	{"b: *a\na: &a {c: 1}", `yaml: unknown anchor 'a' referenced`},
 	{"%TAG !%79! tag:yaml.org,2002:\n---\nv: !%79!int '1'", "yaml: did not find expected whitespace"},
+	{"!!map [A, B]", "yaml:.*\n  line 1: sequence has incompatible tag \"!!map\""},
+	{"!!map 1", "yaml:.*\n  line 1: scalar has incompatible tag \"!!map\""},
+	{"!!seq {x: 1}", "yaml:.*\n  line 1: mapping has incompatible tag \"!!seq\""},
+	{"!!seq 1", "yaml:.*\n  line 1: scalar has incompatible tag \"!!seq\""},
+	{"!!float [A, B]", "yaml:.*\n  line 1: sequence has incompatible tag \"!!float\""},
+	{"!!float {x: 1}", "yaml:.*\n  line 1: mapping has incompatible tag \"!!float\""},
 }
 
 func (s *S) TestUnmarshalErrors(c *C) {

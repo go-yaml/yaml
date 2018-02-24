@@ -711,6 +711,9 @@ func (d *decoder) mappingStruct(n *node, out reflect.Value) (good bool) {
 			} else {
 				field = out.FieldByIndex(info.Inline)
 			}
+			if field.Kind() == reflect.Interface && field.Elem().Kind() == reflect.Ptr {
+				field = field.Elem()
+			}
 			d.unmarshal(n.children[i+1], field)
 		} else if sinfo.InlineMap != -1 {
 			if inlineMap.IsNil() {

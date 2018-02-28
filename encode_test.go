@@ -528,7 +528,8 @@ func (s *S) TestSortedOutput(c *C) {
 		"2",
 		"a!10",
 		"a/2",
-		"a/10",
+		"a/11",
+		"a/100",
 		"a~10",
 		"ab/1",
 		"b/1",
@@ -543,32 +544,42 @@ func (s *S) TestSortedOutput(c *C) {
 		"c2.10",
 		"c10.2",
 		"d1",
+		"d7",
+		"d7abc",
+		"d007",
+		"d007abc",
 		"d12",
 		"d12a",
 	}
+
 	m := make(map[interface{}]int)
 	for _, k := range order {
 		m[k] = 1
 	}
-	data, err := yaml.Marshal(m)
-	c.Assert(err, IsNil)
-	out := "\n" + string(data)
-	last := 0
-	for i, k := range order {
-		repr := fmt.Sprint(k)
-		if s, ok := k.(string); ok {
-			if _, err = strconv.ParseFloat(repr, 32); s == "" || err == nil {
-				repr = `"` + repr + `"`
+
+	// Run test multiple times to ensure different orderings of Less
+	// have the same consistent output.
+	for i := 0; i < 100; i++ {
+		data, err := yaml.Marshal(m)
+		c.Assert(err, IsNil)
+		out := "\n" + string(data)
+		last := 0
+		for i, k := range order {
+			repr := fmt.Sprint(k)
+			if s, ok := k.(string); ok {
+				if _, err = strconv.ParseFloat(repr, 32); s == "" || err == nil {
+					repr = `"` + repr + `"`
+				}
 			}
+			index := strings.Index(out, "\n"+repr+":")
+			if index == -1 {
+				c.Fatalf("%#v is not in the output: %#v", k, out)
+			}
+			if index < last {
+				c.Fatalf("%#v was generated before %#v: %q", k, order[i-1], out)
+			}
+			last = index
 		}
-		index := strings.Index(out, "\n"+repr+":")
-		if index == -1 {
-			c.Fatalf("%#v is not in the output: %#v", k, out)
-		}
-		if index < last {
-			c.Fatalf("%#v was generated before %#v: %q", k, order[i-1], out)
-		}
-		last = index
 	}
 }
 

@@ -6,12 +6,12 @@ import (
 	"math"
 	"strconv"
 	"strings"
+	"testing"
 	"time"
 
 	"net"
 	"os"
 
-	. "gopkg.in/check.v1"
 	"gopkg.in/yaml.v2"
 )
 
@@ -358,46 +358,68 @@ var marshalTests = []struct {
 	},
 }
 
-func (s *S) TestMarshal(c *C) {
+func TestMarshal(t *testing.T) {
 	defer os.Setenv("TZ", os.Getenv("TZ"))
 	os.Setenv("TZ", "UTC")
+
 	for i, item := range marshalTests {
-		c.Logf("test %d: %q", i, item.data)
+		t.Logf("test %d: %q", i, item.data)
 		data, err := yaml.Marshal(item.value)
-		c.Assert(err, IsNil)
-		c.Assert(string(data), Equals, item.data)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if expected := item.data; string(data) != expected {
+			t.Fatalf("Got %v, wanted %v", string(data), expected)
+		}
 	}
 }
 
-func (s *S) TestEncoderSingleDocument(c *C) {
+func TestEncoderSingleDocument(t *testing.T) {
 	for i, item := range marshalTests {
-		c.Logf("test %d. %q", i, item.data)
+		t.Logf("test %d: %q", i, item.data)
 		var buf bytes.Buffer
 		enc := yaml.NewEncoder(&buf)
 		err := enc.Encode(item.value)
-		c.Assert(err, Equals, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
 		err = enc.Close()
-		c.Assert(err, Equals, nil)
-		c.Assert(buf.String(), Equals, item.data)
+		if err != nil {
+			t.Fatal(err)
+		}
+		got := buf.String()
+		if expected := item.data; got != expected {
+			t.Fatalf("Got %v, wanted %v", got, expected)
+		}
 	}
 }
 
-func (s *S) TestEncoderMultipleDocuments(c *C) {
+func TestEncoderMultipleDocuments(t *testing.T) {
 	var buf bytes.Buffer
 	enc := yaml.NewEncoder(&buf)
-	err := enc.Encode(map[string]string{"a": "b"})
-	c.Assert(err, Equals, nil)
-	err = enc.Encode(map[string]string{"c": "d"})
-	c.Assert(err, Equals, nil)
-	err = enc.Close()
-	c.Assert(err, Equals, nil)
-	c.Assert(buf.String(), Equals, "a: b\n---\nc: d\n")
+	if err := enc.Encode(map[string]string{"a": "b"}); err != nil {
+		t.Fatal(err)
+	}
+	if err := enc.Encode(map[string]string{"c": "d"}); err != nil {
+		t.Fatal(err)
+	}
+	if err := enc.Close(); err != nil {
+		t.Fatal(err)
+	}
+	got := buf.String()
+	if expected := "a: b\n---\nc: d\n"; got != expected {
+		t.Fatalf("Got %v, wanted %v", got, expected)
+	}
 }
 
-func (s *S) TestEncoderWriteError(c *C) {
+func TestEncoderWriteError(t *testing.T) {
 	enc := yaml.NewEncoder(errorWriter{})
 	err := enc.Encode(map[string]string{"a": "b"})
-	c.Assert(err, ErrorMatches, `yaml: write error: some write error`) // Data not flushed yet
+	if err == nil {
+		t.Fatalf("Expected an error, got nil")
+	} else if err.Error() != `yaml: write error: some write error` {
+		t.Fatalf("Unexpected error %v", err)
+	}
 }
 
 type errorWriter struct{}
@@ -415,7 +437,7 @@ var marshalErrorTests = []struct {
 		B       int
 		inlineB ",inline"
 	}{1, inlineB{2, inlineC{3}}},
-	panic: `Duplicated key 'b' in struct struct \{ B int; .*`,
+	panic: `Duplicated key 'b' in struct struct { B int;`,
 }, {
 	value: &struct {
 		A int
@@ -424,31 +446,46 @@ var marshalErrorTests = []struct {
 	panic: `Can't have key "a" in inlined map; conflicts with struct field`,
 }}
 
-func (s *S) TestMarshalErrors(c *C) {
+func TestMarshalErrorsCausePanics(t *testing.T) {
 	for _, item := range marshalErrorTests {
-		if item.panic != "" {
-			c.Assert(func() { yaml.Marshal(item.value) }, PanicMatches, item.panic)
-		} else {
-			_, err := yaml.Marshal(item.value)
-			c.Assert(err, ErrorMatches, item.error)
-		}
+		func() {
+			defer func() {
+				r := recover()
+				if r == nil {
+					t.Errorf("Expected a panic")
+				}
+				if err, ok := r.(error); ok {
+					if !strings.HasPrefix(err.Error(), item.panic) {
+						t.Errorf("Expected panic to start with %q, got %q", item.panic, err)
+					}
+				}
+			}()
+			_, _ = yaml.Marshal(item.value)
+		}()
 	}
 }
 
-func (s *S) TestMarshalTypeCache(c *C) {
+func TestMarshalTypeCache(t *testing.T) {
 	var data []byte
 	var err error
 	func() {
 		type T struct{ A int }
 		data, err = yaml.Marshal(&T{})
-		c.Assert(err, IsNil)
+		if err != nil {
+			t.Error(err)
+		}
 	}()
 	func() {
 		type T struct{ B int }
 		data, err = yaml.Marshal(&T{})
-		c.Assert(err, IsNil)
+		if err != nil {
+			t.Error(err)
+		}
 	}()
-	c.Assert(string(data), Equals, "b: 0\n")
+	expected := "b: 0\n"
+	if string(data) != expected {
+		t.Fatalf("Expected %s, got %s", expected, data)
+	}
 }
 
 var marshalerTests = []struct {
@@ -478,22 +515,31 @@ type marshalerValue struct {
 	Field marshalerType "_"
 }
 
-func (s *S) TestMarshaler(c *C) {
+func TestMarshaler(t *testing.T) {
 	for _, item := range marshalerTests {
 		obj := &marshalerValue{}
 		obj.Field.value = item.value
 		data, err := yaml.Marshal(obj)
-		c.Assert(err, IsNil)
-		c.Assert(string(data), Equals, string(item.data))
+		if err != nil {
+			t.Error(err)
+		}
+		if string(data) != string(item.data) {
+			t.Errorf("Expected %q, got %q", item.data, data)
+		}
 	}
 }
 
-func (s *S) TestMarshalerWholeDocument(c *C) {
+func TestMarshalerWholeDocument(t *testing.T) {
 	obj := &marshalerType{}
 	obj.value = map[string]string{"hello": "world!"}
 	data, err := yaml.Marshal(obj)
-	c.Assert(err, IsNil)
-	c.Assert(string(data), Equals, "hello: world!\n")
+	if err != nil {
+		t.Fatal(err)
+	}
+	expected := "hello: world!\n"
+	if string(data) != expected {
+		t.Fatalf("Expected %q, got %q", expected, data)
+	}
 }
 
 type failingMarshaler struct{}
@@ -502,12 +548,14 @@ func (ft *failingMarshaler) MarshalYAML() (interface{}, error) {
 	return nil, failingErr
 }
 
-func (s *S) TestMarshalerError(c *C) {
+func TestMarshalerError(t *testing.T) {
 	_, err := yaml.Marshal(&failingMarshaler{})
-	c.Assert(err, Equals, failingErr)
+	if err != failingErr {
+		t.Fatalf("Expected failingErr for error, got %v", err)
+	}
 }
 
-func (s *S) TestSortedOutput(c *C) {
+func TestSortedOutput(t *testing.T) {
 	order := []interface{}{
 		false,
 		true,
@@ -551,7 +599,9 @@ func (s *S) TestSortedOutput(c *C) {
 		m[k] = 1
 	}
 	data, err := yaml.Marshal(m)
-	c.Assert(err, IsNil)
+	if err != nil {
+		t.Fatal(err)
+	}
 	out := "\n" + string(data)
 	last := 0
 	for i, k := range order {
@@ -563,10 +613,10 @@ func (s *S) TestSortedOutput(c *C) {
 		}
 		index := strings.Index(out, "\n"+repr+":")
 		if index == -1 {
-			c.Fatalf("%#v is not in the output: %#v", k, out)
+			t.Fatalf("%#v is not in the output: %#v", k, out)
 		}
 		if index < last {
-			c.Fatalf("%#v was generated before %#v: %q", k, order[i-1], out)
+			t.Fatalf("%#v was generated before %#v: %q", k, order[i-1], out)
 		}
 		last = index
 	}

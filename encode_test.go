@@ -517,17 +517,15 @@ type marshalerValue struct {
 
 func TestMarshaler(t *testing.T) {
 	for _, item := range marshalerTests {
-		t.Run("", func(t *testing.T) {
-			obj := &marshalerValue{}
-			obj.Field.value = item.value
-			data, err := yaml.Marshal(obj)
-			if err != nil {
-				t.Error(err)
-			}
-			if string(data) != string(item.data) {
-				t.Errorf("Expected %q, got %q", item.data, data)
-			}
-		})
+		obj := &marshalerValue{}
+		obj.Field.value = item.value
+		data, err := yaml.Marshal(obj)
+		if err != nil {
+			t.Error(err)
+		}
+		if string(data) != string(item.data) {
+			t.Errorf("Expected %q, got %q", item.data, data)
+		}
 	}
 }
 

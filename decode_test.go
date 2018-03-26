@@ -826,7 +826,6 @@ var unmarshalErrorTests = []struct {
 	{"v: [A,", "yaml: line 1: did not find expected node content"},
 	{"v:\n- [A,", "yaml: line 2: did not find expected node content"},
 	{"a:\n- b: *,", "yaml: line 2: did not find expected alphabetic or numeric character"},
-	{"a:\n- {b: c, d:e},", "yaml: line 2: found unexpected ':'"},
 	{"a: *b\n", "yaml: unknown anchor 'b' referenced"},
 	{"a: &a\n  b: *a\n", "yaml: anchor 'a' value contains itself"},
 	{"value: -", "yaml: block sequence entries are not allowed in this context"},

@@ -131,3 +131,6 @@ b:
   - 4
 ```
 
+#### NOTE
+
+The variable names inside the struct **must** start with a capital letter, else marshalling and unmarshalling won't work as expected as they are not exported outside the package (see go specifications). 

@@ -411,7 +411,8 @@ func (d *decoder) scalar(n *node, out reflect.Value) bool {
 			}
 			err := u.UnmarshalText(text)
 			if err != nil {
-				fail(err)
+				d.terrors = append(d.terrors, fmt.Sprintf("line %d: %v", n.line+1, err))
+				return false
 			}
 			return true
 		}

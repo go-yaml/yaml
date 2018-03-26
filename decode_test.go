@@ -406,6 +406,12 @@ var unmarshalTests = []struct {
 		"v: !!float '1.1'",
 		map[string]interface{}{"v": 1.1},
 	}, {
+		"v: !!float 0",
+		map[string]interface{}{"v": float64(0)},
+	}, {
+		"v: !!float -1",
+		map[string]interface{}{"v": float64(-1)},
+	}, {
 		"v: !!null ''",
 		map[string]interface{}{"v": nil},
 	}, {

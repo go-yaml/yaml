@@ -92,6 +92,19 @@ func resolve(tag string, in string) (rtag string, out interface{}) {
 		switch tag {
 		case "", rtag, yaml_STR_TAG, yaml_BINARY_TAG:
 			return
+		case yaml_FLOAT_TAG:
+			if rtag == yaml_INT_TAG {
+				switch v := out.(type) {
+				case int64:
+					rtag = yaml_FLOAT_TAG
+					out = float64(v)
+					return
+				case int:
+					rtag = yaml_FLOAT_TAG
+					out = float64(v)
+					return
+				}
+			}
 		}
 		failf("cannot decode %s `%s` as a %s", shortTag(rtag), in, shortTag(tag))
 	}()

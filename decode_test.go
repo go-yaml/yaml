@@ -45,6 +45,9 @@ var unmarshalTests = []struct {
 		"v: 0xA",
 		map[string]interface{}{"v": 10},
 	}, {
+		"v: 01182252",
+		map[string]interface{}{"v": "01182252"},
+	}, {
 		"v: 4294967296",
 		map[string]int64{"v": 4294967296},
 	}, {

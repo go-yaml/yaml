@@ -328,10 +328,8 @@ func (e *encoder) uintv(tag string, in reflect.Value) {
 
 func (e *encoder) timev(tag string, in reflect.Value) {
 	t := in.Interface().(time.Time)
-	if tag == "" {
-		tag = yaml_TIMESTAMP_TAG
-	}
-	e.emitScalar(t.Format(time.RFC3339Nano), "", tag, yaml_PLAIN_SCALAR_STYLE)
+	s := t.Format(time.RFC3339Nano)
+	e.emitScalar(s, "", tag, yaml_PLAIN_SCALAR_STYLE)
 }
 
 func (e *encoder) floatv(tag string, in reflect.Value) {

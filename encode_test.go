@@ -215,7 +215,7 @@ var marshalTests = []struct {
 			T2: time.Date(2018, 1, 9, 10, 40, 47, 0, time.UTC),
 			T4: newTime(time.Date(2098, 1, 9, 10, 40, 47, 0, time.UTC)),
 		},
-		"t2: !!timestamp 2018-01-09T10:40:47Z\nt4: !!timestamp 2098-01-09T10:40:47Z\n",
+		"t2: 2018-01-09T10:40:47Z\nt4: 2098-01-09T10:40:47Z\n",
 	},
 	// Nil interface that implements Marshaler.
 	{
@@ -332,11 +332,16 @@ var marshalTests = []struct {
 	// time.Time gets a timestamp tag.
 	{
 		map[string]time.Time{"a": time.Date(2015, 2, 24, 18, 19, 39, 0, time.UTC)},
-		"a: !!timestamp 2015-02-24T18:19:39Z\n",
+		"a: 2015-02-24T18:19:39Z\n",
 	},
 	{
 		map[string]*time.Time{"a": newTime(time.Date(2015, 2, 24, 18, 19, 39, 0, time.UTC))},
-		"a: !!timestamp 2015-02-24T18:19:39Z\n",
+		"a: 2015-02-24T18:19:39Z\n",
+	},
+	{
+		// This is confirmed to be properly decoded in Python (libyaml) without a timestamp tag.
+		map[string]time.Time{"a": time.Date(2015, 2, 24, 18, 19, 39, 123456789, time.FixedZone("FOO", -3*60*60))},
+		"a: 2015-02-24T18:19:39.123456789-03:00\n",
 	},
 	// Ensure timestamp-like strings are quoted.
 	{

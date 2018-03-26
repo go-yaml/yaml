@@ -740,6 +740,18 @@ func (s *S) TestUnmarshal(c *C) {
 	}
 }
 
+// TODO(v3): This test should also work when unmarshaling onto an interface{}.
+func (s *S) TestUnmarshalFullTimestamp(c *C) {
+	// Full timestamp in same format as encoded. This is confirmed to be
+	// properly decoded by Python as a timestamp as well.
+	var str = "2015-02-24T18:19:39.123456789-03:00"
+	var t time.Time
+	err := yaml.Unmarshal([]byte(str), &t)
+	c.Assert(err, IsNil)
+	c.Assert(t, Equals, time.Date(2015, 2, 24, 18, 19, 39, 123456789, t.Location()))
+	c.Assert(t.In(time.UTC), Equals, time.Date(2015, 2, 24, 21, 19, 39, 123456789, time.UTC))
+}
+
 func (s *S) TestDecoderSingleDocument(c *C) {
 	// Test that Decoder.Decode works as expected on
 	// all the unmarshal tests.

@@ -434,6 +434,7 @@ func (d *decoder) scalar(n *node, out reflect.Value) bool {
 			// reasons we set it as a string, so that code that unmarshals
 			// timestamp-like values into interface{} will continue to
 			// see a string and not a time.Time.
+			// TODO(v3) Drop this.
 			out.Set(reflect.ValueOf(n.value))
 		} else {
 			out.Set(reflect.ValueOf(resolved))

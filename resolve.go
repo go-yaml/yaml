@@ -224,10 +224,10 @@ func encodeBase64(s string) string {
 // This is a subset of the formats allowed by the regular expression
 // defined at http://yaml.org/type/timestamp.html.
 var allowedTimestampFormats = []string{
-	"2006-1-2T15:4:5Z07:00",
-	"2006-1-2t15:4:5Z07:00", // RFC3339 with lower-case "t".
-	"2006-1-2 15:4:5",       // space separated with no time zone
-	"2006-1-2",              // date only
+	"2006-1-2T15:4:5.999999999Z07:00", // RCF3339Nano with short date fields.
+	"2006-1-2t15:4:5.999999999Z07:00", // RFC3339Nano with short date fields and lower-case "t".
+	"2006-1-2 15:4:5.999999999",       // space separated with no time zone
+	"2006-1-2",                        // date only
 	// Notable exception: time.Parse cannot handle: "2001-12-14 21:59:43.10 -5"
 	// from the set of examples.
 }

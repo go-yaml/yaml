@@ -1144,6 +1144,19 @@ func (s *S) TestMergeStruct(c *C) {
 	}
 }
 
+func (s *S) TestDontMergeScalarNode(c *C) {
+	value := map[string]interface{}{}
+	err := yaml.Unmarshal([]byte("<<: value"), &value)
+	c.Assert(err, IsNil)
+	c.Assert(value["<<"], Equals, "value")
+}
+
+func (s *S) TestFailExplicitMergeScalarNode(c *C) {
+	value := map[string]interface{}{}
+	err := yaml.Unmarshal([]byte("!!merge <<: value"), &value)
+	c.Assert(err, ErrorMatches, ".*map merge requires map or sequence of maps as the value")
+}
+
 var unmarshalNullTests = []func() interface{}{
 	func() interface{} { var v interface{}; v = "v"; return &v },
 	func() interface{} { var s = "s"; return &s },

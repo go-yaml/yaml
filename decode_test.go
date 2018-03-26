@@ -245,6 +245,9 @@ var unmarshalTests = []struct {
 		"a: [1, 2]",
 		&struct{ A []int }{[]int{1, 2}},
 	}, {
+		"a: [1, 2]",
+		&struct{ A [2]int }{[2]int{1, 2}},
+	}, {
 		"a: 1",
 		&struct{ B int }{0},
 	}, {

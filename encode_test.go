@@ -148,6 +148,9 @@ var marshalTests = []struct {
 		&struct{ A []int }{[]int{1, 2}},
 		"a:\n- 1\n- 2\n",
 	}, {
+		&struct{ A [2]int }{[2]int{1, 2}},
+		"a:\n- 1\n- 2\n",
+	}, {
 		&struct {
 			B int "a"
 		}{1},

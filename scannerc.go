@@ -871,12 +871,6 @@ func yaml_parser_save_simple_key(parser *yaml_parser_t) bool {
 
 	required := parser.flow_level == 0 && parser.indent == parser.mark.column
 
-	// A simple key is required only when it is the first token in the current
-	// line.  Therefore it is always allowed.  But we add a check anyway.
-	if required && !parser.simple_key_allowed {
-		panic("should not happen")
-	}
-
 	//
 	// If the current position may start a simple key, save it.
 	//

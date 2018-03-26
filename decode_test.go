@@ -1242,6 +1242,35 @@ func (t *textUnmarshaler) UnmarshalText(s []byte) error {
 	return nil
 }
 
+func (s *S) TestFuzzCrashers(c *C) {
+	cases := []string{
+		// runtime error: index out of range
+		"\"\\0\\\r\n",
+
+		// should not happen
+		"  0: [\n] 0",
+		"? ? \"\n\" 0",
+		"    - {\n000}0",
+		"0:\n  0: [0\n] 0",
+		"    - \"\n000\"0",
+		"    - \"\n000\"\"",
+		"0:\n    - {\n000}0",
+		"0:\n    - \"\n000\"0",
+		"0:\n    - \"\n000\"\"",
+
+		// runtime error: index out of range
+		" \ufeff\n",
+		"? \ufeff\n",
+		"? \ufeff:\n",
+		"0: \ufeff\n",
+		"? \ufeff: \ufeff\n",
+	}
+	for _, data := range cases {
+		var v interface{}
+		_ = yaml.Unmarshal([]byte(data), &v)
+	}
+}
+
 //var data []byte
 //func init() {
 //	var err error

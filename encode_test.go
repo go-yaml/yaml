@@ -76,6 +76,9 @@ var marshalTests = []struct {
 		map[string]interface{}{"v": float64(0.1)},
 		"v: 0.1\n",
 	}, {
+		map[string]interface{}{"v": float32(0.99)},
+		"v: 0.99\n",
+	}, {
 		map[string]interface{}{"v": -0.1},
 		"v: -0.1\n",
 	}, {

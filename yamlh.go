@@ -73,13 +73,13 @@ type yaml_scalar_style_t yaml_style_t
 // Scalar styles.
 const (
 	// Let the emitter choose the style.
-	yaml_ANY_SCALAR_STYLE yaml_scalar_style_t = iota
+	yaml_ANY_SCALAR_STYLE yaml_scalar_style_t = 0
 
-	yaml_PLAIN_SCALAR_STYLE         // The plain scalar style.
-	yaml_SINGLE_QUOTED_SCALAR_STYLE // The single-quoted scalar style.
-	yaml_DOUBLE_QUOTED_SCALAR_STYLE // The double-quoted scalar style.
-	yaml_LITERAL_SCALAR_STYLE       // The literal scalar style.
-	yaml_FOLDED_SCALAR_STYLE        // The folded scalar style.
+	yaml_PLAIN_SCALAR_STYLE         yaml_scalar_style_t = 1 << iota // The plain scalar style.
+	yaml_SINGLE_QUOTED_SCALAR_STYLE                                 // The single-quoted scalar style.
+	yaml_DOUBLE_QUOTED_SCALAR_STYLE                                 // The double-quoted scalar style.
+	yaml_LITERAL_SCALAR_STYLE                                       // The literal scalar style.
+	yaml_FOLDED_SCALAR_STYLE                                        // The folded scalar style.
 )
 
 type yaml_sequence_style_t yaml_style_t

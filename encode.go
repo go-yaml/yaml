@@ -88,14 +88,21 @@ func (e *encoder) marshal(tag string, in reflect.Value) {
 		return
 	}
 	iface := in.Interface()
-	switch m := iface.(type) {
-	case time.Time, *time.Time:
-		// Although time.Time implements TextMarshaler,
-		// we don't want to treat it as a string for YAML
-		// purposes because YAML has special support for
-		// timestamps.
+	switch value := iface.(type) {
+	case *Node:
+		e.nodev(in)
+		return
+	case time.Time:
+		e.timev(tag, in)
+		return
+	case *time.Time:
+		e.timev(tag, in.Elem())
+		return
+	case time.Duration:
+		e.stringv(tag, reflect.ValueOf(value.String()))
+		return
 	case Marshaler:
-		v, err := m.MarshalYAML()
+		v, err := value.MarshalYAML()
 		if err != nil {
 			fail(err)
 		}
@@ -105,7 +112,7 @@ func (e *encoder) marshal(tag string, in reflect.Value) {
 		}
 		in = reflect.ValueOf(v)
 	case encoding.TextMarshaler:
-		text, err := m.MarshalText()
+		text, err := value.MarshalText()
 		if err != nil {
 			fail(err)
 		}
@@ -120,31 +127,15 @@ func (e *encoder) marshal(tag string, in reflect.Value) {
 	case reflect.Map:
 		e.mapv(tag, in)
 	case reflect.Ptr:
-		if in.Type() == ptrTimeType {
-			e.timev(tag, in.Elem())
-		} else {
-			e.marshal(tag, in.Elem())
-		}
+		e.marshal(tag, in.Elem())
 	case reflect.Struct:
-		if in.Type() == timeType {
-			e.timev(tag, in)
-		} else {
-			e.structv(tag, in)
-		}
+		e.structv(tag, in)
 	case reflect.Slice, reflect.Array:
-		if in.Type().Elem() == mapItemType {
-			e.itemsv(tag, in)
-		} else {
-			e.slicev(tag, in)
-		}
+		e.slicev(tag, in)
 	case reflect.String:
 		e.stringv(tag, in)
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-		if in.Type() == durationType {
-			e.stringv(tag, reflect.ValueOf(iface.(time.Duration).String()))
-		} else {
-			e.intv(tag, in)
-		}
+		e.intv(tag, in)
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
 		e.uintv(tag, in)
 	case reflect.Float32, reflect.Float64:
@@ -359,4 +350,79 @@ func (e *encoder) emitScalar(value, anchor, tag string, style yaml_scalar_style_
 	implicit := tag == ""
 	e.must(yaml_scalar_event_initialize(&e.event, []byte(anchor), []byte(tag), []byte(value), implicit, implicit, style))
 	e.emit()
+}
+
+func (e *encoder) nodev(in reflect.Value) {
+	e.node(in.Interface().(*Node))
+}
+
+func (e *encoder) node(node *Node) {
+	switch node.Kind {
+	case DocumentNode:
+		for _, node := range node.Children {
+			e.node(node)
+		}
+
+	case SequenceNode:
+		style := yaml_BLOCK_SEQUENCE_STYLE
+		if node.Style&FlowStyle != 0 {
+			style = yaml_FLOW_SEQUENCE_STYLE
+		}
+		e.must(yaml_sequence_start_event_initialize(&e.event, nil, []byte(node.Tag), node.implicit(), style))
+		e.emit()
+		for _, node := range node.Children {
+			e.node(node)
+		}
+		e.must(yaml_sequence_end_event_initialize(&e.event))
+		e.emit()
+
+	case MappingNode:
+		style := yaml_BLOCK_MAPPING_STYLE
+		if node.Style&FlowStyle != 0 {
+			style = yaml_FLOW_MAPPING_STYLE
+		}
+		yaml_mapping_start_event_initialize(&e.event, nil, []byte(node.Tag), node.implicit(), style)
+		e.emit()
+
+		for i := 0; i+1 < len(node.Children); i += 2 {
+			e.node(node.Children[i])
+			e.node(node.Children[i+1])
+		}
+
+		yaml_mapping_end_event_initialize(&e.event)
+		e.emit()
+
+	case ScalarNode, AliasNode:
+		style := yaml_PLAIN_SCALAR_STYLE
+		switch {
+		case node.Style&DoubleQuotedStyle != 0:
+			style = yaml_DOUBLE_QUOTED_SCALAR_STYLE
+		case node.Style&SingleQuotedStyle != 0:
+			style = yaml_SINGLE_QUOTED_SCALAR_STYLE
+		case node.Style&LiteralStyle != 0:
+			style = yaml_LITERAL_SCALAR_STYLE
+		case node.Style&FoldedStyle != 0:
+			style = yaml_FOLDED_SCALAR_STYLE
+		}
+
+		if style == yaml_PLAIN_SCALAR_STYLE && strings.Contains(node.Value, "\n") {
+			style = yaml_LITERAL_SCALAR_STYLE
+		}
+		e.emitScalar(node.Value, "", node.Tag, style)
+
+		// TODO Check if binaries are being decoded into node.Value or not.
+		//switch {
+		//if !utf8.ValidString(s) {
+		//	if tag == yaml_BINARY_TAG {
+		//		failf("explicitly tagged !!binary data must be base64-encoded")
+		//	}
+		//	if tag != "" {
+		//		failf("cannot marshal invalid UTF-8 data as %s", shortTag(tag))
+		//	}
+		//	// It can't be encoded directly as YAML so use a binary tag
+		//	// and encode it as base64.
+		//	tag = yaml_BINARY_TAG
+		//	s = encodeBase64(s)
+		//}
+	}
 }

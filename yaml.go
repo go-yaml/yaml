@@ -134,6 +134,20 @@ func (dec *Decoder) Decode(v interface{}) (err error) {
 	return nil
 }
 
+func (n *Node) Decode(v interface{}) (err error) {
+	d := newDecoder(false)
+	defer handleErr(&err)
+	out := reflect.ValueOf(v)
+	if out.Kind() == reflect.Ptr && !out.IsNil() {
+		out = out.Elem()
+	}
+	d.unmarshal(n, out)
+	if len(d.terrors) > 0 {
+		return &TypeError{d.terrors}
+	}
+	return nil
+}
+
 func unmarshal(in []byte, out interface{}, strict bool) (err error) {
 	defer handleErr(&err)
 	d := newDecoder(strict)

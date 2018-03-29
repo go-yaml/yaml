@@ -190,7 +190,7 @@ func resolve(tag string, in string) (rtag string, out interface{}) {
 				}
 			}
 		default:
-			panic("resolveTable item not yet handled: " + string(rune(hint)) + " (with " + in + ")")
+			panic("internal error: missing handler for resolver table: " + string(rune(hint)) + " (with " + in + ")")
 		}
 	}
 	return yaml_STR_TAG, in

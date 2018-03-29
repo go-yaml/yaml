@@ -655,12 +655,12 @@ var unmarshalTests = []struct {
 	{
 		// explicit timestamp tag into interface.
 		"a: !!timestamp \"2015-01-01\"",
-		map[string]interface{}{"a": "2015-01-01"},
+		map[string]interface{}{"a": time.Date(2015, 1, 1, 0, 0, 0, 0, time.UTC)},
 	},
 	{
 		// implicit timestamp tag into interface.
 		"a: 2015-01-01",
-		map[string]interface{}{"a": "2015-01-01"},
+		map[string]interface{}{"a": time.Date(2015, 1, 1, 0, 0, 0, 0, time.UTC)},
 	},
 
 	// Encode empty lists as zero-length slices.
@@ -703,10 +703,10 @@ var unmarshalTests = []struct {
 	{
 		"First occurrence: &anchor Foo\nSecond occurrence: *anchor\nOverride anchor: &anchor Bar\nReuse anchor: *anchor\n",
 		map[interface{}]interface{}{
-			"Reuse anchor":      "Bar",
 			"First occurrence":  "Foo",
 			"Second occurrence": "Foo",
 			"Override anchor":   "Bar",
+			"Reuse anchor":      "Bar",
 		},
 	},
 	// Single document with garbage following it.
@@ -740,16 +740,15 @@ func (s *S) TestUnmarshal(c *C) {
 	}
 }
 
-// TODO(v3): This test should also work when unmarshaling onto an interface{}.
 func (s *S) TestUnmarshalFullTimestamp(c *C) {
 	// Full timestamp in same format as encoded. This is confirmed to be
 	// properly decoded by Python as a timestamp as well.
 	var str = "2015-02-24T18:19:39.123456789-03:00"
-	var t time.Time
+	var t interface{}
 	err := yaml.Unmarshal([]byte(str), &t)
 	c.Assert(err, IsNil)
-	c.Assert(t, Equals, time.Date(2015, 2, 24, 18, 19, 39, 123456789, t.Location()))
-	c.Assert(t.In(time.UTC), Equals, time.Date(2015, 2, 24, 21, 19, 39, 123456789, time.UTC))
+	c.Assert(t, Equals, time.Date(2015, 2, 24, 18, 19, 39, 123456789, t.(time.Time).Location()))
+	c.Assert(t.(time.Time).In(time.UTC), Equals, time.Date(2015, 2, 24, 21, 19, 39, 123456789, time.UTC))
 }
 
 func (s *S) TestDecoderSingleDocument(c *C) {

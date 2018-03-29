@@ -392,7 +392,7 @@ func yaml_emitter_emit_document_start(emitter *yaml_emitter_t, event *yaml_event
 			if !yaml_emitter_write_indicator(emitter, []byte("---"), true, false, false) {
 				return false
 			}
-			if emitter.canonical {
+			if emitter.canonical || true {
 				if !yaml_emitter_write_indent(emitter) {
 					return false
 				}

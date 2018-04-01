@@ -31,6 +31,12 @@ var marshalTests = []struct {
 		&struct{}{},
 		"{}\n",
 	}, {
+		map[string]string{"leading zero": "08765"},
+		"leading zero: 08765\n",
+	}, {
+		map[string]interface{}{"leading zero": "08765"},
+		"leading zero: 08765\n",
+	}, {
 		map[string]string{"v": "hi"},
 		"v: hi\n",
 	}, {

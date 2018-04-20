@@ -1248,6 +1248,21 @@ func (t *textUnmarshaler) UnmarshalText(s []byte) error {
 	return nil
 }
 
+func (s *S) TestUnmarshalStrictIntoMapWithExistingValues(c *C) {
+	config := struct {
+		Number     uint
+		Properties map[string]string
+	}{
+		Number: 1,
+		Properties: map[string]string{
+			"foo": "bar",
+		},
+	}
+	userYaml := "number: 123\nproperties:\n  foo: potato\n  banana: bar\n"
+	err := yaml.UnmarshalStrict([]byte(userYaml), &config)
+	c.Assert(err, IsNil)
+}
+
 //var data []byte
 //func init() {
 //	var err error

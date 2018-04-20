@@ -605,6 +605,12 @@ func (d *decoder) mapping(n *node, out reflect.Value) (good bool) {
 	if out.IsNil() {
 		out.Set(reflect.MakeMap(outt))
 	}
+
+	var doneFields map[interface{}]bool
+	if d.strict {
+		doneFields = make(map[interface{}]bool)
+	}
+
 	l := len(n.children)
 	for i := 0; i < l; i += 2 {
 		if isMerge(n.children[i]) {
@@ -622,7 +628,7 @@ func (d *decoder) mapping(n *node, out reflect.Value) (good bool) {
 			}
 			e := reflect.New(et).Elem()
 			if d.unmarshal(n.children[i+1], e) {
-				d.setMapIndex(n.children[i+1], out, k, e)
+				d.setMapIndex(n.children[i+1], out, k, e, doneFields)
 			}
 		}
 	}
@@ -630,10 +636,14 @@ func (d *decoder) mapping(n *node, out reflect.Value) (good bool) {
 	return true
 }
 
-func (d *decoder) setMapIndex(n *node, out, k, v reflect.Value) {
-	if d.strict && out.MapIndex(k) != zeroValue {
-		d.terrors = append(d.terrors, fmt.Sprintf("line %d: key %#v already set in map", n.line+1, k.Interface()))
-		return
+func (d *decoder) setMapIndex(n *node, out, k, v reflect.Value, doneFields map[interface{}]bool) {
+	if d.strict {
+		ki := k.Interface()
+		if doneFields[ki] {
+			d.terrors = append(d.terrors, fmt.Sprintf("line %d: key %#v already set in map", n.line+1, ki))
+			return
+		}
+		doneFields[ki] = true
 	}
 	out.SetMapIndex(k, v)
 }
@@ -685,9 +695,9 @@ func (d *decoder) mappingStruct(n *node, out reflect.Value) (good bool) {
 		elemType = inlineMap.Type().Elem()
 	}
 
-	var doneFields []bool
+	var doneFields map[interface{}]bool
 	if d.strict {
-		doneFields = make([]bool, len(sinfo.FieldsList))
+		doneFields = make(map[interface{}]bool)
 	}
 	for i := 0; i < l; i += 2 {
 		ni := n.children[i]
@@ -700,11 +710,12 @@ func (d *decoder) mappingStruct(n *node, out reflect.Value) (good bool) {
 		}
 		if info, ok := sinfo.FieldsMap[name.String()]; ok {
 			if d.strict {
-				if doneFields[info.Id] {
-					d.terrors = append(d.terrors, fmt.Sprintf("line %d: field %s already set in type %s", ni.line+1, name.String(), out.Type()))
+				ki := name.Interface()
+				if doneFields[ki] {
+					d.terrors = append(d.terrors, fmt.Sprintf("line %d: field %s already set in type %s", ni.line+1, ki, out.Type()))
 					continue
 				}
-				doneFields[info.Id] = true
+				doneFields[ki] = true
 			}
 			var field reflect.Value
 			if info.Inline == nil {
@@ -719,7 +730,7 @@ func (d *decoder) mappingStruct(n *node, out reflect.Value) (good bool) {
 			}
 			value := reflect.New(elemType).Elem()
 			d.unmarshal(n.children[i+1], value)
-			d.setMapIndex(n.children[i+1], inlineMap, name, value)
+			d.setMapIndex(n.children[i+1], inlineMap, name, value, doneFields)
 		} else if d.strict {
 			d.terrors = append(d.terrors, fmt.Sprintf("line %d: field %s not found in type %s", ni.line+1, name.String(), out.Type()))
 		}

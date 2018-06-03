@@ -25,6 +25,12 @@ var unmarshalTests = []struct {
 	{
 		"{}", &struct{}{},
 	}, {
+		"leading zero: 08765",
+		map[string]string{"leading zero": "08765"},
+	}, {
+		"leading zero: 08765",
+		map[string]interface{}{"leading zero": "08765"},
+	}, {
 		"v: hi",
 		map[string]string{"v": "hi"},
 	}, {
@@ -129,6 +135,9 @@ var unmarshalTests = []struct {
 	}, {
 		"bin: -0b101010",
 		map[string]interface{}{"bin": -42},
+	}, {
+		"bin: +0b101010",
+		map[string]interface{}{"bin": 42},
 	}, {
 		"bin: -0b1000000000000000000000000000000000000000000000000000000000000000",
 		map[string]interface{}{"bin": -9223372036854775808},

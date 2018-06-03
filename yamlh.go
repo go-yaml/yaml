@@ -520,8 +520,8 @@ type yaml_alias_data_t struct {
 
 // The parser structure.
 //
-// All members are internal. Manage the structure using the
-// yaml_parser_ family of functions.
+// All members are internal. Manage the structure using the @c yaml_parser_
+// family of functions.
 type yaml_parser_t struct {
 
 	// Error handling

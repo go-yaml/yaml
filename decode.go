@@ -232,16 +232,17 @@ type decoder struct {
 }
 
 var (
-	mapItemType    = reflect.TypeOf(MapItem{})
-	durationType   = reflect.TypeOf(time.Duration(0))
-	defaultMapType = reflect.TypeOf(map[interface{}]interface{}{})
-	ifaceType      = defaultMapType.Elem()
+	mapItemType  = reflect.TypeOf(MapItem{})
+	durationType = reflect.TypeOf(time.Duration(0))
+	// DefaultMapType type to unmarshal maps into, use MapSlice for ordered maps.
+	DefaultMapType = reflect.TypeOf(map[interface{}]interface{}{})
+	ifaceType      = DefaultMapType.Elem()
 	timeType       = reflect.TypeOf(time.Time{})
 	ptrTimeType    = reflect.TypeOf(&time.Time{})
 )
 
 func newDecoder(strict bool) *decoder {
-	d := &decoder{mapType: defaultMapType, strict: strict}
+	d := &decoder{mapType: DefaultMapType, strict: strict}
 	d.aliases = make(map[*node]bool)
 	return d
 }

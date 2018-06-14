@@ -89,7 +89,7 @@ func UnmarshalStrict(in []byte, out interface{}) (err error) {
 	return unmarshal(in, out, true)
 }
 
-// DecoderOption is an option to apply to modyfy a decoder's behavior
+// DecoderOption is an option to apply to modify a decoder's behavior
 type DecoderOption func(d *decoder)
 
 // WithStrict is a decoder option specifying if decoding should be strict

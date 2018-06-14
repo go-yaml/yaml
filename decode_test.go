@@ -1339,12 +1339,12 @@ g: &g [*f,*f,*f,*f,*f,*f,*f,*f,*f]
 h: &h [*g,*g,*g,*g,*g,*g,*g,*g,*g]
 i: &i [*h,*h,*h,*h,*h,*h,*h,*h,*h]`
 	var v map[string]interface{}
-	d := yaml.NewDecoder(bytes.NewBuffer([]byte(bombCase)), yaml.WithLimitDecodedValuesCount(100000))
+	d := yaml.NewDecoder(bytes.NewBuffer([]byte(bombCase)), yaml.WithLimitDecodedValuesCount(1000000))
 	err := d.Decode(&v)
-	c.Assert(err, ErrorMatches, `yaml: exceeded max number of decoded values \(100000\)`)
+	c.Assert(err, ErrorMatches, `yaml: exceeded max number of decoded values \(1000000\)`)
 	ordinalCase := `hello: world`
 	d = yaml.NewDecoder(bytes.NewBuffer([]byte(ordinalCase)), yaml.WithLimitDecodedValuesCount(3))
 	// decoded values are [Hello, World, [Hello:World pair]]
 	err = d.Decode(&v)
-	c.Assert(err, Equals, nil)
+	c.Assert(err, IsNil)
 }

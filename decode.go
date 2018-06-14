@@ -224,11 +224,13 @@ func (p *parser) mapping() *node {
 // Decoder, unmarshals a node into a provided value.
 
 type decoder struct {
-	doc     *node
-	aliases map[*node]bool
-	mapType reflect.Type
-	terrors []string
-	strict  bool
+	doc           *node
+	aliases       map[*node]bool
+	mapType       reflect.Type
+	terrors       []string
+	strict        bool
+	maxValues     int
+	decodedValues int
 }
 
 var (
@@ -334,6 +336,11 @@ func (d *decoder) unmarshal(n *node, out reflect.Value) (good bool) {
 		good = d.sequence(n, out)
 	default:
 		panic("internal error: unknown node kind: " + strconv.Itoa(n.kind))
+	}
+	d.decodedValues++
+	if d.maxValues != 0 && d.decodedValues > d.maxValues {
+		good = false
+		failf("exceeded max number of decoded values (%d)", d.maxValues)
 	}
 	return good
 }

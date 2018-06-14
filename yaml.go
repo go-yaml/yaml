@@ -89,26 +89,45 @@ func UnmarshalStrict(in []byte, out interface{}) (err error) {
 	return unmarshal(in, out, true)
 }
 
+// DecoderOption is an option to apply to modyfy a decoder's behavior
+type DecoderOption func(d *decoder)
+
+// WithStrict is a decoder option specifying if decoding should be strict
+func WithStrict(strict bool) DecoderOption {
+	return func(d *decoder) {
+		d.strict = strict
+	}
+}
+
+// WithLimitDecodedValuesCount limits the number of values decoded
+// This is usefull when parsing potentially malicious documents
+func WithLimitDecodedValuesCount(maxValues int) DecoderOption {
+	return func(d *decoder) {
+		d.maxValues = maxValues
+	}
+}
+
 // A Decorder reads and decodes YAML values from an input stream.
 type Decoder struct {
-	strict bool
-	parser *parser
+	options []DecoderOption
+	parser  *parser
 }
 
 // NewDecoder returns a new decoder that reads from r.
 //
 // The decoder introduces its own buffering and may read
 // data from r beyond the YAML values requested.
-func NewDecoder(r io.Reader) *Decoder {
+func NewDecoder(r io.Reader, opts ...DecoderOption) *Decoder {
 	return &Decoder{
-		parser: newParserFromReader(r),
+		parser:  newParserFromReader(r),
+		options: opts,
 	}
 }
 
 // SetStrict sets whether strict decoding behaviour is enabled when
 // decoding items in the data (see UnmarshalStrict). By default, decoding is not strict.
 func (dec *Decoder) SetStrict(strict bool) {
-	dec.strict = strict
+	dec.options = append(dec.options, WithStrict(strict))
 }
 
 // Decode reads the next YAML-encoded value from its input
@@ -117,7 +136,10 @@ func (dec *Decoder) SetStrict(strict bool) {
 // See the documentation for Unmarshal for details about the
 // conversion of YAML into a Go value.
 func (dec *Decoder) Decode(v interface{}) (err error) {
-	d := newDecoder(dec.strict)
+	d := newDecoder(false)
+	for _, o := range dec.options {
+		o(d)
+	}
 	defer handleErr(&err)
 	node := dec.parser.parse()
 	if node == nil {

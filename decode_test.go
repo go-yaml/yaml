@@ -1,6 +1,7 @@
 package yaml_test
 
 import (
+	"bytes"
 	"errors"
 	"io"
 	"math"
@@ -1324,3 +1325,26 @@ func (s *S) TestFuzzCrashers(c *C) {
 //		yaml.Marshal(&v)
 //	}
 //}
+
+func (s *S) TestLimitRecursion(c *C) {
+	bombCase := `
+version: "3"
+services: &services ["lol","lol","lol","lol","lol","lol","lol","lol","lol"]
+b: &b [*services,*services,*services,*services,*services,*services,*services,*services,*services]
+c: &c [*b,*b,*b,*b,*b,*b,*b,*b,*b]
+d: &d [*c,*c,*c,*c,*c,*c,*c,*c,*c]
+e: &e [*d,*d,*d,*d,*d,*d,*d,*d,*d]
+f: &f [*e,*e,*e,*e,*e,*e,*e,*e,*e]
+g: &g [*f,*f,*f,*f,*f,*f,*f,*f,*f]
+h: &h [*g,*g,*g,*g,*g,*g,*g,*g,*g]
+i: &i [*h,*h,*h,*h,*h,*h,*h,*h,*h]`
+	var v map[string]interface{}
+	d := yaml.NewDecoder(bytes.NewBuffer([]byte(bombCase)), yaml.WithLimitDecodedValuesCount(100000))
+	err := d.Decode(&v)
+	c.Assert(err, ErrorMatches, `yaml: exceeded max number of decoded values \(100000\)`)
+	ordinalCase := `hello: world`
+	d = yaml.NewDecoder(bytes.NewBuffer([]byte(ordinalCase)), yaml.WithLimitDecodedValuesCount(3))
+	// decoded values are [Hello, World, [Hello:World pair]]
+	err = d.Decode(&v)
+	c.Assert(err, Equals, nil)
+}

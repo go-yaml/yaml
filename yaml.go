@@ -241,6 +241,25 @@ func (e *Encoder) Close() (err error) {
 	return nil
 }
 
+// EncodingStyle represents a YAML encoding style.
+type EncodingStyle int
+
+const (
+	// DefaultStyle uses BlockStyle unless a struct tag requests flow style.
+	DefaultStyle EncodingStyle = iota
+
+	// BlockStyle uses indentation to separate values and indicate scope.
+	BlockStyle
+
+	// FlowStyle uses explicit indicators to separate values and indicate scope.
+	FlowStyle
+)
+
+// UseStyle uses the given EncodingStyle to encode values.
+func (e *Encoder) UseStyle(es EncodingStyle) {
+	e.encoder.style = es
+}
+
 func handleErr(err *error) {
 	if v := recover(); v != nil {
 		if e, ok := v.(yamlError); ok {

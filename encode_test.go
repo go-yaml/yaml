@@ -405,6 +405,44 @@ func (s *S) TestEncoderMultipleDocuments(c *C) {
 	c.Assert(buf.String(), Equals, "a: b\n---\nc: d\n")
 }
 
+func (s *S) TestEncoderForceFlow(c *C) {
+	v := struct {
+		A map[string]string "a"
+		B []int             "b,flow"
+	}{
+		A: map[string]string{"a1": "a1", "a2": "a2"},
+		B: []int{1, 2},
+	}
+
+	var buf bytes.Buffer
+	enc := yaml.NewEncoder(&buf)
+	enc.UseStyle(yaml.FlowStyle)
+	err := enc.Encode(v)
+	c.Assert(err, Equals, nil)
+	enc.UseStyle(yaml.BlockStyle)
+	err = enc.Encode(v)
+	c.Assert(err, Equals, nil)
+	enc.UseStyle(yaml.DefaultStyle)
+	err = enc.Encode(v)
+	c.Assert(err, Equals, nil)
+	err = enc.Close()
+	c.Assert(err, Equals, nil)
+	c.Assert(buf.String(), Equals, `{a: {a1: a1, a2: a2}, b: [1, 2]}
+---
+a:
+  a1: a1
+  a2: a2
+b:
+- 1
+- 2
+---
+a:
+  a1: a1
+  a2: a2
+b: [1, 2]
+`)
+}
+
 func (s *S) TestEncoderWriteError(c *C) {
 	enc := yaml.NewEncoder(errorWriter{})
 	err := enc.Encode(map[string]string{"a": "b"})

@@ -17,6 +17,7 @@ type encoder struct {
 	emitter yaml_emitter_t
 	event   yaml_event_t
 	out     []byte
+	style   EncodingStyle
 	flow    bool
 	// doneInit holds whether the initial stream_start_event has been
 	// emitted.
@@ -194,7 +195,9 @@ func (e *encoder) structv(tag string, in reflect.Value) {
 				continue
 			}
 			e.marshal("", reflect.ValueOf(info.Key))
-			e.flow = info.Flow
+			if e.style == DefaultStyle {
+				e.flow = info.Flow
+			}
 			e.marshal("", value)
 		}
 		if sinfo.InlineMap >= 0 {
@@ -219,7 +222,7 @@ func (e *encoder) structv(tag string, in reflect.Value) {
 func (e *encoder) mappingv(tag string, f func()) {
 	implicit := tag == ""
 	style := yaml_BLOCK_MAPPING_STYLE
-	if e.flow {
+	if e.flow || e.style == FlowStyle {
 		e.flow = false
 		style = yaml_FLOW_MAPPING_STYLE
 	}
@@ -233,7 +236,7 @@ func (e *encoder) mappingv(tag string, f func()) {
 func (e *encoder) slicev(tag string, in reflect.Value) {
 	implicit := tag == ""
 	style := yaml_BLOCK_SEQUENCE_STYLE
-	if e.flow {
+	if e.flow || e.style == FlowStyle {
 		e.flow = false
 		style = yaml_FLOW_SEQUENCE_STYLE
 	}

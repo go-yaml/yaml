@@ -3,6 +3,7 @@ package yaml_test
 import (
 	"errors"
 	"io"
+	"io/ioutil"
 	"math"
 	"reflect"
 	"strings"
@@ -819,6 +820,38 @@ func (s *S) TestDecoder(c *C) {
 		}
 		c.Assert(values, DeepEquals, item.values)
 	}
+}
+
+func (s *S) TestDecoderBufferedAdditional(c *C) {
+	data := "---\n'hello'\n\n---\nrandom\ntext\n<not>\nyaml\n"
+	reader := strings.NewReader(data)
+	dec := yaml.NewDecoder(reader)
+	var value interface{}
+	err := dec.Decode(&value)
+	c.Assert(err, IsNil)
+	c.Assert(value, DeepEquals, "hello")
+
+	// get offset, ensure that reading from the reader gives the remainder
+	remReader := io.MultiReader(dec.Buffered(), reader)
+	remainder, err := ioutil.ReadAll(remReader)
+	c.Assert(err, IsNil)
+	c.Assert(string(remainder), Equals, "\nrandom\ntext\n<not>\nyaml\n")
+}
+
+func (s *S) TestDecoderBufferedEmpty(c *C) {
+	data := "---\n'hello'\n\n"
+	reader := strings.NewReader(data)
+	dec := yaml.NewDecoder(reader)
+	var value interface{}
+	err := dec.Decode(&value)
+	c.Assert(err, IsNil)
+	c.Assert(value, DeepEquals, "hello")
+
+	// get offset, ensure that reading from the reader gives the remainder
+	remReader := io.MultiReader(dec.Buffered(), reader)
+	remainder, err := ioutil.ReadAll(remReader)
+	c.Assert(err, IsNil)
+	c.Assert(len(remainder), Equals, 0)
 }
 
 type errReader struct{}

@@ -7,6 +7,7 @@
 package yaml
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"io"
@@ -109,6 +110,37 @@ func NewDecoder(r io.Reader) *Decoder {
 // decoding items in the data (see UnmarshalStrict). By default, decoding is not strict.
 func (dec *Decoder) SetStrict(strict bool) {
 	dec.strict = strict
+}
+
+// Buffered returns a reader of the data remaining in the Decoder's
+// buffer. The reader is valid until the next call to Decode.
+//
+// BUG: This call does not currently work as expected if the content being parsed
+// has embedded null characters in it or if the remaining content has a different
+// encoding from the yaml encoding
+func (dec *Decoder) Buffered() (r io.Reader) {
+	buf := dec.parser.parser.buffer[dec.parser.parser.buffer_pos:]
+	// HACK: because yaml_parser_update_buffer pads the buffer with zeroes,
+	//       we have to remove them here.
+	i := len(buf)
+	for ; i > 0; i-- {
+		if buf[i-1] != '\000' {
+			break
+		}
+	}
+	r = bytes.NewReader(buf[:i])
+
+	// Because the next token at the end of a YAML document reads 4 bytes,
+	// the raw buffer should always be empty. However, it's conceivable that
+	// it might not be, in which case we should include it
+	rawPos := dec.parser.parser.raw_buffer_pos
+	rawLen := len(dec.parser.parser.raw_buffer)
+	if rawPos < rawLen-1 {
+		r1 := bytes.NewReader(dec.parser.parser.raw_buffer[rawPos:])
+		r = io.MultiReader(r1, r)
+	}
+
+	return
 }
 
 // Decode reads the next YAML-encoded value from its input

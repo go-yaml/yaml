@@ -142,6 +142,9 @@ func unmarshal(in []byte, out interface{}, strict bool) (err error) {
 	node := p.parse()
 	if node != nil {
 		v := reflect.ValueOf(out)
+		if vOut, ok := out.(reflect.Value); ok {
+			v = vOut
+		}
 		if v.Kind() == reflect.Ptr && !v.IsNil() {
 			v = v.Elem()
 		}
@@ -200,7 +203,11 @@ func Marshal(in interface{}) (out []byte, err error) {
 	defer handleErr(&err)
 	e := newEncoder()
 	defer e.destroy()
-	e.marshalDoc("", reflect.ValueOf(in))
+	v := reflect.ValueOf(in)
+	if vIn, ok := in.(reflect.Value); ok {
+		v = vIn
+	}
+	e.marshalDoc("", v)
 	e.finish()
 	out = e.out
 	return

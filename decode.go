@@ -240,8 +240,11 @@ var (
 	ptrTimeType    = reflect.TypeOf(&time.Time{})
 )
 
-func newDecoder(strict bool) *decoder {
-	d := &decoder{mapType: defaultMapType, strict: strict}
+func newDecoder(strict bool, mapType reflect.Type) *decoder {
+	if mapType == nil {
+		mapType = defaultMapType
+	}
+	d := &decoder{mapType: mapType, strict: strict}
 	d.aliases = make(map[*node]bool)
 	return d
 }

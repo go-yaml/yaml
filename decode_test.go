@@ -1296,6 +1296,32 @@ func (s *S) TestFuzzCrashers(c *C) {
 	}
 }
 
+func (s *S) TestNilMapSlice(c *C) {
+	cases := []struct {
+		yaml    string
+		wantNil bool
+	}{
+		{"null", true},
+		{"", true},
+		{"{}", false},
+		{"{'a': 'b'}", false},
+	}
+	for _, tc := range cases {
+		var ms yaml.MapSlice
+		if err := yaml.Unmarshal([]byte(tc.yaml), &ms); err != nil {
+			c.Errorf("Error unmarshalling: %s\n", tc.yaml)
+			continue
+		}
+		if got, want := ms == nil, tc.wantNil; got != want {
+			var result = "nil"
+			if tc.wantNil {
+				result = "non-nil"
+			}
+			c.Errorf("Unmarshaling %s as a MapSlice incorrectly yielded a %s MapSlice", tc.yaml, result)
+		}
+	}
+}
+
 //var data []byte
 //func init() {
 //	var err error

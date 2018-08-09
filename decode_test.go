@@ -4,12 +4,14 @@ import (
 	"errors"
 	"io"
 	"math"
+	"os"
 	"reflect"
 	"strings"
 	"time"
 
+	"github.com/exoscale/go-yaml"
+
 	. "gopkg.in/check.v1"
-	"gopkg.in/yaml.v2"
 )
 
 var unmarshalIntTest = 123
@@ -566,6 +568,12 @@ var unmarshalTests = []struct {
 		map[string]string{"a": strings.Repeat("\x00", 52)},
 	},
 
+	// Env vars
+	{
+		"a: !!env TEST_ENV\n",
+		map[string]string{"a": "value_env"},
+	},
+
 	// Ordered maps.
 	{
 		"{b: 2, a: 1, d: 4, c: 3, sub: {e: 5}}",
@@ -748,6 +756,8 @@ type inlineC struct {
 }
 
 func (s *S) TestUnmarshal(c *C) {
+	defer os.Setenv("TEST_ENV", "")
+	os.Setenv("TEST_ENV", "value_env")
 	for i, item := range unmarshalTests {
 		c.Logf("test %d: %q", i, item.data)
 		t := reflect.ValueOf(item.value).Type()
@@ -775,6 +785,8 @@ func (s *S) TestUnmarshalFullTimestamp(c *C) {
 func (s *S) TestDecoderSingleDocument(c *C) {
 	// Test that Decoder.Decode works as expected on
 	// all the unmarshal tests.
+	defer os.Setenv("TEST_ENV", "")
+	os.Setenv("TEST_ENV", "value_env")
 	for i, item := range unmarshalTests {
 		c.Logf("test %d: %q", i, item.data)
 		if item.data == "" {

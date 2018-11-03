@@ -199,6 +199,14 @@ func (e *encoder) itemsv(tag string, in reflect.Value) {
 	e.mappingv(tag, func() {
 		slice := in.Convert(reflect.TypeOf([]MapItem{})).Interface().([]MapItem)
 		for _, item := range slice {
+			// Check if it is a comment
+			if key, ok := item.Key.(reflect.Value); ok {
+				if comment, ok := key.Interface().(Comment); ok {
+					e.commentv([]byte(comment.Value))
+					continue
+				}
+			}
+
 			e.marshal("", reflect.ValueOf(item.Key))
 			e.marshal("", reflect.ValueOf(item.Value))
 		}
@@ -381,6 +389,14 @@ func (e *encoder) floatv(tag string, in reflect.Value) {
 
 func (e *encoder) nilv() {
 	e.emitScalar("null", "", "", yaml_PLAIN_SCALAR_STYLE)
+}
+
+func (e *encoder) commentv(value []byte) {
+	e.event = yaml_event_t{
+		typ:   yaml_COMMENT_EVENT,
+		value: value,
+	}
+	e.emit()
 }
 
 func (e *encoder) emitScalar(value, anchor, tag string, style yaml_scalar_style_t) {

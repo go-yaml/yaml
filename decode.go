@@ -17,6 +17,7 @@ const (
 	sequenceNode
 	scalarNode
 	aliasNode
+	commentNode
 )
 
 type node struct {
@@ -151,6 +152,8 @@ func (p *parser) parse() *node {
 		return p.sequence()
 	case yaml_DOCUMENT_START_EVENT:
 		return p.document()
+	case yaml_COMMENT_EVENT:
+		return p.comment()
 	case yaml_STREAM_END_EVENT:
 		// Happens when attempting to decode an empty buffer.
 		return nil
@@ -172,7 +175,13 @@ func (p *parser) document() *node {
 	n.anchors = make(map[string]*node)
 	p.doc = n
 	p.expect(yaml_DOCUMENT_START_EVENT)
-	n.children = append(n.children, p.parse())
+	next := p.parse()
+	// Chomp all comments, as they can't be part of the top-level YAML structure
+	for next.kind == commentNode {
+		fmt.Println("Chomping comment node: #", next.value)
+		next = p.parse()
+	}
+	n.children = append(n.children, next)
 	p.expect(yaml_DOCUMENT_END_EVENT)
 	return n
 }
@@ -198,6 +207,13 @@ func (p *parser) scalar() *node {
 	return n
 }
 
+func (p *parser) comment() *node {
+	n := p.node(commentNode)
+	n.value = string(p.event.value)
+	p.expect(yaml_COMMENT_EVENT)
+	return n
+}
+
 func (p *parser) sequence() *node {
 	n := p.node(sequenceNode)
 	p.anchor(n, p.event.anchor)
@@ -214,7 +230,7 @@ func (p *parser) mapping() *node {
 	p.anchor(n, p.event.anchor)
 	p.expect(yaml_MAPPING_START_EVENT)
 	for p.peek() != yaml_MAPPING_END_EVENT {
-		n.children = append(n.children, p.parse(), p.parse())
+		n.children = append(n.children, p.parse())
 	}
 	p.expect(yaml_MAPPING_END_EVENT)
 	return n
@@ -328,6 +344,9 @@ func (d *decoder) unmarshal(n *node, out reflect.Value) (good bool) {
 	switch n.kind {
 	case scalarNode:
 		good = d.scalar(n, out)
+	// TODO is this necessary?
+	// case commentNode:
+	// 	good = d.comment(n, out)
 	case mappingNode:
 		good = d.mapping(n, out)
 	case sequenceNode:
@@ -365,6 +384,24 @@ func resetMap(out reflect.Value) {
 		out.SetMapIndex(k, zeroValue)
 	}
 }
+
+type Comment struct {
+	Value string
+}
+
+// TODO is this necessary??
+// func (d *decoder) comment(n *node, out reflect.Value) (good bool) {
+// 	fmt.Println("comment()")
+// 	fmt.Println(n)
+// 	switch out.Kind() {
+// 	case reflect.Interface:
+// 		fmt.Println("reflect.Interface")
+// 		out.Set(reflect.ValueOf(Comment{
+// 			Value: n.value,
+// 		}))
+// 	}
+// 	return true
+// }
 
 func (d *decoder) scalar(n *node, out reflect.Value) bool {
 	var tag string
@@ -659,18 +696,37 @@ func (d *decoder) mappingSlice(n *node, out reflect.Value) (good bool) {
 	d.mapType = outt
 
 	var slice []MapItem
-	var l = len(n.children)
-	for i := 0; i < l; i += 2 {
-		if isMerge(n.children[i]) {
-			d.merge(n.children[i+1], out)
-			continue
-		}
-		item := MapItem{}
-		k := reflect.ValueOf(&item.Key).Elem()
-		if d.unmarshal(n.children[i], k) {
-			v := reflect.ValueOf(&item.Value).Elem()
-			if d.unmarshal(n.children[i+1], v) {
-				slice = append(slice, item)
+	var key *node
+	var value *node
+	var keySet bool
+	for _, child := range n.children {
+		if child.kind == commentNode {
+			item := MapItem{
+				reflect.ValueOf(Comment{
+					Value: child.value,
+				}),
+				nil,
+			}
+			slice = append(slice, item)
+		} else {
+			if !keySet {
+				keySet = true
+				key = child
+			} else {
+				keySet = false
+				value = child
+				if isMerge(key) {
+					d.merge(value, out)
+					continue
+				}
+				item := MapItem{}
+				k := reflect.ValueOf(&item.Key).Elem()
+				if d.unmarshal(key, k) {
+					v := reflect.ValueOf(&item.Value).Elem()
+					if d.unmarshal(value, v) {
+						slice = append(slice, item)
+					}
+				}
 			}
 		}
 	}

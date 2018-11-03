@@ -135,10 +135,11 @@ const (
 	yaml_KEY_TOKEN         // A KEY token.
 	yaml_VALUE_TOKEN       // A VALUE token.
 
-	yaml_ALIAS_TOKEN  // An ALIAS token.
-	yaml_ANCHOR_TOKEN // An ANCHOR token.
-	yaml_TAG_TOKEN    // A TAG token.
-	yaml_SCALAR_TOKEN // A SCALAR token.
+	yaml_ALIAS_TOKEN   // An ALIAS token.
+	yaml_ANCHOR_TOKEN  // An ANCHOR token.
+	yaml_TAG_TOKEN     // A TAG token.
+	yaml_SCALAR_TOKEN  // A SCALAR token.
+	yaml_COMMENT_TOKEN // A COMMENT token.
 )
 
 func (tt yaml_token_type_t) String() string {
@@ -187,6 +188,8 @@ func (tt yaml_token_type_t) String() string {
 		return "yaml_TAG_TOKEN"
 	case yaml_SCALAR_TOKEN:
 		return "yaml_SCALAR_TOKEN"
+	case yaml_COMMENT_TOKEN:
+		return "yaml_COMMENT_TOKEN"
 	}
 	return "<unknown token>"
 }
@@ -219,6 +222,10 @@ type yaml_token_t struct {
 	major, minor int8
 }
 
+func (t *yaml_token_t) String() string {
+	return fmt.Sprintf("Token(typ=%s, value=%s)", t.typ.String(), string(t.value))
+}
+
 // Events
 
 type yaml_event_type_t int8
@@ -238,6 +245,7 @@ const (
 	yaml_SEQUENCE_END_EVENT   // A SEQUENCE-END event.
 	yaml_MAPPING_START_EVENT  // A MAPPING-START event.
 	yaml_MAPPING_END_EVENT    // A MAPPING-END event.
+	yaml_COMMENT_EVENT        // A COMMENT event.
 )
 
 var eventStrings = []string{
@@ -252,6 +260,7 @@ var eventStrings = []string{
 	yaml_SEQUENCE_END_EVENT:   "sequence end",
 	yaml_MAPPING_START_EVENT:  "mapping start",
 	yaml_MAPPING_END_EVENT:    "mapping end",
+	yaml_COMMENT_EVENT:        "comment",
 }
 
 func (e yaml_event_type_t) String() string {
@@ -586,6 +595,7 @@ type yaml_parser_t struct {
 	states         []yaml_parser_state_t  // The parser states stack.
 	marks          []yaml_mark_t          // The stack of marks.
 	tag_directives []yaml_tag_directive_t // The list of TAG directives.
+	parse_comments bool                   // Whether to parse comments or not.
 
 	// Dumper stuff
 
@@ -637,6 +647,49 @@ const (
 	yaml_EMIT_BLOCK_MAPPING_VALUE_STATE        // Expect a value of a block mapping.
 	yaml_EMIT_END_STATE                        // Expect nothing.
 )
+
+func (state yaml_emitter_state_t) String() string {
+	switch state {
+	case yaml_EMIT_STREAM_START_STATE:
+		return "yaml_EMIT_STREAM_START_STATE"
+	case yaml_EMIT_FIRST_DOCUMENT_START_STATE:
+		return "yaml_EMIT_FIRST_DOCUMENT_START_STATE"
+	case yaml_EMIT_DOCUMENT_START_STATE:
+		return "yaml_EMIT_DOCUMENT_START_STATE"
+	case yaml_EMIT_DOCUMENT_CONTENT_STATE:
+		return "yaml_EMIT_DOCUMENT_CONTENT_STATE"
+	case yaml_EMIT_DOCUMENT_END_STATE:
+		return "yaml_EMIT_DOCUMENT_END_STATE"
+	case yaml_EMIT_FLOW_SEQUENCE_FIRST_ITEM_STATE:
+		return "yaml_EMIT_FLOW_SEQUENCE_FIRST_ITEM_STATE"
+	case yaml_EMIT_FLOW_SEQUENCE_ITEM_STATE:
+		return "yaml_EMIT_FLOW_SEQUENCE_ITEM_STATE"
+	case yaml_EMIT_FLOW_MAPPING_FIRST_KEY_STATE:
+		return "yaml_EMIT_FLOW_MAPPING_FIRST_KEY_STATE"
+	case yaml_EMIT_FLOW_MAPPING_KEY_STATE:
+		return "yaml_EMIT_FLOW_MAPPING_KEY_STATE"
+	case yaml_EMIT_FLOW_MAPPING_SIMPLE_VALUE_STATE:
+		return "yaml_EMIT_FLOW_MAPPING_SIMPLE_VALUE_STATE"
+	case yaml_EMIT_FLOW_MAPPING_VALUE_STATE:
+		return "yaml_EMIT_FLOW_MAPPING_VALUE_STATE"
+	case yaml_EMIT_BLOCK_SEQUENCE_FIRST_ITEM_STATE:
+		return "yaml_EMIT_BLOCK_SEQUENCE_FIRST_ITEM_STATE"
+	case yaml_EMIT_BLOCK_SEQUENCE_ITEM_STATE:
+		return "yaml_EMIT_BLOCK_SEQUENCE_ITEM_STATE"
+	case yaml_EMIT_BLOCK_MAPPING_FIRST_KEY_STATE:
+		return "yaml_EMIT_BLOCK_MAPPING_FIRST_KEY_STATE"
+	case yaml_EMIT_BLOCK_MAPPING_KEY_STATE:
+		return "yaml_EMIT_BLOCK_MAPPING_KEY_STATE"
+	case yaml_EMIT_BLOCK_MAPPING_SIMPLE_VALUE_STATE:
+		return "yaml_EMIT_BLOCK_MAPPING_SIMPLE_VALUE_STATE"
+	case yaml_EMIT_BLOCK_MAPPING_VALUE_STATE:
+		return "yaml_EMIT_BLOCK_MAPPING_VALUE_STATE"
+	case yaml_EMIT_END_STATE:
+		return "yaml_EMIT_END_STATE"
+	default:
+		return "UNKNOWN_STATE"
+	}
+}
 
 // The emitter structure.
 //

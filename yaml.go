@@ -43,6 +43,23 @@ type Marshaler interface {
 	MarshalYAML() (interface{}, error)
 }
 
+type CommentUnmarshaler struct{}
+
+func (u CommentUnmarshaler) Unmarshal(in []byte, out interface{}) (err error) {
+	v := reflect.ValueOf(out)
+	if v.Kind() == reflect.Ptr {
+		v = v.Elem()
+	}
+	if v.Kind() == reflect.Slice {
+		// Only parse comments if the order of the yaml is preserved
+		return unmarshal(in, out, false, true)
+	}
+
+	// TODO return an actual error
+	fmt.Println("Comments are only supported when using MapSlice")
+	return nil
+}
+
 // Unmarshal decodes the first document found within the in byte slice
 // and assigns decoded values into the out value.
 //
@@ -78,7 +95,7 @@ type Marshaler interface {
 // supported tag options.
 //
 func Unmarshal(in []byte, out interface{}) (err error) {
-	return unmarshal(in, out, false)
+	return unmarshal(in, out, false, false)
 }
 
 // UnmarshalStrict is like Unmarshal except that any fields that are found
@@ -86,7 +103,7 @@ func Unmarshal(in []byte, out interface{}) (err error) {
 // keys that are duplicates, will result in
 // an error.
 func UnmarshalStrict(in []byte, out interface{}) (err error) {
-	return unmarshal(in, out, true)
+	return unmarshal(in, out, true, false)
 }
 
 // A Decorder reads and decodes YAML values from an input stream.
@@ -134,10 +151,11 @@ func (dec *Decoder) Decode(v interface{}) (err error) {
 	return nil
 }
 
-func unmarshal(in []byte, out interface{}, strict bool) (err error) {
+func unmarshal(in []byte, out interface{}, strict bool, parse_comments bool) (err error) {
 	defer handleErr(&err)
 	d := newDecoder(strict)
 	p := newParser(in)
+	p.parser.parse_comments = parse_comments
 	defer p.destroy()
 	node := p.parse()
 	if node != nil {

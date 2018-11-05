@@ -702,9 +702,9 @@ func (d *decoder) mappingSlice(n *node, out reflect.Value) (good bool) {
 	for _, child := range n.children {
 		if child.kind == commentNode {
 			item := MapItem{
-				reflect.ValueOf(Comment{
+				Comment{
 					Value: child.value,
-				}),
+				},
 				nil,
 			}
 			slice = append(slice, item)

@@ -200,11 +200,9 @@ func (e *encoder) itemsv(tag string, in reflect.Value) {
 		slice := in.Convert(reflect.TypeOf([]MapItem{})).Interface().([]MapItem)
 		for _, item := range slice {
 			// Check if it is a comment
-			if key, ok := item.Key.(reflect.Value); ok {
-				if comment, ok := key.Interface().(Comment); ok {
-					e.commentv([]byte(comment.Value))
-					continue
-				}
+			if comment, ok := item.Key.(Comment); ok {
+				e.commentv([]byte(comment.Value))
+				continue
 			}
 
 			e.marshal("", reflect.ValueOf(item.Key))

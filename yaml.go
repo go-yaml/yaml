@@ -296,6 +296,7 @@ type fieldInfo struct {
 	Num       int
 	OmitEmpty bool
 	Flow      bool
+	Skip      bool
 	// Id holds the unique field identifier, so we can cheaply
 	// check for field duplicates without maintaining an extra map.
 	Id int
@@ -346,6 +347,8 @@ func getStructInfo(st reflect.Type) (*structInfo, error) {
 					info.Flow = true
 				case "inline":
 					inline = true
+				case "skip":
+					info.Skip = true
 				default:
 					return nil, errors.New(fmt.Sprintf("Unsupported flag %q in tag %q of type %s", flag, tag, st))
 				}

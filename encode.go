@@ -190,7 +190,7 @@ func (e *encoder) structv(tag string, in reflect.Value) {
 			} else {
 				value = in.FieldByIndex(info.Inline)
 			}
-			if info.OmitEmpty && isZero(value) {
+			if info.OmitEmpty && isZero(value) || info.Skip {
 				continue
 			}
 			e.marshal("", reflect.ValueOf(info.Key))

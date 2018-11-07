@@ -272,6 +272,8 @@ func yaml_parser_parse_document_start(parser *yaml_parser_t, event *yaml_event_t
 		skip_token(parser)
 	}
 
+	skip_comments(parser)
+
 	return true
 }
 
@@ -1074,7 +1076,9 @@ func yaml_parser_process_directives(parser *yaml_parser_t,
 		return false
 	}
 
-	for token.typ == yaml_VERSION_DIRECTIVE_TOKEN || token.typ == yaml_TAG_DIRECTIVE_TOKEN {
+	for token.typ == yaml_VERSION_DIRECTIVE_TOKEN ||
+		token.typ == yaml_TAG_DIRECTIVE_TOKEN ||
+		token.typ == yaml_COMMENT_TOKEN {
 		if token.typ == yaml_VERSION_DIRECTIVE_TOKEN {
 			if version_directive != nil {
 				yaml_parser_set_parser_error(parser,

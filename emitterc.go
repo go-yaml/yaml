@@ -382,9 +382,8 @@ func yaml_emitter_emit_document_start(emitter *yaml_emitter_t, event *yaml_event
 			}
 		}
 
-		if yaml_emitter_check_empty_document(emitter) {
-			implicit = false
-		}
+		// TODO check if the document is empty
+
 		if !implicit {
 			if !yaml_emitter_write_indent(emitter) {
 				return false
@@ -604,6 +603,9 @@ func yaml_emitter_emit_block_sequence_item(emitter *yaml_emitter_t, event *yaml_
 
 // Expect a block key node.
 func yaml_emitter_emit_block_mapping_key(emitter *yaml_emitter_t, event *yaml_event_t, first bool) bool {
+	if event.typ == yaml_PREDOC_EVENT {
+		return yaml_emitter_emit_predoc(emitter, event)
+	}
 	if event.typ == yaml_COMMENT_EVENT {
 		return yaml_emitter_emit_comment(emitter, event)
 	}
@@ -697,6 +699,11 @@ func yaml_emitter_emit_comment(emitter *yaml_emitter_t, event *yaml_event_t) boo
 	return write_all(emitter, out)
 }
 
+// Expect PREDOC.
+func yaml_emitter_emit_predoc(emitter *yaml_emitter_t, event *yaml_event_t) bool {
+	return write_all(emitter, event.value)
+}
+
 // Expect SCALAR.
 func yaml_emitter_emit_scalar(emitter *yaml_emitter_t, event *yaml_event_t) bool {
 	if !yaml_emitter_select_scalar_style(emitter, event) {
@@ -753,11 +760,6 @@ func yaml_emitter_emit_mapping_start(emitter *yaml_emitter_t, event *yaml_event_
 		emitter.state = yaml_EMIT_BLOCK_MAPPING_FIRST_KEY_STATE
 	}
 	return true
-}
-
-// Check if the document content is an empty scalar.
-func yaml_emitter_check_empty_document(emitter *yaml_emitter_t) bool {
-	return false // [Go] Huh?
 }
 
 // Check if the next events represent an empty sequence.

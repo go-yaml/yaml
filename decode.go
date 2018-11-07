@@ -173,14 +173,10 @@ func (p *parser) node(kind int) *node {
 func (p *parser) document() *node {
 	n := p.node(documentNode)
 	n.anchors = make(map[string]*node)
+	n.value = p.parser.predoc.String()
 	p.doc = n
 	p.expect(yaml_DOCUMENT_START_EVENT)
 	next := p.parse()
-	// Chomp all comments, as they can't be part of the top-level YAML structure
-	for next.kind == commentNode {
-		fmt.Println("Chomping comment node: #", next.value)
-		next = p.parse()
-	}
 	n.children = append(n.children, next)
 	p.expect(yaml_DOCUMENT_END_EVENT)
 	return n
@@ -361,6 +357,15 @@ func (d *decoder) document(n *node, out reflect.Value) (good bool) {
 	if len(n.children) == 1 {
 		d.doc = n
 		d.unmarshal(n.children[0], out)
+		if _, ok := out.Interface().(MapSlice); len(n.value) > 0 && ok {
+			temp := reflect.ValueOf(MapSlice{
+				MapItem{
+					Key:   PreDoc(n.value),
+					Value: nil,
+				},
+			})
+			out.Set(reflect.AppendSlice(temp, out))
+		}
 		return true
 	}
 	return false
@@ -388,6 +393,8 @@ func resetMap(out reflect.Value) {
 type Comment struct {
 	Value string
 }
+
+type PreDoc string
 
 // TODO is this necessary??
 // func (d *decoder) comment(n *node, out reflect.Value) (good bool) {

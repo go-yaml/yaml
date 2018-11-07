@@ -199,6 +199,12 @@ func (e *encoder) itemsv(tag string, in reflect.Value) {
 	e.mappingv(tag, func() {
 		slice := in.Convert(reflect.TypeOf([]MapItem{})).Interface().([]MapItem)
 		for _, item := range slice {
+			// Check if it is pre-document string
+			if preDoc, ok := item.Key.(PreDoc); ok {
+				e.predocv(string(preDoc))
+				continue
+			}
+
 			// Check if it is a comment
 			if comment, ok := item.Key.(Comment); ok {
 				e.commentv([]byte(comment.Value))
@@ -390,10 +396,12 @@ func (e *encoder) nilv() {
 }
 
 func (e *encoder) commentv(value []byte) {
-	e.event = yaml_event_t{
-		typ:   yaml_COMMENT_EVENT,
-		value: value,
-	}
+	yaml_comment_event_initialize(&e.event, value)
+	e.emit()
+}
+
+func (e *encoder) predocv(value string) {
+	yaml_predoc_event_initialize(&e.event, []byte(value))
 	e.emit()
 }
 

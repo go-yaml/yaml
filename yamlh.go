@@ -3,6 +3,7 @@ package yaml
 import (
 	"fmt"
 	"io"
+	"strings"
 )
 
 // The version directive data.
@@ -246,6 +247,7 @@ const (
 	yaml_MAPPING_START_EVENT  // A MAPPING-START event.
 	yaml_MAPPING_END_EVENT    // A MAPPING-END event.
 	yaml_COMMENT_EVENT        // A COMMENT event.
+	yaml_PREDOC_EVENT         // A PREDOC event.
 )
 
 var eventStrings = []string{
@@ -570,6 +572,9 @@ type yaml_parser_t struct {
 
 	offset int         // The offset of the current position (in bytes).
 	mark   yaml_mark_t // The mark of the current position.
+
+	doc_started bool            // True if parsing of the document has started (after comments and directives).
+	predoc      strings.Builder // Comments and directives that take place before the yaml data.
 
 	// Scanner stuff
 

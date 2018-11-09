@@ -2,6 +2,7 @@ package yaml
 
 import (
 	"bytes"
+	"fmt"
 )
 
 // The parser implements the following grammar:
@@ -548,9 +549,18 @@ func yaml_parser_parse_node(parser *yaml_parser_t, event *yaml_event_t, block, i
 		}
 		return true
 	}
-	if token.typ == yaml_COMMENT_TOKEN {
+	if token.typ == yaml_COMMENT_TOKEN || token.typ == yaml_EOL_COMMENT_TOKEN {
+		var eventTyp yaml_event_type_t
+		// TODO
+		fmt.Println("yaml_parser_parse_node -", eventTyp)
+		switch token.typ {
+		case yaml_COMMENT_TOKEN:
+			eventTyp = yaml_COMMENT_EVENT
+		case yaml_EOL_COMMENT_TOKEN:
+			eventTyp = yaml_EOL_COMMENT_EVENT
+		}
 		*event = yaml_event_t{
-			typ:        yaml_COMMENT_EVENT,
+			typ:        eventTyp,
 			value:      token.value,
 			start_mark: token.start_mark,
 			end_mark:   token.end_mark,
@@ -628,9 +638,18 @@ func yaml_parser_parse_block_sequence_entry(parser *yaml_parser_t, event *yaml_e
 
 		skip_token(parser)
 		return true
-	} else if token.typ == yaml_COMMENT_TOKEN {
+	} else if token.typ == yaml_COMMENT_TOKEN || token.typ == yaml_EOL_COMMENT_TOKEN {
+		var eventTyp yaml_event_type_t
+		// TODO
+		fmt.Println("yaml_parser_parse_block_sequence_entry -", eventTyp)
+		switch token.typ {
+		case yaml_COMMENT_TOKEN:
+			eventTyp = yaml_COMMENT_EVENT
+		case yaml_EOL_COMMENT_TOKEN:
+			eventTyp = yaml_EOL_COMMENT_EVENT
+		}
 		*event = yaml_event_t{
-			typ:        yaml_COMMENT_EVENT,
+			typ:        eventTyp,
 			value:      token.value,
 			start_mark: token.start_mark,
 			end_mark:   token.end_mark,
@@ -742,9 +761,18 @@ func yaml_parser_parse_block_mapping_key(parser *yaml_parser_t, event *yaml_even
 		}
 		skip_token(parser)
 		return true
-	} else if token.typ == yaml_COMMENT_TOKEN {
+	} else if token.typ == yaml_COMMENT_TOKEN || token.typ == yaml_EOL_COMMENT_TOKEN {
+		var eventTyp yaml_event_type_t
+		// TODO
+		fmt.Println("yaml_parser_parse_block_mapping_key -", eventTyp)
+		switch token.typ {
+		case yaml_COMMENT_TOKEN:
+			eventTyp = yaml_COMMENT_EVENT
+		case yaml_EOL_COMMENT_TOKEN:
+			eventTyp = yaml_EOL_COMMENT_EVENT
+		}
 		*event = yaml_event_t{
-			typ:        yaml_COMMENT_EVENT,
+			typ:        eventTyp,
 			value:      token.value,
 			start_mark: token.start_mark,
 			end_mark:   token.end_mark,
@@ -783,9 +811,18 @@ func yaml_parser_parse_block_mapping_value(parser *yaml_parser_t, event *yaml_ev
 		if token == nil {
 			return false
 		}
-		if token.typ == yaml_COMMENT_TOKEN {
+		if token.typ == yaml_COMMENT_TOKEN || token.typ == yaml_EOL_COMMENT_TOKEN {
+			var eventTyp yaml_event_type_t
+			// TODO
+			fmt.Println("yaml_parser_parse_block_mapping_value -", eventTyp)
+			switch token.typ {
+			case yaml_COMMENT_TOKEN:
+				eventTyp = yaml_COMMENT_EVENT
+			case yaml_EOL_COMMENT_TOKEN:
+				eventTyp = yaml_EOL_COMMENT_EVENT
+			}
 			*event = yaml_event_t{
-				typ:        yaml_COMMENT_EVENT,
+				typ:        eventTyp,
 				value:      token.value,
 				start_mark: token.start_mark,
 				end_mark:   token.end_mark,

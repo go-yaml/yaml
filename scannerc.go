@@ -706,7 +706,7 @@ func yaml_parser_fetch_next_token(parser *yaml_parser_t) bool {
 		return false
 	}
 
-	// Is it the beginning of yaml data? (not a newline, comment or directive)
+	// Is it yaml data? (not a newline, comment or directive)
 	if !(parser.buffer[parser.buffer_pos] == '#' ||
 		(parser.mark.column == 0 && parser.buffer[parser.buffer_pos] == '%')) {
 		parser.doc_started = true
@@ -888,13 +888,18 @@ func yaml_parser_fetch_comment(parser *yaml_parser_t) bool {
 			return false
 		}
 	}
+	typ := yaml_COMMENT_TOKEN
+	if parser.eol_comment {
+		typ = yaml_EOL_COMMENT_TOKEN
+	}
 	token := yaml_token_t{
-		typ:        yaml_COMMENT_TOKEN,
+		typ:        typ,
 		start_mark: start_mark,
 		end_mark:   parser.mark,
 		value:      comment,
 		style:      yaml_PLAIN_SCALAR_STYLE,
 	}
+	parser.eol_comment = false
 	if parser.parse_comments {
 		yaml_insert_token(parser, -1, &token)
 	}
@@ -1471,7 +1476,6 @@ func yaml_parser_fetch_flow_scalar(parser *yaml_parser_t, single bool) bool {
 
 // Produce the SCALAR(...,plain) token.
 func yaml_parser_fetch_plain_scalar(parser *yaml_parser_t) bool {
-	fmt.Println("yaml_parser_fetch_plain_scalar")
 	// A plain scalar could be a simple key.
 	if !yaml_parser_save_simple_key(parser) {
 		return false
@@ -2629,6 +2633,12 @@ func yaml_parser_scan_plain_scalar(parser *yaml_parser_t, token *yaml_token_t) b
 					parser.buffer[parser.buffer_pos+1] == '.' &&
 					parser.buffer[parser.buffer_pos+2] == '.')) &&
 			is_blankz(parser.buffer, parser.buffer_pos+3) {
+			break
+		}
+
+		// Check for a comment.
+		if parser.buffer[parser.buffer_pos] == '#' {
+			parser.eol_comment = true
 			break
 		}
 

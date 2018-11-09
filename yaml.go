@@ -22,6 +22,7 @@ type MapSlice []MapItem
 // MapItem is an item in a MapSlice.
 type MapItem struct {
 	Key, Value interface{}
+	Comment    string
 }
 
 // The Unmarshaler interface may be implemented by types to customize their

@@ -18,6 +18,7 @@ const (
 	scalarNode
 	aliasNode
 	commentNode
+	eolCommentNode
 )
 
 type node struct {
@@ -154,6 +155,8 @@ func (p *parser) parse() *node {
 		return p.document()
 	case yaml_COMMENT_EVENT:
 		return p.comment()
+	case yaml_EOL_COMMENT_EVENT:
+		return p.eolcomment()
 	case yaml_STREAM_END_EVENT:
 		// Happens when attempting to decode an empty buffer.
 		return nil
@@ -207,6 +210,13 @@ func (p *parser) comment() *node {
 	n := p.node(commentNode)
 	n.value = string(p.event.value)
 	p.expect(yaml_COMMENT_EVENT)
+	return n
+}
+
+func (p *parser) eolcomment() *node {
+	n := p.node(eolCommentNode)
+	n.value = string(p.event.value)
+	p.expect(yaml_EOL_COMMENT_EVENT)
 	return n
 }
 
@@ -340,9 +350,10 @@ func (d *decoder) unmarshal(n *node, out reflect.Value) (good bool) {
 	switch n.kind {
 	case scalarNode:
 		good = d.scalar(n, out)
-	// TODO is this necessary?
-	// case commentNode:
-	// 	good = d.comment(n, out)
+	//TODO is this necessary?
+	case commentNode:
+		fmt.Println("COMMENT NODE")
+		good = d.comment(n, out)
 	case mappingNode:
 		good = d.mapping(n, out)
 	case sequenceNode:
@@ -397,18 +408,17 @@ type Comment struct {
 type PreDoc string
 
 // TODO is this necessary??
-// func (d *decoder) comment(n *node, out reflect.Value) (good bool) {
-// 	fmt.Println("comment()")
-// 	fmt.Println(n)
-// 	switch out.Kind() {
-// 	case reflect.Interface:
-// 		fmt.Println("reflect.Interface")
-// 		out.Set(reflect.ValueOf(Comment{
-// 			Value: n.value,
-// 		}))
-// 	}
-// 	return true
-// }
+func (d *decoder) comment(n *node, out reflect.Value) (good bool) {
+	fmt.Println("comment()")
+	switch out.Kind() {
+	case reflect.Interface:
+		fmt.Println("reflect.Interface")
+		out.Set(reflect.ValueOf(Comment{
+			Value: n.value,
+		}))
+	}
+	return true
+}
 
 func (d *decoder) scalar(n *node, out reflect.Value) bool {
 	var tag string
@@ -703,37 +713,47 @@ func (d *decoder) mappingSlice(n *node, out reflect.Value) (good bool) {
 	d.mapType = outt
 
 	var slice []MapItem
+	var l = len(n.children)
+	var child *node
 	var key *node
 	var value *node
 	var keySet bool
-	for _, child := range n.children {
+	for i := 0; i < l; i += 1 {
+		child = n.children[i]
 		if child.kind == commentNode {
 			item := MapItem{
-				Comment{
-					Value: child.value,
-				},
-				nil,
+				Key:     nil,
+				Value:   nil,
+				Comment: child.value,
 			}
 			slice = append(slice, item)
-		} else {
-			if !keySet {
-				keySet = true
-				key = child
-			} else {
-				keySet = false
-				value = child
-				if isMerge(key) {
-					d.merge(value, out)
-					continue
+			continue
+		}
+
+		if !keySet {
+			keySet = true
+			key = child
+			continue
+		}
+
+		if isMerge(key) {
+			d.merge(child, out)
+			continue
+		}
+
+		keySet = false
+		value = child
+		item := MapItem{}
+		k := reflect.ValueOf(&item.Key).Elem()
+		if d.unmarshal(key, k) {
+			v := reflect.ValueOf(&item.Value).Elem()
+			if d.unmarshal(value, v) {
+				// Check for end-of-line comment
+				if i+1 < l && n.children[i+1].kind == eolCommentNode {
+					item.Comment = n.children[i+1].value
+					i++
 				}
-				item := MapItem{}
-				k := reflect.ValueOf(&item.Key).Elem()
-				if d.unmarshal(key, k) {
-					v := reflect.ValueOf(&item.Value).Elem()
-					if d.unmarshal(value, v) {
-						slice = append(slice, item)
-					}
-				}
+				slice = append(slice, item)
 			}
 		}
 	}

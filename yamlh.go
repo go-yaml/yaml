@@ -136,11 +136,12 @@ const (
 	yaml_KEY_TOKEN         // A KEY token.
 	yaml_VALUE_TOKEN       // A VALUE token.
 
-	yaml_ALIAS_TOKEN   // An ALIAS token.
-	yaml_ANCHOR_TOKEN  // An ANCHOR token.
-	yaml_TAG_TOKEN     // A TAG token.
-	yaml_SCALAR_TOKEN  // A SCALAR token.
-	yaml_COMMENT_TOKEN // A COMMENT token.
+	yaml_ALIAS_TOKEN       // An ALIAS token.
+	yaml_ANCHOR_TOKEN      // An ANCHOR token.
+	yaml_TAG_TOKEN         // A TAG token.
+	yaml_SCALAR_TOKEN      // A SCALAR token.
+	yaml_COMMENT_TOKEN     // A COMMENT token.
+	yaml_EOL_COMMENT_TOKEN // A EOL-COMMENT token.
 )
 
 func (tt yaml_token_type_t) String() string {
@@ -247,6 +248,7 @@ const (
 	yaml_MAPPING_START_EVENT  // A MAPPING-START event.
 	yaml_MAPPING_END_EVENT    // A MAPPING-END event.
 	yaml_COMMENT_EVENT        // A COMMENT event.
+	yaml_EOL_COMMENT_EVENT    // An EOL-COMMENT event.
 	yaml_PREDOC_EVENT         // A PREDOC event.
 )
 
@@ -263,6 +265,7 @@ var eventStrings = []string{
 	yaml_MAPPING_START_EVENT:  "mapping start",
 	yaml_MAPPING_END_EVENT:    "mapping end",
 	yaml_COMMENT_EVENT:        "comment",
+	yaml_EOL_COMMENT_EVENT:    "eol comment",
 }
 
 func (e yaml_event_type_t) String() string {
@@ -593,6 +596,8 @@ type yaml_parser_t struct {
 
 	simple_key_allowed bool                // May a simple key occur at the current position?
 	simple_keys        []yaml_simple_key_t // The stack of simple keys.
+
+	eol_comment bool // True if the next comment is an end-of-line comment
 
 	// Parser stuff
 

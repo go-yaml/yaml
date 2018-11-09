@@ -373,6 +373,14 @@ func yaml_comment_event_initialize(event *yaml_event_t, value []byte) {
 	}
 }
 
+// Create EOL-COMMENT
+func yaml_eol_comment_event_initialize(event *yaml_event_t, value []byte) {
+	*event = yaml_event_t{
+		typ:   yaml_EOL_COMMENT_EVENT,
+		value: value,
+	}
+}
+
 // Create PREDOC.
 func yaml_predoc_event_initialize(event *yaml_event_t, value []byte) {
 	*event = yaml_event_t{

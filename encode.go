@@ -206,13 +206,16 @@ func (e *encoder) itemsv(tag string, in reflect.Value) {
 			}
 
 			// Check if it is a comment
-			if comment, ok := item.Key.(Comment); ok {
-				e.commentv([]byte(comment.Value))
+			if item.Key == nil && item.Value == nil && len(item.Comment) > 0 {
+				e.commentv([]byte(item.Comment))
 				continue
 			}
 
 			e.marshal("", reflect.ValueOf(item.Key))
 			e.marshal("", reflect.ValueOf(item.Value))
+			if len(item.Comment) > 0 {
+				e.eolcommentv([]byte(item.Comment))
+			}
 		}
 	})
 }
@@ -397,6 +400,11 @@ func (e *encoder) nilv() {
 
 func (e *encoder) commentv(value []byte) {
 	yaml_comment_event_initialize(&e.event, value)
+	e.emit()
+}
+
+func (e *encoder) eolcommentv(value []byte) {
+	yaml_eol_comment_event_initialize(&e.event, value)
 	e.emit()
 }
 

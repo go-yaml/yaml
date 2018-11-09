@@ -609,6 +609,9 @@ func yaml_emitter_emit_block_mapping_key(emitter *yaml_emitter_t, event *yaml_ev
 	if event.typ == yaml_COMMENT_EVENT {
 		return yaml_emitter_emit_comment(emitter, event)
 	}
+	if event.typ == yaml_EOL_COMMENT_EVENT {
+		return yaml_emitter_emit_eol_comment(emitter, event)
+	}
 	if first {
 		if !yaml_emitter_increase_indent(emitter, false, false) {
 			return false
@@ -695,6 +698,13 @@ func yaml_emitter_emit_comment(emitter *yaml_emitter_t, event *yaml_event_t) boo
 		return false
 	}
 	out := []byte{'#'}
+	out = append(out, event.value...)
+	return write_all(emitter, out)
+}
+
+// Expect EOL-COMMENT.
+func yaml_emitter_emit_eol_comment(emitter *yaml_emitter_t, event *yaml_event_t) bool {
+	out := []byte{' ', '#'}
 	out = append(out, event.value...)
 	return write_all(emitter, out)
 }

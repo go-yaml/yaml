@@ -273,7 +273,12 @@ func yaml_parser_parse_document_start(parser *yaml_parser_t, event *yaml_event_t
 		skip_token(parser)
 	}
 
-	skip_comments(parser)
+	// Skip comments before document start
+	token = peek_token(parser)
+	for token.typ == yaml_COMMENT_TOKEN {
+		skip_token(parser)
+		token = peek_token(parser)
+	}
 
 	return true
 }

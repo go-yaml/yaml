@@ -522,14 +522,6 @@ func skip_line(parser *yaml_parser_t) {
 	}
 }
 
-func skip_comments(parser *yaml_parser_t) {
-	token := peek_token(parser)
-	for token.typ == yaml_COMMENT_TOKEN {
-		skip_token(parser)
-		token = peek_token(parser)
-	}
-}
-
 // Copy a character to a string buffer and advance pointers.
 func read(parser *yaml_parser_t, s []byte) []byte {
 	w := width(parser.buffer[parser.buffer_pos])
@@ -706,12 +698,6 @@ func yaml_parser_fetch_next_token(parser *yaml_parser_t) bool {
 		return false
 	}
 
-	// Is it yaml data? (not a newline, comment or directive)
-	if !(parser.buffer[parser.buffer_pos] == '#' ||
-		(parser.mark.column == 0 && parser.buffer[parser.buffer_pos] == '%')) {
-		parser.doc_started = true
-	}
-
 	// Remove obsolete potential simple keys.
 	if !yaml_parser_stale_simple_keys(parser) {
 		return false
@@ -752,6 +738,14 @@ func yaml_parser_fetch_next_token(parser *yaml_parser_t) bool {
 	if parser.mark.column == 0 && buf[pos] == '.' && buf[pos+1] == '.' && buf[pos+2] == '.' && is_blankz(buf, pos+3) {
 		return yaml_parser_fetch_document_indicator(parser, yaml_DOCUMENT_END_TOKEN)
 	}
+
+	// Is it a comment?
+	if parser.buffer[parser.buffer_pos] == '#' {
+		return yaml_parser_fetch_comment(parser)
+	}
+
+	// It is yaml data (not a newline, comment, directive, or document start / end)
+	parser.doc_started = true
 
 	// Is it the flow sequence start indicator?
 	if buf[pos] == '[' {
@@ -828,11 +822,6 @@ func yaml_parser_fetch_next_token(parser *yaml_parser_t) bool {
 	// Is it a double-quoted scalar?
 	if parser.buffer[parser.buffer_pos] == '"' {
 		return yaml_parser_fetch_flow_scalar(parser, false)
-	}
-
-	// Is it a comment?
-	if parser.buffer[parser.buffer_pos] == '#' {
-		return yaml_parser_fetch_comment(parser)
 	}
 
 	// Is it a plain scalar?

@@ -214,6 +214,14 @@ func yaml_parser_parse_document_start(parser *yaml_parser_t, event *yaml_event_t
 		}
 	}
 
+	// Skip comments at the top of the file since these are valid for both implicit and explicit documents and thus
+	// prevent the following logic from deciding whether the document is implicit or explicit
+	token = peek_token(parser)
+	for token.typ == yaml_COMMENT_TOKEN {
+		skip_token(parser)
+		token = peek_token(parser)
+	}
+
 	if implicit && token.typ != yaml_VERSION_DIRECTIVE_TOKEN &&
 		token.typ != yaml_TAG_DIRECTIVE_TOKEN &&
 		token.typ != yaml_DOCUMENT_START_TOKEN &&
@@ -262,6 +270,13 @@ func yaml_parser_parse_document_start(parser *yaml_parser_t, event *yaml_event_t
 		}
 		skip_token(parser)
 
+		// Skip comments between the document start and the yaml data
+		token = peek_token(parser)
+		for token.typ == yaml_COMMENT_TOKEN {
+			skip_token(parser)
+			token = peek_token(parser)
+		}
+
 	} else {
 		// Parse the stream end.
 		parser.state = yaml_PARSE_END_STATE
@@ -271,13 +286,6 @@ func yaml_parser_parse_document_start(parser *yaml_parser_t, event *yaml_event_t
 			end_mark:   token.end_mark,
 		}
 		skip_token(parser)
-	}
-
-	// Skip comments before document start
-	token = peek_token(parser)
-	for token.typ == yaml_COMMENT_TOKEN {
-		skip_token(parser)
-		token = peek_token(parser)
 	}
 
 	return true

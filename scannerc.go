@@ -747,6 +747,8 @@ func yaml_parser_fetch_next_token(parser *yaml_parser_t) bool {
 	// It is yaml data (not a newline, comment, directive, or document start / end)
 	parser.doc_started = true
 
+	parser.eol_comment_possible = true
+
 	// Is it the flow sequence start indicator?
 	if buf[pos] == '[' {
 		return yaml_parser_fetch_flow_collection_start(parser, yaml_FLOW_SEQUENCE_START_TOKEN)
@@ -870,6 +872,7 @@ func yaml_parser_fetch_next_token(parser *yaml_parser_t) bool {
 func yaml_parser_fetch_comment(parser *yaml_parser_t) bool {
 	start_mark := parser.mark
 	var comment []byte
+	// Skip # character
 	skip(parser)
 	for !is_breakz(parser.buffer, parser.buffer_pos) {
 		comment = read(parser, comment)
@@ -878,7 +881,7 @@ func yaml_parser_fetch_comment(parser *yaml_parser_t) bool {
 		}
 	}
 	typ := yaml_COMMENT_TOKEN
-	if parser.eol_comment {
+	if parser.eol_comment_possible {
 		typ = yaml_EOL_COMMENT_TOKEN
 	}
 	token := yaml_token_t{
@@ -888,7 +891,6 @@ func yaml_parser_fetch_comment(parser *yaml_parser_t) bool {
 		value:      comment,
 		style:      yaml_PLAIN_SCALAR_STYLE,
 	}
-	parser.eol_comment = false
 	if parser.parse_comments {
 		yaml_insert_token(parser, -1, &token)
 	}
@@ -1513,6 +1515,7 @@ func yaml_parser_scan_to_next_token(parser *yaml_parser_t) bool {
 
 		// If it is a line break, eat it.
 		if is_break(parser.buffer, parser.buffer_pos) {
+			parser.eol_comment_possible = false
 			if parser.unread < 2 && !yaml_parser_update_buffer(parser, 2) {
 				return false
 			}
@@ -2542,6 +2545,7 @@ func yaml_parser_scan_flow_scalar(parser *yaml_parser_t, token *yaml_token_t, si
 					skip(parser)
 				}
 			} else {
+				parser.eol_comment_possible = false
 				if parser.unread < 2 && !yaml_parser_update_buffer(parser, 2) {
 					return false
 				}
@@ -2627,7 +2631,6 @@ func yaml_parser_scan_plain_scalar(parser *yaml_parser_t, token *yaml_token_t) b
 
 		// Check for a comment.
 		if parser.buffer[parser.buffer_pos] == '#' {
-			parser.eol_comment = true
 			break
 		}
 
@@ -2703,6 +2706,7 @@ func yaml_parser_scan_plain_scalar(parser *yaml_parser_t, token *yaml_token_t) b
 					skip(parser)
 				}
 			} else {
+				parser.eol_comment_possible = false
 				if parser.unread < 2 && !yaml_parser_update_buffer(parser, 2) {
 					return false
 				}

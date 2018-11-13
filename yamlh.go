@@ -192,6 +192,8 @@ func (tt yaml_token_type_t) String() string {
 		return "yaml_SCALAR_TOKEN"
 	case yaml_COMMENT_TOKEN:
 		return "yaml_COMMENT_TOKEN"
+	case yaml_EOL_COMMENT_TOKEN:
+		return "yaml_EOL_COMMENT_TOKEN"
 	}
 	return "<unknown token>"
 }
@@ -597,7 +599,7 @@ type yaml_parser_t struct {
 	simple_key_allowed bool                // May a simple key occur at the current position?
 	simple_keys        []yaml_simple_key_t // The stack of simple keys.
 
-	eol_comment bool // True if the next comment is an end-of-line comment
+	eol_comment_possible bool // True if the next comment is an end-of-line comment
 
 	// Parser stuff
 

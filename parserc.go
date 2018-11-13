@@ -2,7 +2,6 @@ package yaml
 
 import (
 	"bytes"
-	"fmt"
 )
 
 // The parser implements the following grammar:
@@ -563,23 +562,7 @@ func yaml_parser_parse_node(parser *yaml_parser_t, event *yaml_event_t, block, i
 		return true
 	}
 	if token.typ == yaml_COMMENT_TOKEN || token.typ == yaml_EOL_COMMENT_TOKEN {
-		var eventTyp yaml_event_type_t
-		// TODO
-		fmt.Println("yaml_parser_parse_node -", eventTyp)
-		switch token.typ {
-		case yaml_COMMENT_TOKEN:
-			eventTyp = yaml_COMMENT_EVENT
-		case yaml_EOL_COMMENT_TOKEN:
-			eventTyp = yaml_EOL_COMMENT_EVENT
-		}
-		*event = yaml_event_t{
-			typ:        eventTyp,
-			value:      token.value,
-			start_mark: token.start_mark,
-			end_mark:   token.end_mark,
-		}
-		skip_token(parser)
-		return true
+		return yaml_parser_parse_comment(parser, event, token)
 	}
 	if len(anchor) > 0 || len(tag) > 0 {
 		parser.state = parser.states[len(parser.states)-1]
@@ -652,23 +635,7 @@ func yaml_parser_parse_block_sequence_entry(parser *yaml_parser_t, event *yaml_e
 		skip_token(parser)
 		return true
 	} else if token.typ == yaml_COMMENT_TOKEN || token.typ == yaml_EOL_COMMENT_TOKEN {
-		var eventTyp yaml_event_type_t
-		// TODO
-		fmt.Println("yaml_parser_parse_block_sequence_entry -", eventTyp)
-		switch token.typ {
-		case yaml_COMMENT_TOKEN:
-			eventTyp = yaml_COMMENT_EVENT
-		case yaml_EOL_COMMENT_TOKEN:
-			eventTyp = yaml_EOL_COMMENT_EVENT
-		}
-		*event = yaml_event_t{
-			typ:        eventTyp,
-			value:      token.value,
-			start_mark: token.start_mark,
-			end_mark:   token.end_mark,
-		}
-		skip_token(parser)
-		return true
+		return yaml_parser_parse_comment(parser, event, token)
 	}
 
 	context_mark := parser.marks[len(parser.marks)-1]
@@ -687,15 +654,8 @@ func yaml_parser_parse_indentless_sequence_entry(parser *yaml_parser_t, event *y
 		return false
 	}
 
-	if token.typ == yaml_COMMENT_TOKEN {
-		*event = yaml_event_t{
-			typ:        yaml_COMMENT_EVENT,
-			value:      token.value,
-			start_mark: token.start_mark,
-			end_mark:   token.end_mark,
-		}
-		skip_token(parser)
-		return true
+	if token.typ == yaml_COMMENT_TOKEN || token.typ == yaml_EOL_COMMENT_TOKEN {
+		return yaml_parser_parse_comment(parser, event, token)
 	}
 	if token.typ == yaml_BLOCK_ENTRY_TOKEN {
 		mark := token.end_mark
@@ -775,23 +735,7 @@ func yaml_parser_parse_block_mapping_key(parser *yaml_parser_t, event *yaml_even
 		skip_token(parser)
 		return true
 	} else if token.typ == yaml_COMMENT_TOKEN || token.typ == yaml_EOL_COMMENT_TOKEN {
-		var eventTyp yaml_event_type_t
-		// TODO
-		fmt.Println("yaml_parser_parse_block_mapping_key -", eventTyp)
-		switch token.typ {
-		case yaml_COMMENT_TOKEN:
-			eventTyp = yaml_COMMENT_EVENT
-		case yaml_EOL_COMMENT_TOKEN:
-			eventTyp = yaml_EOL_COMMENT_EVENT
-		}
-		*event = yaml_event_t{
-			typ:        eventTyp,
-			value:      token.value,
-			start_mark: token.start_mark,
-			end_mark:   token.end_mark,
-		}
-		skip_token(parser)
-		return true
+		return yaml_parser_parse_comment(parser, event, token)
 	}
 
 	context_mark := parser.marks[len(parser.marks)-1]
@@ -826,8 +770,6 @@ func yaml_parser_parse_block_mapping_value(parser *yaml_parser_t, event *yaml_ev
 		}
 		if token.typ == yaml_COMMENT_TOKEN || token.typ == yaml_EOL_COMMENT_TOKEN {
 			var eventTyp yaml_event_type_t
-			// TODO
-			fmt.Println("yaml_parser_parse_block_mapping_value -", eventTyp)
 			switch token.typ {
 			case yaml_COMMENT_TOKEN:
 				eventTyp = yaml_COMMENT_EVENT
@@ -1197,5 +1139,25 @@ func yaml_parser_append_tag_directive(parser *yaml_parser_t, value yaml_tag_dire
 	copy(value_copy.handle, value.handle)
 	copy(value_copy.prefix, value.prefix)
 	parser.tag_directives = append(parser.tag_directives, value_copy)
+	return true
+}
+
+func yaml_parser_parse_comment(parser *yaml_parser_t, event *yaml_event_t, token *yaml_token_t) bool {
+	var eventTyp yaml_event_type_t
+	switch token.typ {
+	case yaml_COMMENT_TOKEN:
+		eventTyp = yaml_COMMENT_EVENT
+	case yaml_EOL_COMMENT_TOKEN:
+		eventTyp = yaml_EOL_COMMENT_EVENT
+	default:
+		return false
+	}
+	*event = yaml_event_t{
+		typ:        eventTyp,
+		value:      token.value,
+		start_mark: token.start_mark,
+		end_mark:   token.end_mark,
+	}
+	skip_token(parser)
 	return true
 }

@@ -90,7 +90,7 @@ func main() {
         }
         fmt.Printf("--- t dump:\n%s\n\n", string(d))
     
-        m := make(map[interface{}]interface{})
+        m := make(map[string]interface{})
     
         err = yaml.Unmarshal([]byte(data), &m)
         if err != nil {

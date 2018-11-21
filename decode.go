@@ -8,6 +8,7 @@ import (
 	"math"
 	"reflect"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -178,6 +179,10 @@ func (p *parser) document() *node {
 	n.anchors = make(map[string]*node)
 	if p.parser.parse_comments {
 		n.value = p.parser.predoc.String()
+		// remove extraneous newline
+		if n.value[len(n.value)-1] == '\n' {
+			n.value = n.value[:len(n.value)-1]
+		}
 	}
 	p.doc = n
 	p.expect(yaml_DOCUMENT_START_EVENT)
@@ -372,7 +377,7 @@ func (d *decoder) document(n *node, out reflect.Value) (good bool) {
 	if len(n.children) == 1 {
 		d.doc = n
 		d.unmarshal(n.children[0], out)
-		if _, ok := out.Interface().(MapSlice); len(n.value) > 0 && ok {
+		if _, ok := out.Interface().(MapSlice); len(strings.TrimSpace(n.value)) > 0 && ok {
 			slice := reflect.ValueOf(MapSlice{
 				MapItem{
 					Key:   PreDoc(n.value),

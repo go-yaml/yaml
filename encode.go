@@ -216,7 +216,8 @@ func (e *encoder) itemsv(tag string, in reflect.Value) {
 
 			e.marshal("", reflect.ValueOf(item.Key))
 			e.marshal("", reflect.ValueOf(item.Value))
-			// TODO an empty comment should still be recognized
+
+			// Note that empty end-of-line comments are ignored
 			if len(item.Comment) > 0 {
 				e.eolcommentv([]byte(item.Comment))
 			}
@@ -297,7 +298,8 @@ func (e *encoder) sequenceitemv(tag string, in reflect.Value) {
 			}
 
 			e.marshal("", reflect.ValueOf(item.Value))
-			// TODO an empty comment should still be recognized
+
+			// Note that empty end-of-line comments are ignored
 			if len(item.Comment) > 0 {
 				e.eolcommentv([]byte(item.Comment))
 			}

@@ -176,7 +176,9 @@ func (p *parser) node(kind int) *node {
 func (p *parser) document() *node {
 	n := p.node(documentNode)
 	n.anchors = make(map[string]*node)
-	n.value = p.parser.predoc.String()
+	if p.parser.parse_comments {
+		n.value = p.parser.predoc.String()
+	}
 	p.doc = n
 	p.expect(yaml_DOCUMENT_START_EVENT)
 	next := p.parse()

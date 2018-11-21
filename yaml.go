@@ -52,19 +52,9 @@ type Marshaler interface {
 
 type CommentUnmarshaler struct{}
 
-func (u CommentUnmarshaler) Unmarshal(in []byte, out interface{}) (err error) {
-	v := reflect.ValueOf(out)
-	if v.Kind() == reflect.Ptr {
-		v = v.Elem()
-	}
-	if v.Kind() == reflect.Slice {
-		// Only parse comments if the order of the yaml is preserved
-		return unmarshal(in, out, false, true)
-	}
-
-	// TODO return an actual error
-	fmt.Println("Comments are only supported when using MapSlice")
-	return nil
+func (u CommentUnmarshaler) Unmarshal(in []byte) (MapSlice, error) {
+	out := MapSlice{}
+	return out, unmarshal(in, &out, false, true)
 }
 
 // Unmarshal decodes the first document found within the in byte slice

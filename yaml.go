@@ -25,6 +25,12 @@ type MapItem struct {
 	Comment    string
 }
 
+// SequenceItem is an item in a sequence
+type SequenceItem struct {
+	Value   interface{}
+	Comment string
+}
+
 // The Unmarshaler interface may be implemented by types to customize their
 // behavior when being unmarshaled from a YAML document. The UnmarshalYAML
 // method receives a function that may be called to unmarshal the original
@@ -155,6 +161,7 @@ func (dec *Decoder) Decode(v interface{}) (err error) {
 func unmarshal(in []byte, out interface{}, strict bool, parse_comments bool) (err error) {
 	defer handleErr(&err)
 	d := newDecoder(strict)
+	d.comments = true
 	p := newParser(in)
 	p.parser.parse_comments = parse_comments
 	defer p.destroy()

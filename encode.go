@@ -160,8 +160,11 @@ func (e *encoder) marshal(tag string, in reflect.Value) {
 			e.structv(tag, in)
 		}
 	case reflect.Slice, reflect.Array:
-		if in.Type().Elem() == mapItemType {
+		elemType := in.Type().Elem()
+		if elemType == mapItemType {
 			e.itemsv(tag, in)
+		} else if elemType == sequenceItemType {
+			e.sequenceitemv(tag, in)
 		} else {
 			e.slicev(tag, in)
 		}
@@ -213,6 +216,7 @@ func (e *encoder) itemsv(tag string, in reflect.Value) {
 
 			e.marshal("", reflect.ValueOf(item.Key))
 			e.marshal("", reflect.ValueOf(item.Value))
+			// TODO an empty comment should still be recognized
 			if len(item.Comment) > 0 {
 				e.eolcommentv([]byte(item.Comment))
 			}
@@ -274,6 +278,34 @@ func (e *encoder) mappingv(tag string, f func()) {
 }
 
 func (e *encoder) slicev(tag string, in reflect.Value) {
+	e.sequencev(tag, func() {
+		n := in.Len()
+		for i := 0; i < n; i++ {
+			e.marshal("", in.Index(i))
+		}
+	})
+}
+
+func (e *encoder) sequenceitemv(tag string, in reflect.Value) {
+	e.sequencev(tag, func() {
+		slice := in.Interface().([]SequenceItem)
+		for _, item := range slice {
+			// Check if if is a comment
+			if item.Value == nil && len(item.Comment) > 0 {
+				e.commentv([]byte(item.Comment))
+				continue
+			}
+
+			e.marshal("", reflect.ValueOf(item.Value))
+			// TODO an empty comment should still be recognized
+			if len(item.Comment) > 0 {
+				e.eolcommentv([]byte(item.Comment))
+			}
+		}
+	})
+}
+
+func (e *encoder) sequencev(tag string, f func()) {
 	implicit := tag == ""
 	style := yaml_BLOCK_SEQUENCE_STYLE
 	if e.flow {
@@ -282,10 +314,7 @@ func (e *encoder) slicev(tag string, in reflect.Value) {
 	}
 	e.must(yaml_sequence_start_event_initialize(&e.event, nil, []byte(tag), implicit, style))
 	e.emit()
-	n := in.Len()
-	for i := 0; i < n; i++ {
-		e.marshal("", in.Index(i))
-	}
+	f()
 	e.must(yaml_sequence_end_event_initialize(&e.event))
 	e.emit()
 }

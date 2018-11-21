@@ -246,20 +246,22 @@ func (p *parser) mapping() *node {
 // Decoder, unmarshals a node into a provided value.
 
 type decoder struct {
-	doc     *node
-	aliases map[*node]bool
-	mapType reflect.Type
-	terrors []string
-	strict  bool
+	doc      *node
+	aliases  map[*node]bool
+	mapType  reflect.Type
+	terrors  []string
+	strict   bool
+	comments bool
 }
 
 var (
-	mapItemType    = reflect.TypeOf(MapItem{})
-	durationType   = reflect.TypeOf(time.Duration(0))
-	defaultMapType = reflect.TypeOf(map[interface{}]interface{}{})
-	ifaceType      = defaultMapType.Elem()
-	timeType       = reflect.TypeOf(time.Time{})
-	ptrTimeType    = reflect.TypeOf(&time.Time{})
+	mapItemType      = reflect.TypeOf(MapItem{})
+	sequenceItemType = reflect.TypeOf(SequenceItem{})
+	durationType     = reflect.TypeOf(time.Duration(0))
+	defaultMapType   = reflect.TypeOf(map[interface{}]interface{}{})
+	ifaceType        = defaultMapType.Elem()
+	timeType         = reflect.TypeOf(time.Time{})
+	ptrTimeType      = reflect.TypeOf(&time.Time{})
 )
 
 func newDecoder(strict bool) *decoder {
@@ -595,8 +597,11 @@ func settableValueOf(i interface{}) reflect.Value {
 }
 
 func (d *decoder) sequence(n *node, out reflect.Value) (good bool) {
-	l := len(n.children)
+	if d.comments {
+		return d.sequenceStruct(n, out)
+	}
 
+	l := len(n.children)
 	var iface reflect.Value
 	switch out.Kind() {
 	case reflect.Slice:
@@ -629,6 +634,35 @@ func (d *decoder) sequence(n *node, out reflect.Value) (good bool) {
 	if iface.IsValid() {
 		iface.Set(out)
 	}
+	return true
+}
+
+func (d *decoder) sequenceStruct(n *node, out reflect.Value) (good bool) {
+	l := len(n.children)
+	var slice []SequenceItem
+	for i := 0; i < l; i++ {
+		child := n.children[i]
+		// Check for comment
+		if child.kind == commentNode {
+			item := SequenceItem{
+				Value:   nil,
+				Comment: child.value,
+			}
+			slice = append(slice, item)
+			continue
+		}
+		item := SequenceItem{}
+		v := reflect.ValueOf(&item.Value).Elem()
+		if ok := d.unmarshal(child, v); ok {
+			// Check for end-of-line comment
+			if i+1 < l && n.children[i+1].kind == eolCommentNode {
+				item.Comment = n.children[i+1].value
+				i++
+			}
+			slice = append(slice, item)
+		}
+	}
+	out.Set(reflect.ValueOf(slice))
 	return true
 }
 

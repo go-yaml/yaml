@@ -268,6 +268,7 @@ var eventStrings = []string{
 	yaml_MAPPING_END_EVENT:    "mapping end",
 	yaml_COMMENT_EVENT:        "comment",
 	yaml_EOL_COMMENT_EVENT:    "eol comment",
+	yaml_PREDOC_EVENT:         "predoc",
 }
 
 func (e yaml_event_type_t) String() string {

@@ -591,6 +591,9 @@ func yaml_emitter_emit_block_sequence_item(emitter *yaml_emitter_t, event *yaml_
 	if event.typ == yaml_COMMENT_EVENT {
 		return yaml_emitter_emit_comment(emitter, event)
 	}
+	if event.typ == yaml_EOL_COMMENT_EVENT {
+		return yaml_emitter_emit_eol_comment(emitter, event)
+	}
 	if !yaml_emitter_write_indent(emitter) {
 		return false
 	}

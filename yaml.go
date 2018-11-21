@@ -161,7 +161,7 @@ func (dec *Decoder) Decode(v interface{}) (err error) {
 func unmarshal(in []byte, out interface{}, strict bool, parse_comments bool) (err error) {
 	defer handleErr(&err)
 	d := newDecoder(strict)
-	d.comments = true
+	d.comments = parse_comments
 	p := newParser(in)
 	p.parser.parse_comments = parse_comments
 	defer p.destroy()

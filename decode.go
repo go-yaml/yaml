@@ -371,13 +371,13 @@ func (d *decoder) document(n *node, out reflect.Value) (good bool) {
 		d.doc = n
 		d.unmarshal(n.children[0], out)
 		if _, ok := out.Interface().(MapSlice); len(n.value) > 0 && ok {
-			temp := reflect.ValueOf(MapSlice{
+			slice := reflect.ValueOf(MapSlice{
 				MapItem{
 					Key:   PreDoc(n.value),
 					Value: nil,
 				},
 			})
-			out.Set(reflect.AppendSlice(temp, out))
+			out.Set(reflect.AppendSlice(slice, out))
 		}
 		return true
 	}

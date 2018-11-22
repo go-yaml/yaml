@@ -13,7 +13,8 @@ import (
 )
 
 const (
-	documentNode = 1 << iota
+	_ = iota
+	documentNode
 	mappingNode
 	sequenceNode
 	scalarNode
@@ -42,6 +43,7 @@ type parser struct {
 	event    yaml_event_t
 	doc      *node
 	doneInit bool
+	comments []*node
 }
 
 func newParser(b []byte) *parser {
@@ -231,9 +233,7 @@ func (p *parser) sequence() *node {
 	n := p.node(sequenceNode)
 	p.anchor(n, p.event.anchor)
 	p.expect(yaml_SEQUENCE_START_EVENT)
-	for p.peek() != yaml_SEQUENCE_END_EVENT {
-		n.children = append(n.children, p.parse())
-	}
+	p.parseChildren(yaml_SEQUENCE_END_EVENT, n)
 	p.expect(yaml_SEQUENCE_END_EVENT)
 	return n
 }
@@ -242,15 +242,41 @@ func (p *parser) mapping() *node {
 	n := p.node(mappingNode)
 	p.anchor(n, p.event.anchor)
 	p.expect(yaml_MAPPING_START_EVENT)
-	for p.peek() != yaml_MAPPING_END_EVENT {
-		n.children = append(n.children, p.parse())
-	}
+	p.parseChildren(yaml_MAPPING_END_EVENT, n)
 	p.expect(yaml_MAPPING_END_EVENT)
 	return n
 }
 
+func (p *parser) parseChildren(event yaml_event_type_t, n *node) {
+	for p.peek() != event {
+		next := p.parse()
+
+		// Make sure comment nodes have the same parent as the following non-comment node
+		if next.kind == commentNode {
+			p.comments = append(p.comments, next)
+			continue
+		}
+		if next.kind == scalarNode {
+			n.children = append(n.children, p.comments...)
+			p.comments = []*node{}
+		}
+
+		n.children = append(n.children, next)
+
+	}
+}
+
 // ----------------------------------------------------------------------------
 // Decoder, unmarshals a node into a provided value.
+
+func printTree(n *node, level int) {
+	for _, c := range n.children {
+		fmt.Println(strings.Repeat("\t", level), "kind: ", c.kind, "\tvalue: ", c.value)
+		if len(c.children) > 0 {
+			printTree(c, level+1)
+		}
+	}
+}
 
 type decoder struct {
 	doc      *node

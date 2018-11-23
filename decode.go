@@ -256,6 +256,16 @@ func (p *parser) parseChildren(event yaml_event_type_t, n *node) {
 			p.comments = append(p.comments, next)
 			continue
 		}
+
+		// If a sequence has an end-of-line comment, convert it to a normal comment preceding the sequence
+		l := len(n.children)
+		if next.kind == eolCommentNode && l > 0 && n.children[l-1].kind == sequenceNode {
+			next.kind = commentNode
+			n.children = append(n.children, next)
+			n.children[l], n.children[l-1] = n.children[l-1], n.children[l]
+			continue
+		}
+
 		if next.kind == scalarNode {
 			n.children = append(n.children, p.comments...)
 			p.comments = []*node{}
@@ -271,11 +281,31 @@ func (p *parser) parseChildren(event yaml_event_type_t, n *node) {
 
 func printTree(n *node, level int) {
 	for _, c := range n.children {
-		fmt.Println(strings.Repeat("\t", level), "kind: ", c.kind, "\tvalue: ", c.value)
+		fmt.Println(strings.Repeat("\t", level), "kind: ", nodeToString(c.kind), "\tvalue: ", c.value)
 		if len(c.children) > 0 {
 			printTree(c, level+1)
 		}
 	}
+}
+
+func nodeToString(node int) string {
+	switch node {
+	case documentNode:
+		return "documentNode"
+	case mappingNode:
+		return "mappingNode"
+	case sequenceNode:
+		return "sequenceNode"
+	case scalarNode:
+		return "scalarNode"
+	case aliasNode:
+		return "aliasNode"
+	case commentNode:
+		return "commentNode"
+	case eolCommentNode:
+		return "eolCommentNode"
+	}
+	return "unknown node kind"
 }
 
 type decoder struct {

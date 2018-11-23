@@ -785,6 +785,7 @@ func (d *decoder) mappingSlice(n *node, out reflect.Value) (good bool) {
 	var key *node
 	var value *node
 	var keySet bool
+	var eolComment string
 	for i := 0; i < l; i += 1 {
 		child = n.children[i]
 		if child.kind == commentNode {
@@ -794,6 +795,12 @@ func (d *decoder) mappingSlice(n *node, out reflect.Value) (good bool) {
 				Comment: child.value,
 			}
 			slice = append(slice, item)
+			continue
+		}
+
+		// Check for end-of-line comment after a key
+		if child.kind == eolCommentNode {
+			eolComment = child.value
 			continue
 		}
 
@@ -815,12 +822,25 @@ func (d *decoder) mappingSlice(n *node, out reflect.Value) (good bool) {
 		if d.unmarshal(key, k) {
 			v := reflect.ValueOf(&item.Value).Elem()
 			if d.unmarshal(value, v) {
-				// Check for end-of-line comment
+				// Check for end-of-line comment after the value
+				// When using explicit key and value it is possible to have an end-of-line comment for both the key and
+				// the value. By default, the key gets converted to a simple key. This concatenates the two comments
+				// into a single semicolon-separated end-of-line comment.
+				// eg.
+				//     ? key # c1
+				//     : value # c2
+				// becomes
+				//     key: value # c1; c2
 				if i+1 < l && n.children[i+1].kind == eolCommentNode {
-					item.Comment = n.children[i+1].value
+					if len(eolComment) > 0 {
+						eolComment += ";"
+					}
+					eolComment += n.children[i+1].value
 					i++
 				}
+				item.Comment = eolComment
 				slice = append(slice, item)
+				eolComment = ""
 			}
 		}
 	}

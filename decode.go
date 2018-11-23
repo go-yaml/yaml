@@ -181,7 +181,7 @@ func (p *parser) document() *node {
 	n.anchors = make(map[string]*node)
 	if p.parser.parse_comments {
 		n.value = p.parser.predoc.String()
-		// remove extraneous newline
+		// Remove extraneous newline
 		if n.value[len(n.value)-1] == '\n' {
 			n.value = n.value[:len(n.value)-1]
 		}
@@ -189,6 +189,10 @@ func (p *parser) document() *node {
 	p.doc = n
 	p.expect(yaml_DOCUMENT_START_EVENT)
 	next := p.parse()
+
+	// Append post-document comments
+	next.children = append(next.children, p.comments...)
+
 	n.children = append(n.children, next)
 	p.expect(yaml_DOCUMENT_END_EVENT)
 	return n

@@ -576,6 +576,9 @@ func yaml_emitter_emit_flow_mapping_value(emitter *yaml_emitter_t, event *yaml_e
 
 // Expect a block item node.
 func yaml_emitter_emit_block_sequence_item(emitter *yaml_emitter_t, event *yaml_event_t, first bool) bool {
+	if event.typ == yaml_EOL_COMMENT_EVENT {
+		return yaml_emitter_emit_node(emitter, event, false, true, false, false)
+	}
 	if first {
 		if !yaml_emitter_increase_indent(emitter, false, emitter.mapping_context && !emitter.indention) {
 			return false
@@ -588,14 +591,14 @@ func yaml_emitter_emit_block_sequence_item(emitter *yaml_emitter_t, event *yaml_
 		emitter.states = emitter.states[:len(emitter.states)-1]
 		return true
 	}
-	if event.typ == yaml_COMMENT_EVENT {
-		return yaml_emitter_emit_comment(emitter, event)
-	}
-	if event.typ == yaml_EOL_COMMENT_EVENT {
-		return yaml_emitter_emit_eol_comment(emitter, event)
-	}
 	if !yaml_emitter_write_indent(emitter) {
 		return false
+	}
+	if event.typ == yaml_COMMENT_EVENT {
+		// Switch state from yaml_EMIT_BLOCK_SEQUENCE_FIRST_ITEM_STATE to yaml_EMIT_BLOCK_SEQUENCE_ITEM_STATE
+		// to prevent double indentation
+		emitter.state = yaml_EMIT_BLOCK_SEQUENCE_ITEM_STATE
+		return yaml_emitter_emit_node(emitter, event, false, true, false, false)
 	}
 	if !yaml_emitter_write_indicator(emitter, []byte{'-'}, true, false, true) {
 		return false
@@ -606,14 +609,8 @@ func yaml_emitter_emit_block_sequence_item(emitter *yaml_emitter_t, event *yaml_
 
 // Expect a block key node.
 func yaml_emitter_emit_block_mapping_key(emitter *yaml_emitter_t, event *yaml_event_t, first bool) bool {
-	if event.typ == yaml_PREDOC_EVENT {
-		return yaml_emitter_emit_predoc(emitter, event)
-	}
-	if event.typ == yaml_COMMENT_EVENT {
-		return yaml_emitter_emit_comment(emitter, event)
-	}
-	if event.typ == yaml_EOL_COMMENT_EVENT {
-		return yaml_emitter_emit_eol_comment(emitter, event)
+	if event.typ == yaml_PREDOC_EVENT || event.typ == yaml_EOL_COMMENT_EVENT {
+		return yaml_emitter_emit_node(emitter, event, false, false, true, false)
 	}
 	if first {
 		if !yaml_emitter_increase_indent(emitter, false, false) {
@@ -629,6 +626,12 @@ func yaml_emitter_emit_block_mapping_key(emitter *yaml_emitter_t, event *yaml_ev
 	}
 	if !yaml_emitter_write_indent(emitter) {
 		return false
+	}
+	if event.typ == yaml_COMMENT_EVENT {
+		// Switch state from yaml_EMIT_BLOCK_MAPPING_FIRST_KEY_STATE to yaml_EMIT_BLOCK_MAPPING_KEY_STATE
+		// to prevent double indentation
+		emitter.state = yaml_EMIT_BLOCK_MAPPING_KEY_STATE
+		return yaml_emitter_emit_comment(emitter, event)
 	}
 	if yaml_emitter_check_simple_key(emitter) {
 		emitter.states = append(emitter.states, yaml_EMIT_BLOCK_MAPPING_SIMPLE_VALUE_STATE)
@@ -677,8 +680,12 @@ func yaml_emitter_emit_node(emitter *yaml_emitter_t, event *yaml_event_t,
 		return yaml_emitter_emit_sequence_start(emitter, event)
 	case yaml_MAPPING_START_EVENT:
 		return yaml_emitter_emit_mapping_start(emitter, event)
+	case yaml_PREDOC_EVENT:
+		return yaml_emitter_emit_predoc(emitter, event)
 	case yaml_COMMENT_EVENT:
 		return yaml_emitter_emit_comment(emitter, event)
+	case yaml_EOL_COMMENT_EVENT:
+		return yaml_emitter_emit_eol_comment(emitter, event)
 	default:
 		return yaml_emitter_set_emitter_error(emitter,
 			fmt.Sprintf("expected SCALAR, SEQUENCE-START, MAPPING-START, or ALIAS, but got %v", event.typ))
@@ -697,9 +704,6 @@ func yaml_emitter_emit_alias(emitter *yaml_emitter_t, event *yaml_event_t) bool 
 
 // Expect COMMENT.
 func yaml_emitter_emit_comment(emitter *yaml_emitter_t, event *yaml_event_t) bool {
-	if !yaml_emitter_write_indent(emitter) {
-		return false
-	}
 	out := []byte{'#'}
 	out = append(out, event.value...)
 	return write_all(emitter, out)

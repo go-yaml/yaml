@@ -215,11 +215,20 @@ func (e *encoder) itemsv(tag string, in reflect.Value) {
 			}
 
 			e.marshal("", reflect.ValueOf(item.Key))
-			e.marshal("", reflect.ValueOf(item.Value))
 
-			// Note that empty end-of-line comments are ignored
-			if len(item.Comment) > 0 {
-				e.eolcommentv([]byte(item.Comment))
+			// If the value is a primitive value (eg. string, int), an end-of-line comment should follow the value,
+			// else it should follow the key. Note that empty end-of-line comments are ignored.
+			switch item.Value.(type) {
+			case string, int, bool:
+				e.marshal("", reflect.ValueOf(item.Value))
+				if len(item.Comment) > 0 {
+					e.eolcommentv([]byte(item.Comment))
+				}
+			default:
+				if len(item.Comment) > 0 {
+					e.eolcommentv([]byte(item.Comment))
+				}
+				e.marshal("", reflect.ValueOf(item.Value))
 			}
 		}
 	})

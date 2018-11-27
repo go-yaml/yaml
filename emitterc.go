@@ -258,10 +258,13 @@ func yaml_emitter_state_machine(emitter *yaml_emitter_t, event *yaml_event_t) bo
 		return yaml_emitter_emit_block_mapping_key(emitter, event, false)
 
 	case yaml_EMIT_BLOCK_MAPPING_SIMPLE_VALUE_STATE:
-		return yaml_emitter_emit_block_mapping_value(emitter, event, true)
+		return yaml_emitter_emit_block_mapping_value(emitter, event, true, true)
 
 	case yaml_EMIT_BLOCK_MAPPING_VALUE_STATE:
-		return yaml_emitter_emit_block_mapping_value(emitter, event, false)
+		return yaml_emitter_emit_block_mapping_value(emitter, event, false, true)
+
+	case yaml_EMIT_BLOCK_MAPPING_VALUE_AFTER_COMMENT_STATE:
+		return yaml_emitter_emit_block_mapping_value(emitter, event, false, false)
 
 	case yaml_EMIT_END_STATE:
 		return yaml_emitter_set_emitter_error(emitter, "expected nothing after STREAM-END")
@@ -645,18 +648,24 @@ func yaml_emitter_emit_block_mapping_key(emitter *yaml_emitter_t, event *yaml_ev
 }
 
 // Expect a block value node.
-func yaml_emitter_emit_block_mapping_value(emitter *yaml_emitter_t, event *yaml_event_t, simple bool) bool {
-	if simple {
-		if !yaml_emitter_write_indicator(emitter, []byte{':'}, false, false, false) {
-			return false
+func yaml_emitter_emit_block_mapping_value(emitter *yaml_emitter_t, event *yaml_event_t, simple bool, indicator bool) bool {
+	if indicator {
+		if simple {
+			if !yaml_emitter_write_indicator(emitter, []byte{':'}, false, false, false) {
+				return false
+			}
+		} else {
+			if !yaml_emitter_write_indent(emitter) {
+				return false
+			}
+			if !yaml_emitter_write_indicator(emitter, []byte{':'}, true, false, true) {
+				return false
+			}
 		}
-	} else {
-		if !yaml_emitter_write_indent(emitter) {
-			return false
-		}
-		if !yaml_emitter_write_indicator(emitter, []byte{':'}, true, false, true) {
-			return false
-		}
+	}
+	if event.typ == yaml_EOL_COMMENT_EVENT {
+		emitter.state = yaml_EMIT_BLOCK_MAPPING_VALUE_AFTER_COMMENT_STATE
+		return yaml_emitter_emit_node(emitter, event, false, false, true, false)
 	}
 	emitter.states = append(emitter.states, yaml_EMIT_BLOCK_MAPPING_KEY_STATE)
 	return yaml_emitter_emit_node(emitter, event, false, false, true, false)

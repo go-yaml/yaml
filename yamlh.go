@@ -642,23 +642,24 @@ const (
 	// Expect STREAM-START.
 	yaml_EMIT_STREAM_START_STATE yaml_emitter_state_t = iota
 
-	yaml_EMIT_FIRST_DOCUMENT_START_STATE       // Expect the first DOCUMENT-START or STREAM-END.
-	yaml_EMIT_DOCUMENT_START_STATE             // Expect DOCUMENT-START or STREAM-END.
-	yaml_EMIT_DOCUMENT_CONTENT_STATE           // Expect the content of a document.
-	yaml_EMIT_DOCUMENT_END_STATE               // Expect DOCUMENT-END.
-	yaml_EMIT_FLOW_SEQUENCE_FIRST_ITEM_STATE   // Expect the first item of a flow sequence.
-	yaml_EMIT_FLOW_SEQUENCE_ITEM_STATE         // Expect an item of a flow sequence.
-	yaml_EMIT_FLOW_MAPPING_FIRST_KEY_STATE     // Expect the first key of a flow mapping.
-	yaml_EMIT_FLOW_MAPPING_KEY_STATE           // Expect a key of a flow mapping.
-	yaml_EMIT_FLOW_MAPPING_SIMPLE_VALUE_STATE  // Expect a value for a simple key of a flow mapping.
-	yaml_EMIT_FLOW_MAPPING_VALUE_STATE         // Expect a value of a flow mapping.
-	yaml_EMIT_BLOCK_SEQUENCE_FIRST_ITEM_STATE  // Expect the first item of a block sequence.
-	yaml_EMIT_BLOCK_SEQUENCE_ITEM_STATE        // Expect an item of a block sequence.
-	yaml_EMIT_BLOCK_MAPPING_FIRST_KEY_STATE    // Expect the first key of a block mapping.
-	yaml_EMIT_BLOCK_MAPPING_KEY_STATE          // Expect the key of a block mapping.
-	yaml_EMIT_BLOCK_MAPPING_SIMPLE_VALUE_STATE // Expect a value for a simple key of a block mapping.
-	yaml_EMIT_BLOCK_MAPPING_VALUE_STATE        // Expect a value of a block mapping.
-	yaml_EMIT_END_STATE                        // Expect nothing.
+	yaml_EMIT_FIRST_DOCUMENT_START_STATE              // Expect the first DOCUMENT-START or STREAM-END.
+	yaml_EMIT_DOCUMENT_START_STATE                    // Expect DOCUMENT-START or STREAM-END.
+	yaml_EMIT_DOCUMENT_CONTENT_STATE                  // Expect the content of a document.
+	yaml_EMIT_DOCUMENT_END_STATE                      // Expect DOCUMENT-END.
+	yaml_EMIT_FLOW_SEQUENCE_FIRST_ITEM_STATE          // Expect the first item of a flow sequence.
+	yaml_EMIT_FLOW_SEQUENCE_ITEM_STATE                // Expect an item of a flow sequence.
+	yaml_EMIT_FLOW_MAPPING_FIRST_KEY_STATE            // Expect the first key of a flow mapping.
+	yaml_EMIT_FLOW_MAPPING_KEY_STATE                  // Expect a key of a flow mapping.
+	yaml_EMIT_FLOW_MAPPING_SIMPLE_VALUE_STATE         // Expect a value for a simple key of a flow mapping.
+	yaml_EMIT_FLOW_MAPPING_VALUE_STATE                // Expect a value of a flow mapping.
+	yaml_EMIT_BLOCK_SEQUENCE_FIRST_ITEM_STATE         // Expect the first item of a block sequence.
+	yaml_EMIT_BLOCK_SEQUENCE_ITEM_STATE               // Expect an item of a block sequence.
+	yaml_EMIT_BLOCK_MAPPING_FIRST_KEY_STATE           // Expect the first key of a block mapping.
+	yaml_EMIT_BLOCK_MAPPING_KEY_STATE                 // Expect the key of a block mapping.
+	yaml_EMIT_BLOCK_MAPPING_SIMPLE_VALUE_STATE        // Expect a value for a simple key of a block mapping.
+	yaml_EMIT_BLOCK_MAPPING_VALUE_STATE               // Expect a value of a block mapping.
+	yaml_EMIT_BLOCK_MAPPING_VALUE_AFTER_COMMENT_STATE // Expect a value following a key with an end-of-line comment
+	yaml_EMIT_END_STATE                               // Expect nothing.
 )
 
 func (state yaml_emitter_state_t) String() string {

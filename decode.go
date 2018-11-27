@@ -179,12 +179,10 @@ func (p *parser) node(kind int) *node {
 func (p *parser) document() *node {
 	n := p.node(documentNode)
 	n.anchors = make(map[string]*node)
-	if p.parser.parse_comments {
-		n.value = p.parser.predoc.String()
+	n.value = p.parser.predoc.String()
+	if p.parser.parse_comments && len(n.value) > 0 && n.value[len(n.value)-1] == '\n' {
 		// Remove extraneous newline
-		if n.value[len(n.value)-1] == '\n' {
-			n.value = n.value[:len(n.value)-1]
-		}
+		n.value = n.value[:len(n.value)-1]
 	}
 	p.doc = n
 	p.expect(yaml_DOCUMENT_START_EVENT)

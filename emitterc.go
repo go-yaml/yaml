@@ -634,7 +634,7 @@ func yaml_emitter_emit_block_mapping_key(emitter *yaml_emitter_t, event *yaml_ev
 		// Switch state from yaml_EMIT_BLOCK_MAPPING_FIRST_KEY_STATE to yaml_EMIT_BLOCK_MAPPING_KEY_STATE
 		// to prevent double indentation
 		emitter.state = yaml_EMIT_BLOCK_MAPPING_KEY_STATE
-		return yaml_emitter_emit_comment(emitter, event)
+		return yaml_emitter_emit_node(emitter, event, false, false, true, false)
 	}
 	if yaml_emitter_check_simple_key(emitter) {
 		emitter.states = append(emitter.states, yaml_EMIT_BLOCK_MAPPING_SIMPLE_VALUE_STATE)

@@ -419,10 +419,6 @@ func (d *decoder) unmarshal(n *node, out reflect.Value) (good bool) {
 	switch n.kind {
 	case scalarNode:
 		good = d.scalar(n, out)
-	//TODO is this necessary?
-	case commentNode:
-		fmt.Println("COMMENT NODE")
-		good = d.comment(n, out)
 	case mappingNode:
 		good = d.mapping(n, out)
 	case sequenceNode:
@@ -475,19 +471,6 @@ type Comment struct {
 }
 
 type PreDoc string
-
-// TODO is this necessary??
-func (d *decoder) comment(n *node, out reflect.Value) (good bool) {
-	fmt.Println("comment()")
-	switch out.Kind() {
-	case reflect.Interface:
-		fmt.Println("reflect.Interface")
-		out.Set(reflect.ValueOf(Comment{
-			Value: n.value,
-		}))
-	}
-	return true
-}
 
 func (d *decoder) scalar(n *node, out reflect.Value) bool {
 	var tag string

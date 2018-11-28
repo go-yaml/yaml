@@ -335,8 +335,89 @@ var marshalTests = []struct {
 
 	// Ordered maps.
 	{
-		&yaml.MapSlice{{"b", 2}, {"a", 1}, {"d", 4}, {"c", 3}, {"sub", yaml.MapSlice{{"e", 5}}}},
+		&yaml.MapSlice{
+			{Key: "b", Value: 2, Comment: ""},
+			{Key: "a", Value: 1, Comment: ""},
+			{Key: "d", Value: 4, Comment: ""},
+			{Key: "c", Value: 3, Comment: ""},
+			{Key: "sub", Value: yaml.MapSlice{{Key: "e", Value: 5, Comment: ""}}, Comment: ""},
+		},
 		"b: 2\na: 1\nd: 4\nc: 3\nsub:\n  e: 5\n",
+	},
+	{
+		&yaml.MapSlice{
+			{Key: "b", Value: []yaml.SequenceItem{
+				yaml.SequenceItem{Value: 2, Comment: ""},
+				yaml.SequenceItem{Value: 5, Comment: ""},
+			}, Comment: ""},
+		},
+		"b:\n- 2\n- 5\n",
+	},
+
+	// Comments
+	{ // PreDoc comment
+		&yaml.MapSlice{
+			{Key: yaml.PreDoc("# comment 1\n\n---\n\n# comment 2"), Value: nil, Comment: ""},
+			{Key: "a", Value: 1, Comment: ""},
+		},
+		"# comment 1\n\n---\n\n# comment 2\na: 1\n",
+	},
+	{ // primitive map value EOL comment
+		&yaml.MapSlice{
+			{Key: "b", Value: 2, Comment: " my comment"},
+		},
+		"b: 2 # my comment\n",
+	},
+	{ // map item comment
+		&yaml.MapSlice{
+			{Key: "a", Value: yaml.MapSlice{
+				{Key: nil, Value: nil, Comment: " my comment"},
+				{Key: "b", Value: 3, Comment: ""},
+				{Key: nil, Value: nil, Comment: " my comment 2"},
+				{Key: "c", Value: 8, Comment: ""},
+			}, Comment: ""},
+		},
+		"a:\n  # my comment\n  b: 3\n  # my comment 2\n  c: 8\n",
+	},
+	{ // primitive sequence item EOL comment
+		&yaml.MapSlice{
+			{Key: "a", Value: yaml.MapSlice{
+				{Key: "b", Value: []yaml.SequenceItem{
+					{Value: 3, Comment: " my comment"},
+				}, Comment: ""},
+			}, Comment: ""},
+		},
+		"a:\n  b:\n  - 3 # my comment\n",
+	},
+	{ // sequence item comment
+		&yaml.MapSlice{
+			{Key: "a", Value: yaml.MapSlice{
+				{Key: "b", Value: []yaml.SequenceItem{
+					{Value: nil, Comment: " my comment"},
+					{Value: 3, Comment: ""},
+					{Value: nil, Comment: " my comment 2"},
+					{Value: 8, Comment: ""},
+				}, Comment: ""},
+			}, Comment: ""},
+		},
+		"a:\n  b:\n  # my comment\n  - 3\n  # my comment 2\n  - 8\n",
+	},
+	{ // key comment (non-primitive value)
+		&yaml.MapSlice{
+			{Key: "a", Value: yaml.MapSlice{
+				{Key: "b", Value: []yaml.SequenceItem{
+					{Value: 3, Comment: ""},
+				}, Comment: " my comment"},
+			}, Comment: ""},
+		},
+		"a:\n  b: # my comment\n  - 3\n",
+	},
+	{ // last line comment
+		&yaml.MapSlice{
+			{Key: "a", Value: 1, Comment: ""},
+			{Key: nil, Value: nil, Comment: " my comment"},
+		},
+		"a: 1\n# my comment\n",
 	},
 
 	// Encode unicode as utf-8 rather than in escaped form.

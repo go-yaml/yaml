@@ -31,6 +31,8 @@ type SequenceItem struct {
 	Comment string
 }
 
+type PreDoc string
+
 // The Unmarshaler interface may be implemented by types to customize their
 // behavior when being unmarshaled from a YAML document. The UnmarshalYAML
 // method receives a function that may be called to unmarshal the original

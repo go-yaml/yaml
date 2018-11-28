@@ -464,12 +464,6 @@ func resetMap(out reflect.Value) {
 	}
 }
 
-type Comment struct {
-	Value string
-}
-
-type PreDoc string
-
 func (d *decoder) scalar(n *node, out reflect.Value) bool {
 	var tag string
 	var resolved interface{}

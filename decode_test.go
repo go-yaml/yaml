@@ -640,10 +640,10 @@ var unmarshalTests = []struct {
 	},
 
 	// Ordered maps.
-	//{
-	//	"{b: 2, a: 1, d: 4, c: 3, sub: {e: 5}}",
-	//	&yaml.MapSlice{{"b", 2}, {"a", 1}, {"d", 4}, {"c", 3}, {"sub", yaml.MapSlice{{"e", 5}}}},
-	//},
+	{
+		"{b: 2, a: 1, d: 4, c: 3, sub: {e: 5}}",
+		&yaml.MapSlice{{"b", 2, ""}, {"a", 1, ""}, {"d", 4, ""}, {"c", 3, ""}, {"sub", yaml.MapSlice{{"e", 5, ""}}, ""}},
+	},
 
 	// Issue #39.
 	{
@@ -1185,6 +1185,231 @@ var unmarshalCommentsTests = []struct {
 		"a: &a [1, 2]\nb: *a",
 		yaml.MapSlice{yaml.MapItem{Key: "a", Value: []yaml.SequenceItem{yaml.SequenceItem{Value: 1, Comment: ""}, yaml.SequenceItem{Value: 2, Comment: ""}}, Comment: ""}, yaml.MapItem{Key: "b", Value: []yaml.SequenceItem{yaml.SequenceItem{Value: 1, Comment: ""}, yaml.SequenceItem{Value: 2, Comment: ""}}, Comment: ""}},
 	},
+
+	// Bug #1133337
+	{
+		"foo: ''",
+		yaml.MapSlice{{Key: "foo", Value: "", Comment: ""}},
+	},
+	// {
+	// 	"foo: null",
+	// 	yaml.MapSlice{{Key: "foo", Value: nil, Comment: ""}},
+	// },
+
+	// TODO: fix this
+	// // Support for ~
+	// {
+	// 	"foo: ~",
+	// 	yaml.MapSlice{{Key: "foo", Value: "~", Comment: ""}},
+	// },
+
+	// TODO: fix this
+	// // Bug #1191981
+	// {
+	// 	"" +
+	// 		"%YAML 1.1\n" +
+	// 		"--- !!str\n" +
+	// 		`"Generic line break (no glyph)\n\` + "\n" +
+	// 		` Generic line break (glyphed)\n\` + "\n" +
+	// 		` Line separator\u2028\` + "\n" +
+	// 		` Paragraph separator\u2029"` + "\n",
+	// 	"" +
+	// 		"Generic line break (no glyph)\n" +
+	// 		"Generic line break (glyphed)\n" +
+	// 		"Line separator\u2028Paragraph separator\u2029",
+	// },
+
+	// bug 1243827
+	{
+		"a: -b_c",
+		yaml.MapSlice{yaml.MapItem{Key: "a", Value: "-b_c", Comment: ""}},
+	},
+
+	// issue #295 (allow scalars with colons in flow mappings and sequences)
+	{
+		"a: {b: https://github.com/go-yaml/yaml}",
+		yaml.MapSlice{{
+			Key:     "a",
+			Value:   yaml.MapSlice{{Key: "b", Value: "https://github.com/go-yaml/yaml", Comment: ""}},
+			Comment: "",
+		}},
+	},
+	{
+		"a: [https://github.com/go-yaml/yaml]",
+		yaml.MapSlice{{
+			Key: "a",
+			Value: []yaml.SequenceItem{yaml.SequenceItem{
+				Value:   "https://github.com/go-yaml/yaml",
+				Comment: ""},
+			},
+			Comment: ""},
+		},
+	},
+
+	// TODO: fix this
+	// // Duration
+	// {
+	// 	"a: 3s",
+	// 	yaml.MapSlice{{Key: "a", Value: 3 * time.Second, Comment: ""}},
+	// },
+
+	// Issue #24.
+	{
+		"a: <foo>",
+		yaml.MapSlice{{Key: "a", Value: "<foo>", Comment: ""}},
+	},
+
+	// Base 60 floats are obsolete and unsupported.
+	{
+		"a: 1:1\n",
+		yaml.MapSlice{{Key: "a", Value: "1:1", Comment: ""}},
+	},
+
+	// Binary data.
+	{
+		"a: !!binary gIGC\n",
+		yaml.MapSlice{{Key: "a", Value: "\x80\x81\x82", Comment: ""}},
+	}, {
+		"a: !!binary |\n  " + strings.Repeat("kJCQ", 17) + "kJ\n  CQ\n",
+		yaml.MapSlice{{Key: "a", Value: strings.Repeat("\x90", 54), Comment: ""}},
+	}, {
+		"a: !!binary |\n  " + strings.Repeat("A", 70) + "\n  ==\n",
+		yaml.MapSlice{{Key: "a", Value: strings.Repeat("\x00", 52), Comment: ""}},
+	},
+
+	// Timestamps
+	{
+		// Date only.
+		"a: 2015-01-01\n",
+		yaml.MapSlice{{Key: "a", Value: "2015-01-01", Comment: ""}},
+	},
+	{
+		// RFC3339
+		"a: 2015-02-24T18:19:39.12Z\n",
+		yaml.MapSlice{{Key: "a", Value: "2015-02-24T18:19:39.12Z", Comment: ""}},
+	},
+	{
+		// RFC3339 with short dates.
+		"a: 2015-2-3T3:4:5Z",
+		yaml.MapSlice{{Key: "a", Value: "2015-2-3T3:4:5Z", Comment: ""}},
+	},
+	{
+		// ISO8601 lower case t
+		"a: 2015-02-24t18:19:39Z\n",
+		yaml.MapSlice{{Key: "a", Value: "2015-02-24t18:19:39Z", Comment: ""}},
+	},
+	{
+		// space separate, no time zone
+		"a: 2015-02-24 18:19:39\n",
+		yaml.MapSlice{{Key: "a", Value: "2015-02-24 18:19:39", Comment: ""}},
+	},
+	// Some cases not currently handled. Uncomment these when
+	// the code is fixed.
+	//	{
+	//		// space separated with time zone
+	//		"a: 2001-12-14 21:59:43.10 -5",
+	//		map[string]interface{}{"a": time.Date(2001, 12, 14, 21, 59, 43, .1e9, time.UTC)},
+	//	},
+	//	{
+	//		// arbitrary whitespace between fields
+	//		"a: 2001-12-14 \t\t \t21:59:43.10 \t Z",
+	//		map[string]interface{}{"a": time.Date(2001, 12, 14, 21, 59, 43, .1e9, time.UTC)},
+	//	},
+	{
+		// explicit string tag
+		"a: !!str 2015-01-01",
+		yaml.MapSlice{{Key: "a", Value: "2015-01-01", Comment: ""}},
+	},
+	// TODO: Fix
+	// {
+	// 	// explicit timestamp tag on quoted string
+	// 	"a: !!timestamp \"2015-01-01\"",
+	// 	// map[string]time.Time{"a": time.Date(2015, 1, 1, 0, 0, 0, 0, time.UTC)},
+	// 	yaml.MapSlice{{Key: "a", Value: time.Date(2015, 1, 1, 0, 0, 0, 0, time.UTC), Comment: ""}},
+	// },
+	// TODO: FIX
+	// {
+	// 	// explicit timestamp tag on unquoted string
+	// 	"a: !!timestamp 2015-01-01",
+	// 	// map[string]time.Time{"a": time.Date(2015, 1, 1, 0, 0, 0, 0, time.UTC)},
+	// 	yaml.MapSlice{{Key: "a", Value: time.Date(2015, 1, 1, 0, 0, 0, 0, time.UTC), Comment: ""}},
+	// },
+	{
+		// quoted string that's a valid timestamp
+		"a: \"2015-01-01\"",
+		yaml.MapSlice{{Key: "a", Value: "2015-01-01", Comment: ""}},
+	},
+	{
+		// explicit timestamp tag into interface.
+		"a: !!timestamp \"2015-01-01\"",
+		yaml.MapSlice{{Key: "a", Value: "2015-01-01", Comment: ""}},
+	},
+	{
+		// implicit timestamp tag into interface.
+		"a: 2015-01-01",
+		yaml.MapSlice{{Key: "a", Value: "2015-01-01", Comment: ""}},
+	},
+
+	// Encode empty lists as zero-length slices.
+	{
+		"a: []",
+		yaml.MapSlice{{Key: "a", Value: []yaml.SequenceItem(nil), Comment: ""}},
+	},
+
+	// UTF-16-LE
+	{
+		"\xff\xfe\xf1\x00o\x00\xf1\x00o\x00:\x00 \x00v\x00e\x00r\x00y\x00 \x00y\x00e\x00s\x00\n\x00",
+		yaml.MapSlice{{Key: "ñoño", Value: "very yes", Comment: ""}},
+	},
+	// UTF-16-LE with surrogate.
+	{
+		"\xff\xfe\xf1\x00o\x00\xf1\x00o\x00:\x00 \x00v\x00e\x00r\x00y\x00 \x00y\x00e\x00s\x00 \x00=\xd8\xd4\xdf\n\x00",
+		yaml.MapSlice{{Key: "ñoño", Value: "very yes 🟔", Comment: ""}},
+	},
+	// UTF-16-BE
+	{
+		"\xfe\xff\x00\xf1\x00o\x00\xf1\x00o\x00:\x00 \x00v\x00e\x00r\x00y\x00 \x00y\x00e\x00s\x00\n",
+		yaml.MapSlice{{Key: "ñoño", Value: "very yes", Comment: ""}},
+	},
+	// UTF-16-BE with surrogate.
+	{
+		"\xfe\xff\x00\xf1\x00o\x00\xf1\x00o\x00:\x00 \x00v\x00e\x00r\x00y\x00 \x00y\x00e\x00s\x00 \xd8=\xdf\xd4\x00\n",
+		yaml.MapSlice{{Key: "ñoño", Value: "very yes 🟔", Comment: ""}},
+	},
+
+	// YAML Float regex shouldn't match this
+	{
+		"a: 123456e1\n",
+		yaml.MapSlice{{Key: "a", Value: "123456e1", Comment: ""}},
+	}, {
+		"a: 123456E1\n",
+		yaml.MapSlice{{Key: "a", Value: "123456E1", Comment: ""}},
+	},
+	// yaml-test-suite 3GZX: Spec Example 7.1. Alias Nodes
+	{
+		"First occurrence: &anchor Foo\nSecond occurrence: *anchor\nOverride anchor: &anchor Bar\nReuse anchor: *anchor\n",
+		yaml.MapSlice{
+			{Key: "First occurrence", Value: "Foo", Comment: ""},
+			{Key: "Second occurrence", Value: "Foo", Comment: ""},
+			{Key: "Override anchor", Value: "Bar", Comment: ""},
+			{Key: "Reuse anchor", Value: "Bar", Comment: ""},
+		},
+	},
+	// TODO: FIX!
+	// Single document with garbage following it.
+	// {
+	// 	"---\nhello\n...\n}not yaml",
+	// 	yaml.MapSlice{{Key: yaml.PreDoc("---\nhello\n...\n}not yaml"), Value: nil, Comment: ""}},
+	// },
+	{
+		"a: 5\n",
+		yaml.MapSlice{{Key: "a", Value: 5, Comment: ""}},
+	}, {
+		"a: 5.5\n",
+		yaml.MapSlice{{Key: "a", Value: 5.5, Comment: ""}},
+	},
+
+	// Comments
 	{
 		"#hello\na: 5",
 		yaml.MapSlice{yaml.MapItem{Key: yaml.PreDoc("#hello"), Value: nil}, yaml.MapItem{Key: "a", Value: 5}},
@@ -1232,35 +1457,35 @@ func (s *S) TestUnmarshal(c *C) {
 }
 
 // TODO(v3): This test should also work when unmarshaling onto an interface{}.
-//func (s *S) TestUnmarshalFullTimestamp(c *C) {
-//	// Full timestamp in same format as encoded. This is confirmed to be
-//	// properly decoded by Python as a timestamp as well.
-//	var str = "2015-02-24T18:19:39.123456789-03:00"
-//	var t time.Time
-//	err := yaml.Unmarshal([]byte(str), &t)
-//	c.Assert(err, IsNil)
-//	c.Assert(t, Equals, time.Date(2015, 2, 24, 18, 19, 39, 123456789, t.Location()))
-//	c.Assert(t.In(time.UTC), Equals, time.Date(2015, 2, 24, 21, 19, 39, 123456789, time.UTC))
-//}
-//
-//func (s *S) TestDecoderSingleDocument(c *C) {
-//	// Test that Decoder.Decode works as expected on
-//	// all the unmarshal tests.
-//	for i, item := range unmarshalTests {
-//		c.Logf("test %d: %q", i, item.data)
-//		if item.data == "" {
-//			// Behaviour differs when there's no YAML.
-//			continue
-//		}
-//		t := reflect.ValueOf(item.value).Type()
-//		value := reflect.New(t)
-//		err := yaml.NewDecoder(strings.NewReader(item.data)).Decode(value.Interface())
-//		if _, ok := err.(*yaml.TypeError); !ok {
-//			c.Assert(err, IsNil)
-//		}
-//		c.Assert(value.Elem().Interface(), DeepEquals, item.value)
-//	}
-//}
+func (s *S) TestUnmarshalFullTimestamp(c *C) {
+	// Full timestamp in same format as encoded. This is confirmed to be
+	// properly decoded by Python as a timestamp as well.
+	var str = "2015-02-24T18:19:39.123456789-03:00"
+	var t time.Time
+	err := yaml.Unmarshal([]byte(str), &t)
+	c.Assert(err, IsNil)
+	c.Assert(t, Equals, time.Date(2015, 2, 24, 18, 19, 39, 123456789, t.Location()))
+	c.Assert(t.In(time.UTC), Equals, time.Date(2015, 2, 24, 21, 19, 39, 123456789, time.UTC))
+}
+
+func (s *S) TestDecoderSingleDocument(c *C) {
+	// Test that Decoder.Decode works as expected on
+	// all the unmarshal tests.
+	for i, item := range unmarshalTests {
+		c.Logf("test %d: %q", i, item.data)
+		if item.data == "" {
+			// Behaviour differs when there's no YAML.
+			continue
+		}
+		t := reflect.ValueOf(item.value).Type()
+		value := reflect.New(t)
+		err := yaml.NewDecoder(strings.NewReader(item.data)).Decode(value.Interface())
+		if _, ok := err.(*yaml.TypeError); !ok {
+			c.Assert(err, IsNil)
+		}
+		c.Assert(value.Elem().Interface(), DeepEquals, item.value)
+	}
+}
 
 var decoderTests = []struct {
 	data   string

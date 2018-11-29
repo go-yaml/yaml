@@ -812,77 +812,77 @@ var unmarshalCommentsTests = []struct {
 	//},
 	{
 		"v: hi",
-		yaml.MapSlice{yaml.MapItem{Key: "v", Value: "hi", Comment: ""}},
+		yaml.MapSlice{{Key: "v", Value: "hi", Comment: ""}},
 	},
 	{
 		"v: true",
-		yaml.MapSlice{yaml.MapItem{Key: "v", Value: true, Comment: ""}},
+		yaml.MapSlice{{Key: "v", Value: true, Comment: ""}},
 	},
 	{
 		"v: 10",
-		yaml.MapSlice{yaml.MapItem{Key: "v", Value: 10, Comment: ""}},
+		yaml.MapSlice{{Key: "v", Value: 10, Comment: ""}},
 	},
 
 	{
 		"v: 0b10",
-		yaml.MapSlice{yaml.MapItem{Key: "v", Value: 2, Comment: ""}},
+		yaml.MapSlice{{Key: "v", Value: 2, Comment: ""}},
 	},
 	{
 		"v: 0xA",
-		yaml.MapSlice{yaml.MapItem{Key: "v", Value: 10, Comment: ""}},
+		yaml.MapSlice{{Key: "v", Value: 10, Comment: ""}},
 	},
 	{
 		"v: 4294967296",
-		yaml.MapSlice{yaml.MapItem{Key: "v", Value: 4294967296, Comment: ""}},
+		yaml.MapSlice{{Key: "v", Value: 4294967296, Comment: ""}},
 	},
 	{
 		"v: 0.1",
-		yaml.MapSlice{yaml.MapItem{Key: "v", Value: 0.1, Comment: ""}},
+		yaml.MapSlice{{Key: "v", Value: 0.1, Comment: ""}},
 	},
 	{
 		"v: .1",
-		yaml.MapSlice{yaml.MapItem{Key: "v", Value: 0.1, Comment: ""}},
+		yaml.MapSlice{{Key: "v", Value: 0.1, Comment: ""}},
 	},
 	{
 		"v: .Inf",
-		yaml.MapSlice{yaml.MapItem{Key: "v", Value: math.Inf(+1), Comment: ""}},
+		yaml.MapSlice{{Key: "v", Value: math.Inf(+1), Comment: ""}},
 	},
 	{
 		"v: -.Inf",
-		yaml.MapSlice{yaml.MapItem{Key: "v", Value: math.Inf(-1), Comment: ""}},
+		yaml.MapSlice{{Key: "v", Value: math.Inf(-1), Comment: ""}},
 	},
 	{
 		"v: -10",
-		yaml.MapSlice{yaml.MapItem{Key: "v", Value: -10, Comment: ""}},
+		yaml.MapSlice{{Key: "v", Value: -10, Comment: ""}},
 	},
 	{
 		"v: -.1",
-		yaml.MapSlice{yaml.MapItem{Key: "v", Value: -0.1, Comment: ""}},
+		yaml.MapSlice{{Key: "v", Value: -0.1, Comment: ""}},
 	},
 
 	// Simple values.
 	// TODO: fix this test
 	//{
 	//	"123",
-	//	yaml.MapSlice{yaml.MapItem{Key: nil, Value: &unmarshalIntTest, Comment: ""}},
+	//	yaml.MapSlice{{Key: nil, Value: &unmarshalIntTest, Comment: ""}},
 	//},
 
 	// Floats from spec
 	{
 		"canonical: 6.8523e+5",
-		yaml.MapSlice{yaml.MapItem{Key: "canonical", Value: 6.8523e+5, Comment: ""}},
+		yaml.MapSlice{{Key: "canonical", Value: 6.8523e+5, Comment: ""}},
 	},
 	{
 		"expo: 685.230_15e+03",
-		yaml.MapSlice{yaml.MapItem{Key: "expo", Value: 685.23015e+03, Comment: ""}},
+		yaml.MapSlice{{Key: "expo", Value: 685.23015e+03, Comment: ""}},
 	},
 	{
 		"fixed: 685_230.15",
-		yaml.MapSlice{yaml.MapItem{Key: "fixed", Value: 685230.15, Comment: ""}},
+		yaml.MapSlice{{Key: "fixed", Value: 685230.15, Comment: ""}},
 	},
 	{
 		"neginf: -.inf",
-		yaml.MapSlice{yaml.MapItem{Key: "neginf", Value: math.Inf(-1), Comment: ""}},
+		yaml.MapSlice{{Key: "neginf", Value: math.Inf(-1), Comment: ""}},
 	},
 	//{"sexa: 190:20:30.15", map[string]interface{}{"sexa": 0}}, // Unsupported
 	//{"notanum: .NaN", map[string]interface{}{"notanum": math.NaN()}}, // Equality of NaN fails.
@@ -890,166 +890,166 @@ var unmarshalCommentsTests = []struct {
 	// Bools from spec
 	{
 		"canonical: y",
-		yaml.MapSlice{yaml.MapItem{Key: "canonical", Value: true, Comment: ""}},
+		yaml.MapSlice{{Key: "canonical", Value: true, Comment: ""}},
 	},
 	{
 		"answer: NO",
-		yaml.MapSlice{yaml.MapItem{Key: "answer", Value: false, Comment: ""}},
+		yaml.MapSlice{{Key: "answer", Value: false, Comment: ""}},
 	},
 	{
 		"logical: True",
-		yaml.MapSlice{yaml.MapItem{Key: "logical", Value: true, Comment: ""}},
+		yaml.MapSlice{{Key: "logical", Value: true, Comment: ""}},
 	},
 	{
 		"option: on",
-		yaml.MapSlice{yaml.MapItem{Key: "option", Value: true, Comment: ""}},
+		yaml.MapSlice{{Key: "option", Value: true, Comment: ""}},
 	},
 	// Ints from spec
 	{
 		"canonical: 685230",
-		yaml.MapSlice{yaml.MapItem{Key: "canonical", Value: 685230, Comment: ""}},
+		yaml.MapSlice{{Key: "canonical", Value: 685230, Comment: ""}},
 	},
 	{
 		"decimal: +685_230",
-		yaml.MapSlice{yaml.MapItem{Key: "decimal", Value: 685230, Comment: ""}},
+		yaml.MapSlice{{Key: "decimal", Value: 685230, Comment: ""}},
 	},
 	{
 		"octal: 02472256",
-		yaml.MapSlice{yaml.MapItem{Key: "octal", Value: 685230, Comment: ""}},
+		yaml.MapSlice{{Key: "octal", Value: 685230, Comment: ""}},
 	},
 	{
 		"hexa: 0x_0A_74_AE",
-		yaml.MapSlice{yaml.MapItem{Key: "hexa", Value: 685230, Comment: ""}},
+		yaml.MapSlice{{Key: "hexa", Value: 685230, Comment: ""}},
 	},
 	{
 		"bin: 0b1010_0111_0100_1010_1110",
-		yaml.MapSlice{yaml.MapItem{Key: "bin", Value: 685230, Comment: ""}},
+		yaml.MapSlice{{Key: "bin", Value: 685230, Comment: ""}},
 	},
 	{
 		"bin: -0b101010",
-		yaml.MapSlice{yaml.MapItem{Key: "bin", Value: -42, Comment: ""}},
+		yaml.MapSlice{{Key: "bin", Value: -42, Comment: ""}},
 	},
 	{
 		"bin: -0b1000000000000000000000000000000000000000000000000000000000000000",
-		yaml.MapSlice{yaml.MapItem{Key: "bin", Value: -9223372036854775808, Comment: ""}},
+		yaml.MapSlice{{Key: "bin", Value: -9223372036854775808, Comment: ""}},
 	},
 	//{"sexa: 190:20:30", map[string]interface{}{"sexa": 0}}, // Unsupported
 
 	// Nulls from spec
 	{
 		"empty:",
-		yaml.MapSlice{yaml.MapItem{Key: "empty", Value: interface{}(nil), Comment: ""}},
+		yaml.MapSlice{{Key: "empty", Value: nil, Comment: ""}},
 	},
 	{
 		"canonical: ~",
-		yaml.MapSlice{yaml.MapItem{Key: "canonical", Value: interface{}(nil), Comment: ""}},
+		yaml.MapSlice{{Key: "canonical", Value: nil, Comment: ""}},
 	},
 	{
 		"english: null",
-		yaml.MapSlice{yaml.MapItem{Key: "english", Value: interface{}(nil), Comment: ""}},
+		yaml.MapSlice{{Key: "english", Value: nil, Comment: ""}},
 	},
 	{
 		"~: null key",
-		yaml.MapSlice{yaml.MapItem{Key: nil, Value: "null key", Comment: ""}},
+		yaml.MapSlice{{Key: nil, Value: "null key", Comment: ""}},
 	},
 
 	// Flow sequence
 	{
 		"seq: [A,B]",
-		yaml.MapSlice{yaml.MapItem{Key: "seq", Value: []yaml.SequenceItem{yaml.SequenceItem{Value: "A", Comment: ""}, yaml.SequenceItem{Value: "B", Comment: ""}}, Comment: ""}},
+		yaml.MapSlice{{Key: "seq", Value: []yaml.SequenceItem{yaml.SequenceItem{Value: "A", Comment: ""}, yaml.SequenceItem{Value: "B", Comment: ""}}, Comment: ""}},
 	},
 	{
 		"seq: [A,B,C,]",
-		yaml.MapSlice{yaml.MapItem{Key: "seq", Value: []yaml.SequenceItem{yaml.SequenceItem{Value: "A", Comment: ""}, yaml.SequenceItem{Value: "B", Comment: ""}, yaml.SequenceItem{Value: "C", Comment: ""}}, Comment: ""}},
+		yaml.MapSlice{{Key: "seq", Value: []yaml.SequenceItem{yaml.SequenceItem{Value: "A", Comment: ""}, yaml.SequenceItem{Value: "B", Comment: ""}, yaml.SequenceItem{Value: "C", Comment: ""}}, Comment: ""}},
 	},
 	{
 		"seq: [A,1,C]",
-		yaml.MapSlice{yaml.MapItem{Key: "seq", Value: []yaml.SequenceItem{yaml.SequenceItem{Value: "A", Comment: ""}, yaml.SequenceItem{Value: 1, Comment: ""}, yaml.SequenceItem{Value: "C", Comment: ""}}, Comment: ""}},
+		yaml.MapSlice{{Key: "seq", Value: []yaml.SequenceItem{yaml.SequenceItem{Value: "A", Comment: ""}, yaml.SequenceItem{Value: 1, Comment: ""}, yaml.SequenceItem{Value: "C", Comment: ""}}, Comment: ""}},
 	},
 
 	// Block sequence
 	{
 		"seq:\n - A\n - B",
-		yaml.MapSlice{yaml.MapItem{Key: "seq", Value: []yaml.SequenceItem{yaml.SequenceItem{Value: "A", Comment: ""}, yaml.SequenceItem{Value: "B", Comment: ""}}, Comment: ""}},
+		yaml.MapSlice{{Key: "seq", Value: []yaml.SequenceItem{yaml.SequenceItem{Value: "A", Comment: ""}, yaml.SequenceItem{Value: "B", Comment: ""}}, Comment: ""}},
 	},
 	{
 		"seq:\n - A\n - B\n - C",
-		yaml.MapSlice{yaml.MapItem{Key: "seq", Value: []yaml.SequenceItem{yaml.SequenceItem{Value: "A", Comment: ""}, yaml.SequenceItem{Value: "B", Comment: ""}, yaml.SequenceItem{Value: "C", Comment: ""}}, Comment: ""}},
+		yaml.MapSlice{{Key: "seq", Value: []yaml.SequenceItem{yaml.SequenceItem{Value: "A", Comment: ""}, yaml.SequenceItem{Value: "B", Comment: ""}, yaml.SequenceItem{Value: "C", Comment: ""}}, Comment: ""}},
 	},
 	{
 		"seq:\n - A\n - 1\n - C",
-		yaml.MapSlice{yaml.MapItem{Key: "seq", Value: []yaml.SequenceItem{yaml.SequenceItem{Value: "A", Comment: ""}, yaml.SequenceItem{Value: 1, Comment: ""}, yaml.SequenceItem{Value: "C", Comment: ""}}, Comment: ""}},
+		yaml.MapSlice{{Key: "seq", Value: []yaml.SequenceItem{yaml.SequenceItem{Value: "A", Comment: ""}, yaml.SequenceItem{Value: 1, Comment: ""}, yaml.SequenceItem{Value: "C", Comment: ""}}, Comment: ""}},
 	},
 
 	// Literal block scalar
 	{
 		"scalar: | # Comment\n\n literal\n\n \ttext\n\n",
-		yaml.MapSlice{yaml.MapItem{Key: "scalar", Value: "\nliteral\n\n\ttext\n", Comment: ""}},
+		yaml.MapSlice{{Key: "scalar", Value: "\nliteral\n\n\ttext\n", Comment: ""}},
 	},
 
 	// Folded block scalar
 	// TODO: why does the comment not show up? is that intended because of the leading >
 	{
 		"scalar: > # Comment\n\n folded\n line\n \n next\n line\n  * one\n  * two\n\n last\n line\n\n",
-		yaml.MapSlice{yaml.MapItem{Key: "scalar", Value: "\nfolded line\nnext line\n * one\n * two\n\nlast line\n", Comment: ""}},
+		yaml.MapSlice{{Key: "scalar", Value: "\nfolded line\nnext line\n * one\n * two\n\nlast line\n", Comment: ""}},
 	},
 
 	// Map inside interface with no type hints.
 	{
 		"a: {b: c}",
-		yaml.MapSlice{yaml.MapItem{Key: "a", Value: yaml.MapSlice{yaml.MapItem{Key: "b", Value: "c", Comment: ""}}, Comment: ""}},
+		yaml.MapSlice{{Key: "a", Value: yaml.MapSlice{yaml.MapItem{Key: "b", Value: "c", Comment: ""}}, Comment: ""}},
 	},
 
 	// Some cross type conversions
 	{
 		"v: 42",
-		yaml.MapSlice{yaml.MapItem{Key: "v", Value: 42, Comment: ""}},
+		yaml.MapSlice{{Key: "v", Value: 42, Comment: ""}},
 	},
 	{
 		"v: -42",
-		yaml.MapSlice{yaml.MapItem{Key: "v", Value: -42, Comment: ""}},
+		yaml.MapSlice{{Key: "v", Value: -42, Comment: ""}},
 	},
 	{
 		"v: 4294967296",
-		yaml.MapSlice{yaml.MapItem{Key: "v", Value: 4294967296, Comment: ""}},
+		yaml.MapSlice{{Key: "v", Value: 4294967296, Comment: ""}},
 	},
 	{
 		"v: -4294967296",
-		yaml.MapSlice{yaml.MapItem{Key: "v", Value: -4294967296, Comment: ""}},
+		yaml.MapSlice{{Key: "v", Value: -4294967296, Comment: ""}},
 	},
 
 	// int
 	{
 		"int_max: 2147483647",
-		yaml.MapSlice{yaml.MapItem{Key: "int_max", Value: math.MaxInt32, Comment: ""}},
+		yaml.MapSlice{{Key: "int_max", Value: math.MaxInt32, Comment: ""}},
 	},
 	{
 		"int_min: -2147483648",
-		yaml.MapSlice{yaml.MapItem{Key: "int_min", Value: math.MinInt32, Comment: ""}},
+		yaml.MapSlice{{Key: "int_min", Value: math.MinInt32, Comment: ""}},
 	},
 	// TODO: does this test make sense like this?
 	{
 		"int_overflow: 9223372036854775808", // math.MaxInt64 + 1
-		yaml.MapSlice{yaml.MapItem{Key: "int_overflow", Value: uint64(0x8000000000000000), Comment: ""}},
+		yaml.MapSlice{{Key: "int_overflow", Value: uint64(0x8000000000000000), Comment: ""}},
 		//map[string]int{},
 	},
 
 	// int64
 	{
 		"int64_max: 9223372036854775807",
-		yaml.MapSlice{yaml.MapItem{Key: "int64_max", Value: math.MaxInt64, Comment: ""}},
+		yaml.MapSlice{{Key: "int64_max", Value: math.MaxInt64, Comment: ""}},
 	},
 	{
 		"int64_max_base2: 0b111111111111111111111111111111111111111111111111111111111111111",
-		yaml.MapSlice{yaml.MapItem{Key: "int64_max_base2", Value: math.MaxInt64, Comment: ""}},
+		yaml.MapSlice{{Key: "int64_max_base2", Value: math.MaxInt64, Comment: ""}},
 	},
 	{
 		"int64_min: -9223372036854775808",
-		yaml.MapSlice{yaml.MapItem{Key: "int64_min", Value: math.MinInt64, Comment: ""}},
+		yaml.MapSlice{{Key: "int64_min", Value: math.MinInt64, Comment: ""}},
 	},
 	{
 		"int64_neg_base2: -0b111111111111111111111111111111111111111111111111111111111111111",
-		yaml.MapSlice{yaml.MapItem{Key: "int64_neg_base2", Value: -math.MaxInt64, Comment: ""}},
+		yaml.MapSlice{{Key: "int64_neg_base2", Value: -math.MaxInt64, Comment: ""}},
 	},
 	// TODO I expect this will have the same problem as before...
 	//	{
@@ -1060,104 +1060,104 @@ var unmarshalCommentsTests = []struct {
 	// uint
 	{
 		"uint_min: 0",
-		yaml.MapSlice{yaml.MapItem{Key: "uint_min", Value: 0, Comment: ""}},
+		yaml.MapSlice{{Key: "uint_min", Value: 0, Comment: ""}},
 	},
 	{
 		"uint_max: 4294967295",
-		yaml.MapSlice{yaml.MapItem{Key: "uint_max", Value: math.MaxUint32, Comment: ""}},
+		yaml.MapSlice{{Key: "uint_max", Value: math.MaxUint32, Comment: ""}},
 	},
 	// TODO this obviously works fine here...
 	{
 		"uint_underflow: -1",
-		yaml.MapSlice{yaml.MapItem{Key: "uint_underflow", Value: -1, Comment: ""}},
+		yaml.MapSlice{{Key: "uint_underflow", Value: -1, Comment: ""}},
 	},
 
 	// uint64
 	{
 		"uint64_min: 0",
-		yaml.MapSlice{yaml.MapItem{Key: "uint64_min", Value: 0, Comment: ""}},
+		yaml.MapSlice{{Key: "uint64_min", Value: 0, Comment: ""}},
 	},
 	{
 		"uint64_max: 18446744073709551615",
-		yaml.MapSlice{yaml.MapItem{Key: "uint64_max", Value: uint64(math.MaxUint64), Comment: ""}},
+		yaml.MapSlice{{Key: "uint64_max", Value: uint64(math.MaxUint64), Comment: ""}},
 	},
 	{
 		"uint64_max_base2: 0b1111111111111111111111111111111111111111111111111111111111111111",
-		yaml.MapSlice{yaml.MapItem{Key: "uint64_max_base2", Value: uint64(math.MaxUint64), Comment: ""}},
+		yaml.MapSlice{{Key: "uint64_max_base2", Value: uint64(math.MaxUint64), Comment: ""}},
 	},
 	{
 		"uint64_maxint64: 9223372036854775807",
-		yaml.MapSlice{yaml.MapItem{Key: "uint64_maxint64", Value: math.MaxInt64, Comment: ""}},
+		yaml.MapSlice{{Key: "uint64_maxint64", Value: math.MaxInt64, Comment: ""}},
 	},
 	// TODO this obviously works fine here...
 	{
 		"uint64_underflow: -1",
-		yaml.MapSlice{yaml.MapItem{Key: "uint64_underflow", Value: -1, Comment: ""}},
+		yaml.MapSlice{{Key: "uint64_underflow", Value: -1, Comment: ""}},
 	},
 
 	// float32
 	{
 		"float32_max: 3.40282346638528859811704183484516925440e+38",
-		yaml.MapSlice{yaml.MapItem{Key: "float32_max", Value: math.MaxFloat32, Comment: ""}},
+		yaml.MapSlice{{Key: "float32_max", Value: math.MaxFloat32, Comment: ""}},
 	},
 	{
 		"float32_nonzero: 1.401298464324817070923729583289916131280e-45",
-		yaml.MapSlice{yaml.MapItem{Key: "float32_nonzero", Value: math.SmallestNonzeroFloat32, Comment: ""}},
+		yaml.MapSlice{{Key: "float32_nonzero", Value: math.SmallestNonzeroFloat32, Comment: ""}},
 	},
 	// TODO delete?
 	{
 		"float32_maxuint64: 18446744073709551615",
-		yaml.MapSlice{yaml.MapItem{Key: "float32_maxuint64", Value: uint64(math.MaxUint64), Comment: ""}},
+		yaml.MapSlice{{Key: "float32_maxuint64", Value: uint64(math.MaxUint64), Comment: ""}},
 	},
 	// TODO delete?
 	{
 		"float32_maxuint64+1: 18446744073709551616",
-		yaml.MapSlice{yaml.MapItem{Key: "float32_maxuint64+1", Value: 1.8446744073709552e+19, Comment: ""}},
+		yaml.MapSlice{{Key: "float32_maxuint64+1", Value: 1.8446744073709552e+19, Comment: ""}},
 	},
 
 	// float64
 	{
 		"float64_max: 1.797693134862315708145274237317043567981e+308",
-		yaml.MapSlice{yaml.MapItem{Key: "float64_max", Value: math.MaxFloat64, Comment: ""}},
+		yaml.MapSlice{{Key: "float64_max", Value: math.MaxFloat64, Comment: ""}},
 	},
 	{
 		"float64_nonzero: 4.940656458412465441765687928682213723651e-324",
-		yaml.MapSlice{yaml.MapItem{Key: "float64_nonzero", Value: math.SmallestNonzeroFloat64, Comment: ""}},
+		yaml.MapSlice{{Key: "float64_nonzero", Value: math.SmallestNonzeroFloat64, Comment: ""}},
 	},
 	{
 		"float64_maxuint64: 18446744073709551615.0",
-		yaml.MapSlice{yaml.MapItem{Key: "float64_maxuint64", Value: float64(math.MaxUint64), Comment: ""}},
+		yaml.MapSlice{{Key: "float64_maxuint64", Value: float64(math.MaxUint64), Comment: ""}},
 	},
 	{
 		"float64_maxuint64+1: 18446744073709551616",
-		yaml.MapSlice{yaml.MapItem{Key: "float64_maxuint64+1", Value: float64(math.MaxUint64 + 1), Comment: ""}},
+		yaml.MapSlice{{Key: "float64_maxuint64+1", Value: float64(math.MaxUint64 + 1), Comment: ""}},
 	},
 	// Quoted values.
 	{
 		"'1': '\"2\"'",
-		yaml.MapSlice{yaml.MapItem{Key: "1", Value: "\"2\"", Comment: ""}},
+		yaml.MapSlice{{Key: "1", Value: "\"2\"", Comment: ""}},
 	},
 	{
 		"v:\n- A\n- 'B\n\n  C'\n",
-		yaml.MapSlice{yaml.MapItem{Key: "v", Value: []yaml.SequenceItem{yaml.SequenceItem{Value: "A", Comment: ""}, yaml.SequenceItem{Value: "B\nC", Comment: ""}}, Comment: ""}},
+		yaml.MapSlice{{Key: "v", Value: []yaml.SequenceItem{yaml.SequenceItem{Value: "A", Comment: ""}, yaml.SequenceItem{Value: "B\nC", Comment: ""}}, Comment: ""}},
 	},
 
 	// Explicit tags.
 	{
 		"v: !!float '1.1'",
-		yaml.MapSlice{yaml.MapItem{Key: "v", Value: 1.1, Comment: ""}},
+		yaml.MapSlice{{Key: "v", Value: 1.1, Comment: ""}},
 	},
 	{
 		"v: !!float 0",
-		yaml.MapSlice{yaml.MapItem{Key: "v", Value: float64(0), Comment: ""}},
+		yaml.MapSlice{{Key: "v", Value: float64(0), Comment: ""}},
 	},
 	{
 		"v: !!float -1",
-		yaml.MapSlice{yaml.MapItem{Key: "v", Value: float64(-1), Comment: ""}},
+		yaml.MapSlice{{Key: "v", Value: float64(-1), Comment: ""}},
 	},
 	{
 		"v: !!null ''",
-		yaml.MapSlice{yaml.MapItem{Key: "v", Value: nil, Comment: ""}},
+		yaml.MapSlice{{Key: "v", Value: nil, Comment: ""}},
 	},
 
 	// TODO the old lib drops all predoc stuff
@@ -1169,21 +1169,21 @@ var unmarshalCommentsTests = []struct {
 	// Non-specific tag (Issue #75)
 	{
 		"v: ! test",
-		yaml.MapSlice{yaml.MapItem{Key: "v", Value: "test", Comment: ""}},
+		yaml.MapSlice{{Key: "v", Value: "test", Comment: ""}},
 	},
 
 	// Anchors and aliases.
 	{
 		"a: &x 1\nb: &y 2\nc: *x\nd: *y\n",
-		yaml.MapSlice{yaml.MapItem{Key: "a", Value: 1, Comment: ""}, yaml.MapItem{Key: "b", Value: 2, Comment: ""}, yaml.MapItem{Key: "c", Value: 1, Comment: ""}, yaml.MapItem{Key: "d", Value: 2, Comment: ""}},
+		yaml.MapSlice{{Key: "a", Value: 1, Comment: ""}, yaml.MapItem{Key: "b", Value: 2, Comment: ""}, yaml.MapItem{Key: "c", Value: 1, Comment: ""}, yaml.MapItem{Key: "d", Value: 2, Comment: ""}},
 	},
 	{
 		"a: &a {c: 1}\nb: *a",
-		yaml.MapSlice{yaml.MapItem{Key: "a", Value: yaml.MapSlice{yaml.MapItem{Key: "c", Value: 1, Comment: ""}}, Comment: ""}, yaml.MapItem{Key: "b", Value: yaml.MapSlice{yaml.MapItem{Key: "c", Value: 1, Comment: ""}}, Comment: ""}},
+		yaml.MapSlice{{Key: "a", Value: yaml.MapSlice{yaml.MapItem{Key: "c", Value: 1, Comment: ""}}, Comment: ""}, yaml.MapItem{Key: "b", Value: yaml.MapSlice{yaml.MapItem{Key: "c", Value: 1, Comment: ""}}, Comment: ""}},
 	},
 	{
 		"a: &a [1, 2]\nb: *a",
-		yaml.MapSlice{yaml.MapItem{Key: "a", Value: []yaml.SequenceItem{yaml.SequenceItem{Value: 1, Comment: ""}, yaml.SequenceItem{Value: 2, Comment: ""}}, Comment: ""}, yaml.MapItem{Key: "b", Value: []yaml.SequenceItem{yaml.SequenceItem{Value: 1, Comment: ""}, yaml.SequenceItem{Value: 2, Comment: ""}}, Comment: ""}},
+		yaml.MapSlice{{Key: "a", Value: []yaml.SequenceItem{yaml.SequenceItem{Value: 1, Comment: ""}, yaml.SequenceItem{Value: 2, Comment: ""}}, Comment: ""}, yaml.MapItem{Key: "b", Value: []yaml.SequenceItem{yaml.SequenceItem{Value: 1, Comment: ""}, yaml.SequenceItem{Value: 2, Comment: ""}}, Comment: ""}},
 	},
 
 	// Bug #1133337
@@ -1222,7 +1222,7 @@ var unmarshalCommentsTests = []struct {
 	// bug 1243827
 	{
 		"a: -b_c",
-		yaml.MapSlice{yaml.MapItem{Key: "a", Value: "-b_c", Comment: ""}},
+		yaml.MapSlice{{Key: "a", Value: "-b_c", Comment: ""}},
 	},
 
 	// issue #295 (allow scalars with colons in flow mappings and sequences)
@@ -1409,14 +1409,146 @@ var unmarshalCommentsTests = []struct {
 		yaml.MapSlice{{Key: "a", Value: 5.5, Comment: ""}},
 	},
 
-	// Comments
-	{
-		"#hello\na: 5",
-		yaml.MapSlice{yaml.MapItem{Key: yaml.PreDoc("#hello"), Value: nil}, yaml.MapItem{Key: "a", Value: 5}},
+	{ // Not comments!
+		"a: 'Hello #comment'\n",
+		yaml.MapSlice{{Key: "a", Value: "Hello #comment", Comment: ""}},
 	},
 	{
+		"a: '你好 #comment'\n",
+		yaml.MapSlice{{Key: "a", Value: "你好 #comment", Comment: ""}},
+	},
+	{ // the must be seperated by other tokens by a whitespace char
+		"a: 5#hello",
+		yaml.MapSlice{{Key: "a", Value: "5#hello", Comment: ""}},
+	},
+
+	// Comments
+	// Examples from the yaml spec:
+	// TODO broken
+	// { // 5.1. Byte Order Mark or 5.5. Comment Indicator
+	// 	"#hello\n",
+	// 	yaml.MapSlice{{Key: yaml.PreDoc("#hello"), Value: nil}},
+	// },
+	// TODO broken
+	// { // 6.1. Indentation Spaces
+	// 	"    #hello\n",
+	// 	yaml.MapSlice{{Key: yaml.PreDoc("#hello"), Value: nil}},
+	// },
+	{ // 6.9. Separated Comment
+		"a: #comment\n 1",
+		yaml.MapSlice{
+			{Key: "a", Value: 1, Comment: "comment"},
+		},
+	},
+	// TODO broken
+	// { // 6.11 Multi-Line Comments
+	// 	"a: #hello\n#bye\n 5",
+	// 	yaml.MapSlice{{Key: "a", Value: 5, Comment: "hello\nbye"}},
+	// },
+	// TODO is that how we want this to be parsed?
+	{ // 6.12. Separation Spaces
+		"{ first: Sammy, last: Sosa }:\n # Statistics:\n   hr:  # Home runs\n      65\n   avg: # Average\n    0.278",
+		yaml.MapSlice{{Key: yaml.MapSlice{{Key: "first", Value: "Sammy", Comment: ""}, {Key: "last", Value: "Sosa", Comment: ""}}, Value: yaml.MapSlice{{Key: nil, Value: nil, Comment: " Statistics:"}, {Key: "hr", Value: 65, Comment: " Home runs"}, {Key: "avg", Value: 0.278, Comment: " Average"}}, Comment: ""}},
+	},
+	// TODO broken?
+	// {
+	// 	"# Strip\n  # Comments:\nstrip: |-\n  # text\n\n  \n\n # Clip\n  # comments:\n\n\nclip: |\n  # text\n\n \n\n # Keep\n  # comments:\n\n\nkeep: |+\n  # text\n\n\n\n # Trail\n  # comments.\n",
+	// 	yaml.MapSlice{{Key: yaml.PreDoc("# Strip\n  # Comments:"), Value: nil, Comment: ""}, {Key: "strip", Value: "# text", Comment: " Clip"}, {Key: nil, Value: nil, Comment: " comments:"}, {Key: "clip", Value: "# text\n", Comment: " Keep"}, {Key: nil, Value: nil, Comment: " comments:"}, {Key: "keep", Value: "# text\n\n\n\n", Comment: " Trail"}, {Key: nil, Value: nil, Comment: " comments."}},
+	// },
+	// More comment tests
+	{ // easy Predoc
+		"#hello\na: 5",
+		yaml.MapSlice{{Key: yaml.PreDoc("#hello"), Value: nil}, {Key: "a", Value: 5}},
+	},
+	{ // more elaborate PreDoc comment
+		"# comment 1\n\n---\n\n# comment 2\na: 1\n",
+		yaml.MapSlice{
+			{Key: yaml.PreDoc("# comment 1\n\n---\n\n# comment 2"), Value: nil, Comment: ""},
+			{Key: "a", Value: 1, Comment: ""},
+		},
+	},
+	{ // PreDoc comment with %
+		"# pre doc comment 1\n\n%YAML   1.1\n---\n# pre doc comment 2\na: 1",
+		yaml.MapSlice{
+			{Key: yaml.PreDoc("# pre doc comment 1\n\n%YAML   1.1\n---\n# pre doc comment 2"), Value: nil, Comment: ""},
+			{Key: "a", Value: 1, Comment: ""},
+		},
+	},
+	{ // primitive map value EOL comment
+		"b: 2 # my comment\n",
+		yaml.MapSlice{
+			{Key: "b", Value: 2, Comment: " my comment"},
+		},
+	},
+	{ // no space EOL before comment
 		"a: 5 #hello",
-		yaml.MapSlice{yaml.MapItem{Key: "a", Value: 5, Comment: "hello"}},
+		yaml.MapSlice{{Key: "a", Value: 5, Comment: "hello"}},
+	},
+	{ // EOL + trailing comment
+		"a: 5 #hello\n #bye",
+		yaml.MapSlice{
+			{Key: "a", Value: 5, Comment: "hello"},
+			{Key: nil, Value: nil, Comment: "bye"},
+		},
+	},
+	{ // 2 trailing comments
+		"a: 5\n # comment1\n # comment2",
+		yaml.MapSlice{
+			{Key: "a", Value: 5, Comment: ""},
+			{Key: nil, Value: nil, Comment: " comment1"},
+			{Key: nil, Value: nil, Comment: " comment2"},
+		},
+	},
+	{ // map item comment
+		"a:\n  # my comment\n  b: 3\n  # my comment 2\n  c: 8\n",
+		yaml.MapSlice{
+			{Key: "a", Value: yaml.MapSlice{
+				{Key: nil, Value: nil, Comment: " my comment"},
+				{Key: "b", Value: 3, Comment: ""},
+				{Key: nil, Value: nil, Comment: " my comment 2"},
+				{Key: "c", Value: 8, Comment: ""},
+			}, Comment: ""},
+		},
+	},
+	{ // primitive sequence item EOL comment
+		"a:\n  b:\n  - 3 # my comment\n",
+		yaml.MapSlice{
+			{Key: "a", Value: yaml.MapSlice{
+				{Key: "b", Value: []yaml.SequenceItem{
+					{Value: 3, Comment: " my comment"},
+				}, Comment: ""},
+			}, Comment: ""},
+		},
+	},
+	{ // sequence item comment
+		"a:\n  b:\n  # my comment\n  - 3\n  # my comment 2\n  - 8\n",
+		yaml.MapSlice{
+			{Key: "a", Value: yaml.MapSlice{
+				{Key: "b", Value: []yaml.SequenceItem{
+					{Value: nil, Comment: " my comment"},
+					{Value: 3, Comment: ""},
+					{Value: nil, Comment: " my comment 2"},
+					{Value: 8, Comment: ""},
+				}, Comment: ""},
+			}, Comment: ""},
+		},
+	},
+	{ // key comment (non-primitive value)
+		"a:\n  b: # my comment\n  - 3\n",
+		yaml.MapSlice{
+			{Key: "a", Value: yaml.MapSlice{
+				{Key: "b", Value: []yaml.SequenceItem{
+					{Value: 3, Comment: ""},
+				}, Comment: " my comment"},
+			}, Comment: ""},
+		},
+	},
+	{ // last line comment
+		"a: 1\n# my comment\n",
+		yaml.MapSlice{
+			{Key: "a", Value: 1, Comment: ""},
+			{Key: nil, Value: nil, Comment: " my comment"},
+		},
 	},
 }
 

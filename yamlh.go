@@ -698,6 +698,8 @@ func (state yaml_emitter_state_t) String() string {
 		return "yaml_EMIT_BLOCK_MAPPING_SIMPLE_VALUE_STATE"
 	case yaml_EMIT_BLOCK_MAPPING_VALUE_STATE:
 		return "yaml_EMIT_BLOCK_MAPPING_VALUE_STATE"
+	case yaml_EMIT_BLOCK_MAPPING_VALUE_AFTER_COMMENT_STATE:
+		return "yaml_EMIT_BLOCK_MAPPING_VALUE_AFTER_COMMENT_STATE"
 	case yaml_EMIT_END_STATE:
 		return "yaml_EMIT_END_STATE"
 	default:

@@ -3,6 +3,7 @@ package yaml_test
 import (
 	"math"
 	"strings"
+	"time"
 
 	"github.com/go-yaml/yaml"
 	. "gopkg.in/check.v1"
@@ -491,73 +492,64 @@ var unmarshalCommentsTests = []struct {
 	{
 		// Date only.
 		"a: 2015-01-01\n",
-		yaml.MapSlice{{Key: "a", Value: "2015-01-01", Comment: ""}},
+		yaml.MapSlice{{Key: "a", Value: time.Date(2015, 1, 1, 0, 0, 0, 0, time.UTC), Comment: ""}},
 	},
 	{
 		// RFC3339
 		"a: 2015-02-24T18:19:39.12Z\n",
-		yaml.MapSlice{{Key: "a", Value: "2015-02-24T18:19:39.12Z", Comment: ""}},
+		yaml.MapSlice{{Key: "a", Value: time.Date(2015, 2, 24, 18, 19, 39, .12e9, time.UTC), Comment: ""}},
 	},
 	{
 		// RFC3339 with short dates.
 		"a: 2015-2-3T3:4:5Z",
-		yaml.MapSlice{{Key: "a", Value: "2015-2-3T3:4:5Z", Comment: ""}},
+		yaml.MapSlice{{Key: "a", Value: time.Date(2015, 2, 3, 3, 4, 5, 0, time.UTC), Comment: ""}},
 	},
 	{
 		// ISO8601 lower case t
 		"a: 2015-02-24t18:19:39Z\n",
-		yaml.MapSlice{{Key: "a", Value: "2015-02-24t18:19:39Z", Comment: ""}},
+		yaml.MapSlice{{Key: "a", Value: time.Date(2015, 2, 24, 18, 19, 39, 0, time.UTC), Comment: ""}},
 	},
 	{
 		// space separate, no time zone
 		"a: 2015-02-24 18:19:39\n",
-		yaml.MapSlice{{Key: "a", Value: "2015-02-24 18:19:39", Comment: ""}},
+		yaml.MapSlice{{Key: "a", Value: time.Date(2015, 2, 24, 18, 19, 39, 0, time.UTC), Comment: ""}},
 	},
 	// Some cases not currently handled. Uncomment these when
 	// the code is fixed.
-	//	{
-	//		// space separated with time zone
-	//		"a: 2001-12-14 21:59:43.10 -5",
-	//		map[string]interface{}{"a": time.Date(2001, 12, 14, 21, 59, 43, .1e9, time.UTC)},
-	//	},
-	//	{
-	//		// arbitrary whitespace between fields
-	//		"a: 2001-12-14 \t\t \t21:59:43.10 \t Z",
-	//		map[string]interface{}{"a": time.Date(2001, 12, 14, 21, 59, 43, .1e9, time.UTC)},
-	//	},
+	// {
+	// 	// space separated with time zone
+	// 	"a: 2001-12-14 21:59:43.10 -5",
+	// 	yaml.MapSlice{{Key: "a", Value: time.Date(2001, 12, 14, 21, 59, 43, .1e9, time.UTC), Comment: ""}},
+	// },
+	// {
+	// 	// arbitrary whitespace between fields
+	// 	"a: 2001-12-14 \t\t \t21:59:43.10 \t Z",
+	// 	yaml.MapSlice{{Key: "a", Value: time.Date(2001, 12, 14, 21, 59, 43, .1e9, time.UTC), Comment: ""}},
+	// },
 	{
 		// explicit string tag
 		"a: !!str 2015-01-01",
 		yaml.MapSlice{{Key: "a", Value: "2015-01-01", Comment: ""}},
 	},
-	// TODO: Fix
-	// {
-	// 	// explicit timestamp tag on quoted string
-	// 	"a: !!timestamp \"2015-01-01\"",
-	// 	// map[string]time.Time{"a": time.Date(2015, 1, 1, 0, 0, 0, 0, time.UTC)},
-	// 	yaml.MapSlice{{Key: "a", Value: time.Date(2015, 1, 1, 0, 0, 0, 0, time.UTC), Comment: ""}},
-	// },
-	// TODO: FIX
-	// {
-	// 	// explicit timestamp tag on unquoted string
-	// 	"a: !!timestamp 2015-01-01",
-	// 	// map[string]time.Time{"a": time.Date(2015, 1, 1, 0, 0, 0, 0, time.UTC)},
-	// 	yaml.MapSlice{{Key: "a", Value: time.Date(2015, 1, 1, 0, 0, 0, 0, time.UTC), Comment: ""}},
-	// },
+	{
+		// explicit timestamp tag on quoted string
+		"a: !!timestamp \"2015-01-01\"",
+		yaml.MapSlice{{Key: "a", Value: time.Date(2015, 1, 1, 0, 0, 0, 0, time.UTC), Comment: ""}},
+	},
+	{
+		// explicit timestamp tag on unquoted string
+		"a: !!timestamp 2015-01-01",
+		yaml.MapSlice{{Key: "a", Value: time.Date(2015, 1, 1, 0, 0, 0, 0, time.UTC), Comment: ""}},
+	},
 	{
 		// quoted string that's a valid timestamp
 		"a: \"2015-01-01\"",
 		yaml.MapSlice{{Key: "a", Value: "2015-01-01", Comment: ""}},
 	},
 	{
-		// explicit timestamp tag into interface.
-		"a: !!timestamp \"2015-01-01\"",
-		yaml.MapSlice{{Key: "a", Value: "2015-01-01", Comment: ""}},
-	},
-	{
-		// implicit timestamp tag into interface.
+		// implicit timestamp tag.
 		"a: 2015-01-01",
-		yaml.MapSlice{{Key: "a", Value: "2015-01-01", Comment: ""}},
+		yaml.MapSlice{{Key: "a", Value: time.Date(2015, 1, 1, 0, 0, 0, 0, time.UTC), Comment: ""}},
 	},
 
 	// Encode empty lists as zero-length slices.
@@ -619,7 +611,8 @@ var unmarshalCommentsTests = []struct {
 		yaml.MapSlice{{Key: "a", Value: 5.5, Comment: ""}},
 	},
 
-	{ // Not comments!
+	// Not comments!
+	{
 		"a: 'Hello #comment'\n",
 		yaml.MapSlice{{Key: "a", Value: "Hello #comment", Comment: ""}},
 	},
@@ -627,7 +620,8 @@ var unmarshalCommentsTests = []struct {
 		"a: '你好 #comment'\n",
 		yaml.MapSlice{{Key: "a", Value: "你好 #comment", Comment: ""}},
 	},
-	{ // the must be seperated by other tokens by a whitespace char
+	// the commnt must be seperated from other tokens by a whitespace char
+	{
 		"a: 5#hello",
 		yaml.MapSlice{{Key: "a", Value: "5#hello", Comment: ""}},
 	},
@@ -635,7 +629,8 @@ var unmarshalCommentsTests = []struct {
 	// Comments
 	// Examples from the yaml spec:
 	// TODO broken
-	// { // 5.1. Byte Order Mark or 5.5. Comment Indicator
+	// 5.1. Byte Order Mark or 5.5. Comment Indicator
+	// {
 	// 	"#hello\n",
 	// 	yaml.MapSlice{{Key: yaml.PreDoc("#hello"), Value: nil}},
 	// },
@@ -644,7 +639,8 @@ var unmarshalCommentsTests = []struct {
 	// 	"    #hello\n",
 	// 	yaml.MapSlice{{Key: yaml.PreDoc("#hello"), Value: nil}},
 	// },
-	{ // 6.9. Separated Comment
+	// 6.9. Separated Comment
+	{
 		"a: #comment\n 1",
 		yaml.MapSlice{
 			{Key: "a", Value: 1, Comment: "comment"},
@@ -656,7 +652,8 @@ var unmarshalCommentsTests = []struct {
 	// 	yaml.MapSlice{{Key: "a", Value: 5, Comment: "hello\nbye"}},
 	// },
 	// TODO is that how we want this to be parsed?
-	{ // 6.12. Separation Spaces
+	// 6.12. Separation Spaces
+	{
 		"{ first: Sammy, last: Sosa }:\n # Statistics:\n   hr:  # Home runs\n      65\n   avg: # Average\n    0.278",
 		yaml.MapSlice{{Key: yaml.MapSlice{{Key: "first", Value: "Sammy", Comment: ""}, {Key: "last", Value: "Sosa", Comment: ""}}, Value: yaml.MapSlice{{Key: nil, Value: nil, Comment: " Statistics:"}, {Key: "hr", Value: 65, Comment: " Home runs"}, {Key: "avg", Value: 0.278, Comment: " Average"}}, Comment: ""}},
 	},
@@ -666,42 +663,49 @@ var unmarshalCommentsTests = []struct {
 	// 	yaml.MapSlice{{Key: yaml.PreDoc("# Strip\n  # Comments:"), Value: nil, Comment: ""}, {Key: "strip", Value: "# text", Comment: " Clip"}, {Key: nil, Value: nil, Comment: " comments:"}, {Key: "clip", Value: "# text\n", Comment: " Keep"}, {Key: nil, Value: nil, Comment: " comments:"}, {Key: "keep", Value: "# text\n\n\n\n", Comment: " Trail"}, {Key: nil, Value: nil, Comment: " comments."}},
 	// },
 	// More comment tests
-	{ // easy Predoc
+	// easy Predoc
+	{
 		"#hello\na: 5",
 		yaml.MapSlice{{Key: yaml.PreDoc("#hello"), Value: nil}, {Key: "a", Value: 5}},
 	},
-	{ // more elaborate PreDoc comment
+	// more elaborate PreDoc comment
+	{
 		"# comment 1\n\n---\n\n# comment 2\na: 1\n",
 		yaml.MapSlice{
 			{Key: yaml.PreDoc("# comment 1\n\n---\n\n# comment 2"), Value: nil, Comment: ""},
 			{Key: "a", Value: 1, Comment: ""},
 		},
 	},
-	{ // PreDoc comment with %
+	// PreDoc comment with %
+	{
 		"# pre doc comment 1\n\n%YAML   1.1\n---\n# pre doc comment 2\na: 1",
 		yaml.MapSlice{
 			{Key: yaml.PreDoc("# pre doc comment 1\n\n%YAML   1.1\n---\n# pre doc comment 2"), Value: nil, Comment: ""},
 			{Key: "a", Value: 1, Comment: ""},
 		},
 	},
-	{ // primitive map value EOL comment
+	// primitive map value EOL comment
+	{
 		"b: 2 # my comment\n",
 		yaml.MapSlice{
 			{Key: "b", Value: 2, Comment: " my comment"},
 		},
 	},
-	{ // no space EOL before comment
+	// no space EOL before comment
+	{
 		"a: 5 #hello",
 		yaml.MapSlice{{Key: "a", Value: 5, Comment: "hello"}},
 	},
-	{ // EOL + trailing comment
+	// EOL + trailing comment
+	{
 		"a: 5 #hello\n #bye",
 		yaml.MapSlice{
 			{Key: "a", Value: 5, Comment: "hello"},
 			{Key: nil, Value: nil, Comment: "bye"},
 		},
 	},
-	{ // 2 trailing comments
+	// 2 trailing comments
+	{
 		"a: 5\n # comment1\n # comment2",
 		yaml.MapSlice{
 			{Key: "a", Value: 5, Comment: ""},
@@ -709,7 +713,8 @@ var unmarshalCommentsTests = []struct {
 			{Key: nil, Value: nil, Comment: " comment2"},
 		},
 	},
-	{ // map item comment
+	// map item comment
+	{
 		"a:\n  # my comment\n  b: 3\n  # my comment 2\n  c: 8\n",
 		yaml.MapSlice{
 			{Key: "a", Value: yaml.MapSlice{
@@ -730,7 +735,8 @@ var unmarshalCommentsTests = []struct {
 			}, Comment: ""},
 		},
 	},
-	{ // sequence item comment
+	// sequence item comment
+	{
 		"a:\n  b:\n  # my comment\n  - 3\n  # my comment 2\n  - 8\n",
 		yaml.MapSlice{
 			{Key: "a", Value: yaml.MapSlice{
@@ -743,7 +749,8 @@ var unmarshalCommentsTests = []struct {
 			}, Comment: ""},
 		},
 	},
-	{ // key comment (non-primitive value)
+	// key comment (non-primitive value)
+	{
 		"a:\n  b: # my comment\n  - 3\n",
 		yaml.MapSlice{
 			{Key: "a", Value: yaml.MapSlice{
@@ -753,7 +760,8 @@ var unmarshalCommentsTests = []struct {
 			}, Comment: ""},
 		},
 	},
-	{ // last line comment
+	// last line comment
+	{
 		"a: 1\n# my comment\n",
 		yaml.MapSlice{
 			{Key: "a", Value: 1, Comment: ""},

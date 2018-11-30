@@ -527,7 +527,7 @@ func (d *decoder) scalar(n *node, out reflect.Value) bool {
 	case reflect.Interface:
 		if resolved == nil {
 			out.Set(reflect.Zero(out.Type()))
-		} else if tag == yaml_TIMESTAMP_TAG {
+		} else if tag == yaml_TIMESTAMP_TAG && !d.comments {
 			// It looks like a timestamp but for backward compatibility
 			// reasons we set it as a string, so that code that unmarshals
 			// timestamp-like values into interface{} will continue to

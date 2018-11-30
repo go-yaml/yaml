@@ -627,18 +627,17 @@ var unmarshalCommentsTests = []struct {
 	},
 
 	// Comments
+
 	// Examples from the yaml spec:
-	// TODO broken
 	// 5.1. Byte Order Mark or 5.5. Comment Indicator
-	// {
-	// 	"#hello\n",
-	// 	yaml.MapSlice{{Key: yaml.PreDoc("#hello"), Value: nil}},
-	// },
-	// TODO broken
-	// { // 6.1. Indentation Spaces
-	// 	"    #hello\n",
-	// 	yaml.MapSlice{{Key: yaml.PreDoc("#hello"), Value: nil}},
-	// },
+	{
+		"#hello\n",
+		yaml.MapSlice{{Key: yaml.PreDoc("#hello"), Value: nil}},
+	},
+	{ // 6.1. Indentation Spaces
+		"    #hello\n    a: b",
+		yaml.MapSlice{{Key: yaml.PreDoc("    #hello\n    "), Value: nil}, {Key: "a", Value: "b"}},
+	},
 	// 6.9. Separated Comment
 	{
 		"a: #comment\n 1",

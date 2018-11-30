@@ -161,8 +161,8 @@ func (p *parser) parse() *node {
 	case yaml_EOL_COMMENT_EVENT:
 		return p.eolcomment()
 	case yaml_STREAM_END_EVENT:
-		// Happens when attempting to decode an empty buffer.
-		return nil
+		// Happens when attempting to decode an empty buffer or a buffer with only comments.
+		return p.emptydocument()
 	default:
 		panic("attempted to parse unknown event: " + p.event.typ.String())
 	}
@@ -179,11 +179,7 @@ func (p *parser) node(kind int) *node {
 func (p *parser) document() *node {
 	n := p.node(documentNode)
 	n.anchors = make(map[string]*node)
-	n.value = p.parser.predoc.String()
-	if p.parser.parse_comments && len(n.value) > 0 && n.value[len(n.value)-1] == '\n' {
-		// Remove extraneous newline
-		n.value = n.value[:len(n.value)-1]
-	}
+	n.value = p.predoc()
 	p.doc = n
 	p.expect(yaml_DOCUMENT_START_EVENT)
 	next := p.parse()
@@ -193,6 +189,16 @@ func (p *parser) document() *node {
 
 	n.children = append(n.children, next)
 	p.expect(yaml_DOCUMENT_END_EVENT)
+	return n
+}
+
+func (p *parser) emptydocument() *node {
+	if !p.parser.parse_comments {
+		return nil
+	}
+	n := p.node(documentNode)
+	n.value = p.predoc()
+
 	return n
 }
 
@@ -276,6 +282,15 @@ func (p *parser) parseChildren(event yaml_event_type_t, n *node) {
 		n.children = append(n.children, next)
 
 	}
+}
+
+func (p *parser) predoc() string {
+	str := p.parser.predoc.String()
+	if p.parser.parse_comments && len(str) > 0 && str[len(str)-1] == '\n' {
+		// Remove extraneous newline
+		str = str[:len(str)-1]
+	}
+	return str
 }
 
 // ----------------------------------------------------------------------------
@@ -431,9 +446,13 @@ func (d *decoder) unmarshal(n *node, out reflect.Value) (good bool) {
 }
 
 func (d *decoder) document(n *node, out reflect.Value) (good bool) {
-	if len(n.children) == 1 {
-		d.doc = n
-		d.unmarshal(n.children[0], out)
+	if len(n.children) == 1 || len(n.children) == 0 {
+		if len(n.children) == 1 {
+			d.doc = n
+			d.unmarshal(n.children[0], out)
+		}
+
+		// If there is a PreDoc string, insert it as the first child
 		if _, ok := out.Interface().(MapSlice); len(strings.TrimSpace(n.value)) > 0 && ok {
 			slice := reflect.ValueOf(MapSlice{
 				MapItem{

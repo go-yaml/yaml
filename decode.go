@@ -282,8 +282,11 @@ func (p *parser) parseChildren(event yaml_event_type_t, n *node) {
 // Decoder, unmarshals a node into a provided value.
 
 func printTree(n *node, level int) {
+	if n == nil {
+		return
+	}
+	fmt.Println(strings.Repeat("\t", level), "kind: ", nodeToString(n.kind), "\tvalue: ", n.value)
 	for _, c := range n.children {
-		fmt.Println(strings.Repeat("\t", level), "kind: ", nodeToString(c.kind), "\tvalue: ", c.value)
 		if len(c.children) > 0 {
 			printTree(c, level+1)
 		}

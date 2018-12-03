@@ -83,6 +83,25 @@ const (
 	yaml_FOLDED_SCALAR_STYLE        // The folded scalar style.
 )
 
+func (t yaml_scalar_style_t) String() string {
+	switch t {
+	case yaml_ANY_SCALAR_STYLE:
+		return "yaml_ANY_SCALAR_STYLE"
+	case yaml_PLAIN_SCALAR_STYLE:
+		return "yaml_PLAIN_SCALAR_STYLE"
+	case yaml_SINGLE_QUOTED_SCALAR_STYLE:
+		return "yaml_SINGLE_QUOTED_SCALAR_STYLE"
+	case yaml_DOUBLE_QUOTED_SCALAR_STYLE:
+		return "yaml_DOUBLE_QUOTED_SCALAR_STYLE"
+	case yaml_LITERAL_SCALAR_STYLE:
+		return "yaml_LITERAL_SCALAR_STYLE"
+	case yaml_FOLDED_SCALAR_STYLE:
+		return "yaml_FOLDED_SCALAR_STYLE"
+	}
+
+	return "<unknown token>"
+}
+
 type yaml_sequence_style_t yaml_style_t
 
 // Sequence styles.
@@ -255,20 +274,20 @@ const (
 )
 
 var eventStrings = []string{
-	yaml_NO_EVENT:             "none",
-	yaml_STREAM_START_EVENT:   "stream start",
-	yaml_STREAM_END_EVENT:     "stream end",
-	yaml_DOCUMENT_START_EVENT: "document start",
-	yaml_DOCUMENT_END_EVENT:   "document end",
-	yaml_ALIAS_EVENT:          "alias",
-	yaml_SCALAR_EVENT:         "scalar",
-	yaml_SEQUENCE_START_EVENT: "sequence start",
-	yaml_SEQUENCE_END_EVENT:   "sequence end",
-	yaml_MAPPING_START_EVENT:  "mapping start",
-	yaml_MAPPING_END_EVENT:    "mapping end",
-	yaml_COMMENT_EVENT:        "comment",
-	yaml_EOL_COMMENT_EVENT:    "eol comment",
-	yaml_PREDOC_EVENT:         "predoc",
+	yaml_NO_EVENT:             "yaml_NO_EVENT",
+	yaml_STREAM_START_EVENT:   "yaml_STREAM_START_EVENT",
+	yaml_STREAM_END_EVENT:     "yaml_STREAM_END_EVENT",
+	yaml_DOCUMENT_START_EVENT: "yaml_DOCUMENT_START_EVENT",
+	yaml_DOCUMENT_END_EVENT:   "yaml_DOCUMENT_END_EVENT",
+	yaml_ALIAS_EVENT:          "yaml_ALIAS_EVENT",
+	yaml_SCALAR_EVENT:         "yaml_SCALAR_EVENT",
+	yaml_SEQUENCE_START_EVENT: "yaml_SEQUENCE_START_EVENT",
+	yaml_SEQUENCE_END_EVENT:   "yaml_SEQUENCE_END_EVENT",
+	yaml_MAPPING_START_EVENT:  "yaml_MAPPING_START_EVENT",
+	yaml_MAPPING_END_EVENT:    "yaml_MAPPING_END_EVENT",
+	yaml_COMMENT_EVENT:        "yaml_COMMENT_EVENT",
+	yaml_EOL_COMMENT_EVENT:    "yaml_EOL_COMMENT_EVENT",
+	yaml_PREDOC_EVENT:         "yaml_PREDOC_EVENT",
 }
 
 func (e yaml_event_type_t) String() string {

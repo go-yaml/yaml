@@ -199,11 +199,11 @@ var unmarshalCommentsTests = []struct {
 	},
 
 	// Folded block scalar
-	// TODO: why does the comment not show up? is that intended because of the leading >
-	{
-		"scalar: > # Comment\n\n folded\n line\n \n next\n line\n  * one\n  * two\n\n last\n line\n\n",
-		yaml.MapSlice{{Key: "scalar", Value: "\nfolded line\nnext line\n * one\n * two\n\nlast line\n", Comment: ""}},
-	},
+	// TODO: add support for comments in folded style
+	// {
+	// 	"scalar: > # Comment\n\n folded\n line\n \n next\n line\n  * one\n  * two\n\n last\n line\n\n",
+	// 	yaml.MapSlice{{Key: "scalar", Value: "\nfolded line\nnext line\n * one\n * two\n\nlast line\n", Comment: " Comment"}},
+	// },
 
 	// Map inside interface with no type hints.
 	{
@@ -402,17 +402,16 @@ var unmarshalCommentsTests = []struct {
 		"foo: ''",
 		yaml.MapSlice{{Key: "foo", Value: "", Comment: ""}},
 	},
-	// {
-	// 	"foo: null",
-	// 	yaml.MapSlice{{Key: "foo", Value: nil, Comment: ""}},
-	// },
+	{
+		"foo: null",
+		yaml.MapSlice{{Key: "foo", Value: nil, Comment: ""}},
+	},
 
-	// TODO: fix this
-	// // Support for ~
-	// {
-	// 	"foo: ~",
-	// 	yaml.MapSlice{{Key: "foo", Value: "~", Comment: ""}},
-	// },
+	// Support for ~
+	{
+		"foo: ~",
+		yaml.MapSlice{{Key: "foo", Value: nil, Comment: ""}},
+	},
 
 	// TODO: fix this
 	// // Bug #1191981
@@ -645,18 +644,28 @@ var unmarshalCommentsTests = []struct {
 			{Key: "a", Value: 1, Comment: "comment"},
 		},
 	},
-	// TODO broken
-	// { // 6.11 Multi-Line Comments
-	// 	"a: #hello\n#bye\n 5",
-	// 	yaml.MapSlice{{Key: "a", Value: 5, Comment: "hello\nbye"}},
-	// },
+	// 6.11 Multi-Line Comments
+	{
+		"a: #hello\n#bye\n 5",
+		yaml.MapSlice{{Key: "a", Value: 5, Comment: "hello;bye"}},
+	},
 	// TODO is that how we want this to be parsed?
 	// 6.12. Separation Spaces
 	{
 		"{ first: Sammy, last: Sosa }:\n # Statistics:\n   hr:  # Home runs\n      65\n   avg: # Average\n    0.278",
-		yaml.MapSlice{{Key: yaml.MapSlice{{Key: "first", Value: "Sammy", Comment: ""}, {Key: "last", Value: "Sosa", Comment: ""}}, Value: yaml.MapSlice{{Key: nil, Value: nil, Comment: " Statistics:"}, {Key: "hr", Value: 65, Comment: " Home runs"}, {Key: "avg", Value: 0.278, Comment: " Average"}}, Comment: ""}},
+		yaml.MapSlice{{
+			Key: yaml.MapSlice{
+				{Key: "first", Value: "Sammy", Comment: ""},
+				{Key: "last", Value: "Sosa", Comment: ""},
+			},
+			Value: yaml.MapSlice{
+				{Key: nil, Value: nil, Comment: " Statistics:"},
+				{Key: "hr", Value: 65, Comment: " Home runs"},
+				{Key: "avg", Value: 0.278, Comment: " Average"},
+			}, Comment: "",
+		}},
 	},
-	// TODO broken?
+	// TODO: add support for comments in literal style
 	// {
 	// 	"# Strip\n  # Comments:\nstrip: |-\n  # text\n\n  \n\n # Clip\n  # comments:\n\n\nclip: |\n  # text\n\n \n\n # Keep\n  # comments:\n\n\nkeep: |+\n  # text\n\n\n\n # Trail\n  # comments.\n",
 	// 	yaml.MapSlice{{Key: yaml.PreDoc("# Strip\n  # Comments:"), Value: nil, Comment: ""}, {Key: "strip", Value: "# text", Comment: " Clip"}, {Key: nil, Value: nil, Comment: " comments:"}, {Key: "clip", Value: "# text\n", Comment: " Keep"}, {Key: nil, Value: nil, Comment: " comments:"}, {Key: "keep", Value: "# text\n\n\n\n", Comment: " Trail"}, {Key: nil, Value: nil, Comment: " comments."}},

@@ -300,11 +300,9 @@ func printTree(n *node, level int) {
 	if n == nil {
 		return
 	}
-	fmt.Println(strings.Repeat("\t", level), "kind: ", nodeToString(n.kind), "\tvalue: ", n.value)
+	fmt.Println(strings.Repeat("\t", level), nodeToString(n.kind), ": ", n.value)
 	for _, c := range n.children {
-		if len(c.children) > 0 {
-			printTree(c, level+1)
-		}
+		printTree(c, level+1)
 	}
 }
 
@@ -817,15 +815,24 @@ func (d *decoder) mappingSlice(n *node, out reflect.Value) (good bool) {
 	var value *node
 	var keySet bool
 	var eolComment string
+	var comments []*node
 	for i := 0; i < l; i += 1 {
 		child = n.children[i]
 		if child.kind == commentNode {
-			item := MapItem{
-				Key:     nil,
-				Value:   nil,
-				Comment: child.value,
+			// If keySet is true, the comment takes place between the key and the value. In this case, the comment(s)
+			// placement will depend on what the value is. If the value is primitive, the key and value will be
+			// placed onto the same line, and comments are concatenated and treated as a single end-of-line comment.
+			// If the value is not primitive, the comments should be treated the same as map or sequence items.
+			if keySet {
+				comments = append(comments, child)
+			} else {
+				commentItem := MapItem{
+					Key:     nil,
+					Value:   nil,
+					Comment: child.value,
+				}
+				slice = append(slice, commentItem)
 			}
-			slice = append(slice, item)
 			continue
 		}
 
@@ -848,11 +855,43 @@ func (d *decoder) mappingSlice(n *node, out reflect.Value) (good bool) {
 
 		keySet = false
 		value = child
+
 		item := MapItem{}
 		k := reflect.ValueOf(&item.Key).Elem()
 		if d.unmarshal(key, k) {
 			v := reflect.ValueOf(&item.Value).Elem()
 			if d.unmarshal(value, v) {
+				// Determine whether the value is "simple" and will be output onto the same line as the key
+				simpleVal := false
+				switch v.Interface().(type) {
+				case int, bool:
+					simpleVal = true
+				case string:
+					if style, _, _ := getScalarStyle(value.tag, v, v.String()); style != yaml_LITERAL_SCALAR_STYLE {
+						simpleVal = true
+					}
+				}
+
+				// If the value is simple, concatenated the comments and treat them as a single end-of-line comment,
+				// else print each comment on its own line.
+				if simpleVal {
+					for _, comment := range comments {
+						if len(eolComment) > 0 {
+							eolComment += ";"
+						}
+						eolComment += comment.value
+					}
+				} else {
+					for _, comment := range comments {
+						commentItem := MapItem{
+							Key:     nil,
+							Value:   nil,
+							Comment: comment.value,
+						}
+						slice = append(slice, commentItem)
+					}
+				}
+
 				// Check for end-of-line comment after the value
 				// When using explicit key and value it is possible to have an end-of-line comment for both the key and
 				// the value. By default, the key gets converted to a simple key. This concatenates the two comments
@@ -872,8 +911,17 @@ func (d *decoder) mappingSlice(n *node, out reflect.Value) (good bool) {
 				item.Comment = eolComment
 				slice = append(slice, item)
 				eolComment = ""
+				comments = []*node{}
 			}
 		}
+	}
+	for _, comment := range comments {
+		item := MapItem{
+			Key:     nil,
+			Value:   nil,
+			Comment: comment.value,
+		}
+		slice = append(slice, item)
 	}
 	out.Set(reflect.ValueOf(slice))
 	d.mapType = mapType

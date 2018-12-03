@@ -419,13 +419,6 @@ var unmarshalCommentsTests = []struct {
 		},
 	},
 
-	// TODO: fix this
-	// // Duration
-	// {
-	// 	"a: 3s",
-	// 	yaml.MapSlice{{Key: "a", Value: 3 * time.Second, Comment: ""}},
-	// },
-
 	// Issue #24.
 	{
 		"a: <foo>",

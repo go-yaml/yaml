@@ -72,7 +72,7 @@ var unmarshalCommentsTests = []struct {
 	},
 
 	// Simple values.
-	// TODO: fix this test
+	// TODO: Add support for plain text in yaml
 	//{
 	//	"123",
 	//	yaml.MapSlice{{Key: nil, Value: &unmarshalIntTest, Comment: ""}},
@@ -238,12 +238,6 @@ var unmarshalCommentsTests = []struct {
 		"int_min: -2147483648",
 		yaml.MapSlice{{Key: "int_min", Value: math.MinInt32, Comment: ""}},
 	},
-	// TODO: does this test make sense like this?
-	{
-		"int_overflow: 9223372036854775808", // math.MaxInt64 + 1
-		yaml.MapSlice{{Key: "int_overflow", Value: uint64(0x8000000000000000), Comment: ""}},
-		//map[string]int{},
-	},
 
 	// int64
 	{
@@ -262,11 +256,6 @@ var unmarshalCommentsTests = []struct {
 		"int64_neg_base2: -0b111111111111111111111111111111111111111111111111111111111111111",
 		yaml.MapSlice{{Key: "int64_neg_base2", Value: -math.MaxInt64, Comment: ""}},
 	},
-	// TODO I expect this will have the same problem as before...
-	//	{
-	//		"int64_overflow: 9223372036854775808", // math.MaxInt64 + 1
-	//		map[string]int64{},
-	//	},
 
 	// uint
 	{
@@ -276,11 +265,6 @@ var unmarshalCommentsTests = []struct {
 	{
 		"uint_max: 4294967295",
 		yaml.MapSlice{{Key: "uint_max", Value: math.MaxUint32, Comment: ""}},
-	},
-	// TODO this obviously works fine here...
-	{
-		"uint_underflow: -1",
-		yaml.MapSlice{{Key: "uint_underflow", Value: -1, Comment: ""}},
 	},
 
 	// uint64
@@ -300,11 +284,6 @@ var unmarshalCommentsTests = []struct {
 		"uint64_maxint64: 9223372036854775807",
 		yaml.MapSlice{{Key: "uint64_maxint64", Value: math.MaxInt64, Comment: ""}},
 	},
-	// TODO this obviously works fine here...
-	{
-		"uint64_underflow: -1",
-		yaml.MapSlice{{Key: "uint64_underflow", Value: -1, Comment: ""}},
-	},
 
 	// float32
 	{
@@ -314,16 +293,6 @@ var unmarshalCommentsTests = []struct {
 	{
 		"float32_nonzero: 1.401298464324817070923729583289916131280e-45",
 		yaml.MapSlice{{Key: "float32_nonzero", Value: math.SmallestNonzeroFloat32, Comment: ""}},
-	},
-	// TODO delete?
-	{
-		"float32_maxuint64: 18446744073709551615",
-		yaml.MapSlice{{Key: "float32_maxuint64", Value: uint64(math.MaxUint64), Comment: ""}},
-	},
-	// TODO delete?
-	{
-		"float32_maxuint64+1: 18446744073709551616",
-		yaml.MapSlice{{Key: "float32_maxuint64+1", Value: 1.8446744073709552e+19, Comment: ""}},
 	},
 
 	// float64
@@ -371,12 +340,6 @@ var unmarshalCommentsTests = []struct {
 		yaml.MapSlice{{Key: "v", Value: nil, Comment: ""}},
 	},
 
-	// TODO the old lib drops all predoc stuff
-	//{
-	//	"%TAG !y! tag:yaml.org,2002:\n---\nv: !y!int '1'",
-	//	map[string]interface{}{"v": 1},
-	//},
-
 	// Non-specific tag (Issue #75)
 	{
 		"v: ! test",
@@ -413,7 +376,7 @@ var unmarshalCommentsTests = []struct {
 		yaml.MapSlice{{Key: "foo", Value: nil, Comment: ""}},
 	},
 
-	// TODO: fix this
+	// TODO: Add support for plain text in yaml
 	// // Bug #1191981
 	// {
 	// 	"" +
@@ -596,7 +559,7 @@ var unmarshalCommentsTests = []struct {
 			{Key: "Reuse anchor", Value: "Bar", Comment: ""},
 		},
 	},
-	// TODO: FIX!
+	// TODO: Add support for plain text in yaml
 	// Single document with garbage following it.
 	// {
 	// 	"---\nhello\n...\n}not yaml",
@@ -649,7 +612,6 @@ var unmarshalCommentsTests = []struct {
 		"a: #hello\n#bye\n 5",
 		yaml.MapSlice{{Key: "a", Value: 5, Comment: "hello;bye"}},
 	},
-	// TODO is that how we want this to be parsed?
 	// 6.12. Separation Spaces
 	{
 		"{ first: Sammy, last: Sosa }:\n # Statistics:\n   hr:  # Home runs\n      65\n   avg: # Average\n    0.278",

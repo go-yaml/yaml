@@ -752,8 +752,7 @@ var unmarshalCommentsTests = []struct {
 func (s *S) TestCommentsUnmarshal(c *C) {
 	for i, item := range unmarshalCommentsTests {
 		c.Logf("test %d: %q", i, item.data)
-		m := new(yaml.CommentUnmarshaler)
-		out, err := m.Unmarshal([]byte(item.data))
+		out, err := yaml.CommentUnmarshal([]byte(item.data))
 		if _, ok := err.(*yaml.TypeError); !ok {
 			c.Assert(err, IsNil)
 		}

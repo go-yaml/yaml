@@ -52,13 +52,6 @@ type Marshaler interface {
 	MarshalYAML() (interface{}, error)
 }
 
-type CommentUnmarshaler struct{}
-
-func (u CommentUnmarshaler) Unmarshal(in []byte) (MapSlice, error) {
-	out := MapSlice{}
-	return out, unmarshal(in, &out, false, true)
-}
-
 // Unmarshal decodes the first document found within the in byte slice
 // and assigns decoded values into the out value.
 //
@@ -103,6 +96,14 @@ func Unmarshal(in []byte, out interface{}) (err error) {
 // an error.
 func UnmarshalStrict(in []byte, out interface{}) (err error) {
 	return unmarshal(in, out, true, false)
+}
+
+// CommentUnmarshal is like Unmarshal except with added support for comments.
+// No assumptions are made about what data a comment should be tied to, so maps
+// are represented using MapSlice objects which maintain the order of map items.
+func CommentUnmarshal(in []byte) (MapSlice, error) {
+	out := MapSlice{}
+	return out, unmarshal(in, &out, false, true)
 }
 
 // A Decorder reads and decodes YAML values from an input stream.

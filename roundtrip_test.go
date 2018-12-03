@@ -176,8 +176,7 @@ func (s *S) TestRoundtrip(c *C) {
 		data, err := yaml.Marshal(item.value)
 		c.Assert(err, IsNil)
 		// unmarshal
-		m := new(yaml.CommentUnmarshaler)
-		out, err := m.Unmarshal([]byte(data))
+		out, err := yaml.CommentUnmarshal([]byte(data))
 		if _, ok := err.(*yaml.TypeError); !ok {
 			c.Assert(err, IsNil)
 		}

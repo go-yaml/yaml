@@ -61,7 +61,7 @@ import (
 var data = `
 a: Easy!
 b:
-  c: 2
+  c: 2 # comment
   d: [3, 4]
 `
 
@@ -103,6 +103,18 @@ func main() {
                 log.Fatalf("error: %v", err)
         }
         fmt.Printf("--- m dump:\n%s\n\n", string(d))
+
+        c, err := yaml.CommentUnmarshal([]byte(data))
+	if err != nil {
+		log.Fatalf("error: %v", err)
+	}
+	fmt.Printf("--- c:\n%v\n\n", c)
+
+	d, err = yaml.Marshal(&c)
+	if err != nil {
+		log.Fatalf("error: %v", err)
+	}
+	fmt.Printf("--- c dump:\n%s\n\n", string(d))
 }
 ```
 
@@ -129,5 +141,16 @@ b:
   d:
   - 3
   - 4
-```
 
+
+--- c:
+[{a Easy! } {b [{c 2  comment} {d [{3 } {4 }] }] }]
+
+--- c dump:
+a: Easy!
+b:
+  c: 2 # comment
+  d:
+  - 3
+  - 4
+```

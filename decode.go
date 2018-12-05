@@ -295,36 +295,6 @@ func (p *parser) predoc() string {
 // ----------------------------------------------------------------------------
 // Decoder, unmarshals a node into a provided value.
 
-func printTree(n *node, level int) {
-	if n == nil {
-		return
-	}
-	fmt.Println(strings.Repeat("\t", level), nodeToString(n.kind), ": ", n.value)
-	for _, c := range n.children {
-		printTree(c, level+1)
-	}
-}
-
-func nodeToString(node int) string {
-	switch node {
-	case documentNode:
-		return "documentNode"
-	case mappingNode:
-		return "mappingNode"
-	case sequenceNode:
-		return "sequenceNode"
-	case scalarNode:
-		return "scalarNode"
-	case aliasNode:
-		return "aliasNode"
-	case commentNode:
-		return "commentNode"
-	case eolCommentNode:
-		return "eolCommentNode"
-	}
-	return "unknown node kind"
-}
-
 type decoder struct {
 	doc      *node
 	aliases  map[*node]bool

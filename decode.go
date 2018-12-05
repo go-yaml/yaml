@@ -280,7 +280,6 @@ func (p *parser) parseChildren(event yaml_event_type_t, n *node) {
 		}
 
 		n.children = append(n.children, next)
-
 	}
 }
 

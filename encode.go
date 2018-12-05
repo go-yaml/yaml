@@ -300,7 +300,7 @@ func (e *encoder) sequenceitemv(tag string, in reflect.Value) {
 	e.sequencev(tag, func() {
 		slice := in.Interface().([]SequenceItem)
 		for _, item := range slice {
-			// Check if if is a comment
+			// Check if it is a comment
 			if item.Value == nil && len(item.Comment) > 0 {
 				e.commentv([]byte(item.Comment))
 				continue

@@ -629,7 +629,8 @@ func settableValueOf(i interface{}) reflect.Value {
 
 func (d *decoder) sequence(n *node, out reflect.Value) (good bool) {
 	if d.comments {
-		return d.sequenceStruct(n, out)
+		d.sequenceStruct(n, out)
+		return true
 	}
 
 	l := len(n.children)
@@ -668,7 +669,7 @@ func (d *decoder) sequence(n *node, out reflect.Value) (good bool) {
 	return true
 }
 
-func (d *decoder) sequenceStruct(n *node, out reflect.Value) (good bool) {
+func (d *decoder) sequenceStruct(n *node, out reflect.Value) {
 	l := len(n.children)
 	var slice []SequenceItem
 	for i := 0; i < l; i++ {
@@ -694,7 +695,6 @@ func (d *decoder) sequenceStruct(n *node, out reflect.Value) (good bool) {
 		}
 	}
 	out.Set(reflect.ValueOf(slice))
-	return true
 }
 
 func (d *decoder) mapping(n *node, out reflect.Value) (good bool) {

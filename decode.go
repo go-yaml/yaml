@@ -805,7 +805,11 @@ func (d *decoder) mappingSlice(n *node, out reflect.Value) (good bool) {
 			continue
 		}
 
-		// Check for end-of-line comment after a key
+		// Check for end-of-line comment after a key. Like a normal comment, its placement depends on the value.
+		// If the value is primitive, the key and value will be placed onto the same line and the comment follows
+		// the value. If there are also normal comments between the key and primitive value, the comments are
+		// concatenated. In this case, the key's end-of-line comment will appear first in the concatenated comment.
+		// If the value is not primitive, the comment is placed next to the key and the value on the next line.
 		if child.kind == eolCommentNode {
 			eolComment = child.value
 			continue
@@ -830,20 +834,9 @@ func (d *decoder) mappingSlice(n *node, out reflect.Value) (good bool) {
 		if d.unmarshal(key, k) {
 			v := reflect.ValueOf(&item.Value).Elem()
 			if d.unmarshal(value, v) {
-				// Determine whether the value is "simple" and will be output onto the same line as the key
-				simpleVal := false
-				switch v.Interface().(type) {
-				case int, bool:
-					simpleVal = true
-				case string:
-					if style, _, _ := getScalarStyle(value.tag, v, v.String()); style != yaml_LITERAL_SCALAR_STYLE {
-						simpleVal = true
-					}
-				}
-
-				// If the value is simple, concatenated the comments and treat them as a single end-of-line comment,
-				// else print each comment on its own line.
-				if simpleVal {
+				// If the value is basic (placed onto same line as the key), concatenate the comments and treat them
+				// as a single end-of-line comment, else print each comment on its own line.
+				if isBasicType(v, value.tag) {
 					for _, comment := range comments {
 						if len(eolComment) > 0 {
 							eolComment += ";"
@@ -895,6 +888,21 @@ func (d *decoder) mappingSlice(n *node, out reflect.Value) (good bool) {
 	out.Set(reflect.ValueOf(slice))
 	d.mapType = mapType
 	return true
+}
+
+// Returns true if the value would be placed onto the same line as its key following library defaults, or false if
+// it would be placed onto its own line
+func isBasicType(v reflect.Value, tag string) bool {
+	switch v.Interface().(type) {
+	case int, bool:
+		return true
+	case string:
+		if style, _, _ := getScalarStyle(tag, v, v.String()); style != yaml_LITERAL_SCALAR_STYLE {
+			return true
+		}
+	}
+
+	return false
 }
 
 func (d *decoder) mappingStruct(n *node, out reflect.Value) (good bool) {

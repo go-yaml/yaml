@@ -3,7 +3,7 @@ package yaml_test
 import (
 	"os"
 
-	"github.com/go-yaml/yaml"
+	"github.com/Shopify/yaml"
 	. "gopkg.in/check.v1"
 )
 

@@ -13,9 +13,8 @@ Compatibility
 -------------
 
 The yaml package supports most of YAML 1.1 and 1.2, including support for
-anchors, tags, map merging, etc. Multi-document unmarshalling is not yet
-implemented, and base-60 floats from YAML 1.1 are purposefully not
-supported since they're a poor design and are gone in YAML 1.2.
+anchors, tags, map merging, etc. Base-60 floats from YAML 1.1 are purposefully
+not supported since they're a poor design and are gone in YAML 1.2.
 
 Installation and usage
 ----------------------

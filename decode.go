@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"math"
+	"os"
 	"reflect"
 	"strconv"
 	"time"
@@ -380,6 +381,8 @@ func (d *decoder) scalar(n *node, out reflect.Value) bool {
 				failf("!!binary value contains invalid base64 data")
 			}
 			resolved = string(data)
+		} else if tag == yaml_ENV_TAG {
+			resolved = os.Getenv(resolved.(string))
 		}
 	}
 	if resolved == nil {
@@ -401,7 +404,7 @@ func (d *decoder) scalar(n *node, out reflect.Value) bool {
 		u, ok := out.Addr().Interface().(encoding.TextUnmarshaler)
 		if ok {
 			var text []byte
-			if tag == yaml_BINARY_TAG {
+			if tag == yaml_BINARY_TAG || tag == yaml_ENV_TAG {
 				text = []byte(resolved.(string))
 			} else {
 				// We let any value be unmarshaled into TextUnmarshaler.
@@ -418,7 +421,7 @@ func (d *decoder) scalar(n *node, out reflect.Value) bool {
 	}
 	switch out.Kind() {
 	case reflect.String:
-		if tag == yaml_BINARY_TAG {
+		if tag == yaml_BINARY_TAG || tag == yaml_ENV_TAG {
 			out.SetString(resolved.(string))
 			return true
 		}

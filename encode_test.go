@@ -88,6 +88,9 @@ var marshalTests = []struct {
 		map[string]interface{}{"v": "10"},
 		"v: \"10\"\n",
 	}, {
+		map[string]interface{}{"v": "123e1"},
+		"v: \"123e1\"\n",
+	}, {
 		map[string]interface{}{"v": 0.1},
 		"v: 0.1\n",
 	}, {

@@ -1152,6 +1152,56 @@ func (s *S) TestMergeStruct(c *C) {
 	}
 }
 
+var unmarshalStrictMergeTest = []struct {
+	data  string
+	value interface{}
+}{{
+	data: `
+f: &f
+  s: f
+b: &b
+  <<: *f
+  s: b`,
+	value: map[string]map[string]string{
+		"f": {"s": "f"},
+		"b": {"s": "b"},
+	},
+}, {
+	data: `
+f: &f
+  s: f
+  t: f
+g: &g
+  s: g
+  t: g
+b: &b
+  <<: [*g, *f]
+  s: b
+z: &z
+  <<: *g
+  <<: *f
+  s: z`,
+	value: map[string]map[string]string{
+		"f": {"s": "f", "t": "f"},
+		"g": {"s": "g", "t": "g"},
+		"b": {"s": "b", "t": "g"},
+		"z": {"s": "z", "t": "f"},
+	},
+}}
+
+func (s *S) TestUnmarshalStrictMerge(c *C) {
+	for i, item := range unmarshalStrictMergeTest {
+		c.Logf("test %d: %q", i, item.data)
+
+		// Test that UnmarshalStrict don't fails and return the expected value
+		t := reflect.ValueOf(item.value).Type()
+		value := reflect.New(t)
+		err := yaml.UnmarshalStrict([]byte(item.data), value.Interface())
+		c.Assert(err, Equals, nil)
+		c.Assert(value.Elem().Interface(), DeepEquals, item.value)
+	}
+}
+
 var unmarshalNullTests = []func() interface{}{
 	func() interface{} { var v interface{}; v = "v"; return &v },
 	func() interface{} { var s = "s"; return &s },

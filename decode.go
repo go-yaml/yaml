@@ -615,6 +615,9 @@ func (d *decoder) mapping(n *node, out reflect.Value) (good bool) {
 	if out.IsNil() {
 		out.Set(reflect.MakeMap(outt))
 	}
+
+	tmp := reflect.MakeMap(outt)
+
 	l := len(n.children)
 	for i := 0; i < l; i += 2 {
 		if isMerge(n.children[i]) {
@@ -632,10 +635,13 @@ func (d *decoder) mapping(n *node, out reflect.Value) (good bool) {
 			}
 			e := reflect.New(et).Elem()
 			if d.unmarshal(n.children[i+1], e) {
-				d.setMapIndex(n.children[i+1], out, k, e)
+				d.setMapIndex(n.children[i+1], tmp, k, e)
 			}
 		}
 	}
+
+	mergeMap(out, tmp)
+
 	d.mapType = mapType
 	return true
 }
@@ -646,6 +652,12 @@ func (d *decoder) setMapIndex(n *node, out, k, v reflect.Value) {
 		return
 	}
 	out.SetMapIndex(k, v)
+}
+
+func mergeMap(dst, src reflect.Value) {
+	for _, k := range src.MapKeys() {
+		dst.SetMapIndex(k, src.MapIndex(k))
+	}
 }
 
 func (d *decoder) mappingSlice(n *node, out reflect.Value) (good bool) {

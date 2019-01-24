@@ -78,7 +78,7 @@ type Marshaler interface {
 // supported tag options.
 //
 func Unmarshal(in []byte, out interface{}) (err error) {
-	return unmarshal(in, out, false)
+	return unmarshal(in, out, false, nil)
 }
 
 // UnmarshalStrict is like Unmarshal except that any fields that are found
@@ -86,7 +86,29 @@ func Unmarshal(in []byte, out interface{}) (err error) {
 // keys that are duplicates, will result in
 // an error.
 func UnmarshalStrict(in []byte, out interface{}) (err error) {
-	return unmarshal(in, out, true)
+	return unmarshal(in, out, true, nil)
+}
+
+// TagHandler is a handler for a custom tag
+type TagHandler func(data interface{}) (interface{}, error)
+
+// TagHandlers are a collection of TagHandlers associated with their tag
+type TagHandlers map[string]TagHandler
+
+// CreateTagHandlers returns an instantiated TagHandlers
+func CreateTagHandlers() TagHandlers {
+	return make(TagHandlers)
+}
+
+// Add a new tag and an associated handler
+func (th TagHandlers) Add(tag string, handler TagHandler) {
+	th["tag:yaml.org,2002:"+tag] = handler
+}
+
+// UnmarshalCustomTags is like Unmarshal except that any fields using
+// custom user defined tags are handled correctly
+func UnmarshalCustomTags(in []byte, out interface{}, tagHandlers TagHandlers) (err error) {
+	return unmarshal(in, out, true, tagHandlers)
 }
 
 // A Decorder reads and decodes YAML values from an input stream.
@@ -127,14 +149,14 @@ func (dec *Decoder) Decode(v interface{}) (err error) {
 	if out.Kind() == reflect.Ptr && !out.IsNil() {
 		out = out.Elem()
 	}
-	d.unmarshal(node, out)
+	d.unmarshal(node, out, nil)
 	if len(d.terrors) > 0 {
 		return &TypeError{d.terrors}
 	}
 	return nil
 }
 
-func unmarshal(in []byte, out interface{}, strict bool) (err error) {
+func unmarshal(in []byte, out interface{}, strict bool, tagHandlers TagHandlers) (err error) {
 	defer handleErr(&err)
 	d := newDecoder(strict)
 	p := newParser(in)
@@ -145,7 +167,7 @@ func unmarshal(in []byte, out interface{}, strict bool) (err error) {
 		if v.Kind() == reflect.Ptr && !v.IsNil() {
 			v = v.Elem()
 		}
-		d.unmarshal(node, v)
+		d.unmarshal(node, v, tagHandlers)
 	}
 	if len(d.terrors) > 0 {
 		return &TypeError{d.terrors}

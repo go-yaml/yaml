@@ -1,7 +1,9 @@
 package yaml_test
 
 import (
+	"encoding/base64"
 	"errors"
+	"fmt"
 	"io"
 	"math"
 	"reflect"
@@ -9,7 +11,7 @@ import (
 	"time"
 
 	. "gopkg.in/check.v1"
-	"gopkg.in/yaml.v2"
+	yaml "gopkg.in/yaml.v2"
 )
 
 var unmarshalIntTest = 123
@@ -724,6 +726,16 @@ var unmarshalTests = []struct {
 	},
 }
 
+var unmarshalCustomTagTests = []struct {
+	data  string
+	value interface{}
+}{
+	{
+		data:  "!!base64E test",
+		value: "dGVzdA==",
+	},
+}
+
 type M map[interface{}]interface{}
 
 type inlineB struct {
@@ -741,6 +753,30 @@ func (s *S) TestUnmarshal(c *C) {
 		t := reflect.ValueOf(item.value).Type()
 		value := reflect.New(t)
 		err := yaml.Unmarshal([]byte(item.data), value.Interface())
+		if _, ok := err.(*yaml.TypeError); !ok {
+			c.Assert(err, IsNil)
+		}
+		c.Assert(value.Elem().Interface(), DeepEquals, item.value, Commentf("error: %v", err))
+	}
+}
+
+func (s *S) TestUnmarshalCustomTags(c *C) {
+	testHandlers := yaml.CreateTagHandlers()
+	testHandlers.Add("base64E", func(v interface{}) (interface{}, error) {
+		data, ok := v.(string)
+
+		if !ok {
+			return nil, fmt.Errorf("%v is not a string, cannot use !!base64E", v)
+		}
+
+		return base64.StdEncoding.EncodeToString([]byte(data)), nil
+	})
+
+	for i, item := range unmarshalCustomTagTests {
+		c.Logf("test %d: %q", i, item.data)
+		t := reflect.ValueOf(item.value).Type()
+		value := reflect.New(t)
+		err := yaml.UnmarshalCustomTags([]byte(item.data), value.Interface(), testHandlers)
 		if _, ok := err.(*yaml.TypeError); !ok {
 			c.Assert(err, IsNil)
 		}

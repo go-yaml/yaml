@@ -734,6 +734,14 @@ var unmarshalCustomTagTests = []struct {
 		data:  "!!base64E test",
 		value: "dGVzdA==",
 	},
+	{
+		data:  "!!returnInt test",
+		value: 1,
+	},
+	{
+		data:  "a: !!returnInt test\nb: !!base64E test\nc: !!float 5.5",
+		value: &yaml.MapSlice{{"a", 1}, {"b", "dGVzdA=="}, {"c", 5.5}},
+	},
 }
 
 type M map[interface{}]interface{}
@@ -770,6 +778,9 @@ func (s *S) TestUnmarshalCustomTags(c *C) {
 		}
 
 		return base64.StdEncoding.EncodeToString([]byte(data)), nil
+	})
+	testHandlers.Add("returnInt", func(v interface{}) (interface{}, error) {
+		return 1, nil
 	})
 
 	for i, item := range unmarshalCustomTagTests {

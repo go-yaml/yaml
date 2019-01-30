@@ -45,9 +45,40 @@ import (
 // Peek the next token in the token queue.
 func peek_token(parser *yaml_parser_t) *yaml_token_t {
 	if parser.token_available || yaml_parser_fetch_more_tokens(parser) {
-		return &parser.tokens[parser.tokens_head]
+		token := &parser.tokens[parser.tokens_head]
+		yaml_parser_unfold_comments(parser, token)
+		return token
 	}
 	return nil
+}
+
+// yaml_parser_unfold_comments walks through the comments queue and joins all
+// comments behind the position of the provided token into the respective
+// top-level comment slices in the parser.
+func yaml_parser_unfold_comments(parser *yaml_parser_t, token *yaml_token_t) {
+	for parser.comments_head < len(parser.comments) && token.start_mark.index >= parser.comments[parser.comments_head].after.index {
+		comment := &parser.comments[parser.comments_head]
+		if len(comment.header) > 0 {
+			if len(parser.header_comment) > 0 {
+				parser.header_comment = append(parser.header_comment, '\n')
+			}
+			parser.header_comment = append(parser.header_comment, comment.header...)
+		}
+		if len(comment.footer) > 0 {
+			if len(parser.footer_comment) > 0 {
+				parser.footer_comment = append(parser.footer_comment, '\n')
+			}
+			parser.footer_comment = append(parser.footer_comment, comment.footer...)
+		}
+		if len(comment.inline) > 0 {
+			if len(parser.inline_comment) > 0 {
+				parser.inline_comment = append(parser.inline_comment, '\n')
+			}
+			parser.inline_comment = append(parser.inline_comment, comment.inline...)
+		}
+		*comment = yaml_comment_t{}
+		parser.comments_head++
+	}
 }
 
 // Remove the next token from the queue (must be called after peek_token).
@@ -224,10 +255,32 @@ func yaml_parser_parse_document_start(parser *yaml_parser_t, event *yaml_event_t
 		parser.states = append(parser.states, yaml_PARSE_DOCUMENT_END_STATE)
 		parser.state = yaml_PARSE_BLOCK_NODE_STATE
 
+		var header_comment []byte
+		if len(parser.header_comment) > 0 {
+			// [Go] Scan the header comment backwards, and if an empty line is found, break
+			//      the header so the part before the last empty line goes into the
+			//      document header, while the bottom of it goes into a follow up event.
+			for i := len(parser.header_comment)-1; i > 0; i-- {
+				if parser.header_comment[i] == '\n' {
+					if i == len(parser.header_comment)-1 {
+						header_comment = parser.header_comment[:i]
+						parser.header_comment = parser.header_comment[i+1:]
+						break
+					} else if parser.header_comment[i-1] == '\n' {
+						header_comment = parser.header_comment[:i-1]
+						parser.header_comment = parser.header_comment[i+1:]
+						break
+					}
+				}
+			}
+		}
+
 		*event = yaml_event_t{
 			typ:        yaml_DOCUMENT_START_EVENT,
 			start_mark: token.start_mark,
 			end_mark:   token.end_mark,
+
+			header_comment: header_comment,
 		}
 
 	} else if token.typ != yaml_STREAM_END_TOKEN {
@@ -326,8 +379,20 @@ func yaml_parser_parse_document_end(parser *yaml_parser_t, event *yaml_event_t) 
 		start_mark: start_mark,
 		end_mark:   end_mark,
 		implicit:   implicit,
+
+		footer_comment: parser.header_comment,
 	}
+	parser.header_comment = nil
 	return true
+}
+
+func yaml_parser_set_event_comments(parser *yaml_parser_t, event *yaml_event_t) {
+	event.header_comment = parser.header_comment
+	event.inline_comment = parser.inline_comment
+	event.footer_comment = parser.footer_comment
+	parser.header_comment = nil
+	parser.inline_comment = nil
+	parser.footer_comment = nil
 }
 
 // Parse the productions:
@@ -486,6 +551,7 @@ func yaml_parser_parse_node(parser *yaml_parser_t, event *yaml_event_t, block, i
 			quoted_implicit: quoted_implicit,
 			style:           yaml_style_t(token.style),
 		}
+		yaml_parser_set_event_comments(parser, event)
 		skip_token(parser)
 		return true
 	}
@@ -502,6 +568,7 @@ func yaml_parser_parse_node(parser *yaml_parser_t, event *yaml_event_t, block, i
 			implicit:   implicit,
 			style:      yaml_style_t(yaml_FLOW_SEQUENCE_STYLE),
 		}
+		yaml_parser_set_event_comments(parser, event)
 		return true
 	}
 	if token.typ == yaml_FLOW_MAPPING_START_TOKEN {
@@ -516,6 +583,7 @@ func yaml_parser_parse_node(parser *yaml_parser_t, event *yaml_event_t, block, i
 			implicit:   implicit,
 			style:      yaml_style_t(yaml_FLOW_MAPPING_STYLE),
 		}
+		yaml_parser_set_event_comments(parser, event)
 		return true
 	}
 	if block && token.typ == yaml_BLOCK_SEQUENCE_START_TOKEN {
@@ -820,6 +888,7 @@ func yaml_parser_parse_flow_sequence_entry(parser *yaml_parser_t, event *yaml_ev
 		start_mark: token.start_mark,
 		end_mark:   token.end_mark,
 	}
+	yaml_parser_set_event_comments(parser, event)
 
 	skip_token(parser)
 	return true
@@ -959,6 +1028,7 @@ func yaml_parser_parse_flow_mapping_key(parser *yaml_parser_t, event *yaml_event
 		start_mark: token.start_mark,
 		end_mark:   token.end_mark,
 	}
+	yaml_parser_set_event_comments(parser, event)
 	skip_token(parser)
 	return true
 }

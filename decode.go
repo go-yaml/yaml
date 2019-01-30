@@ -33,16 +33,19 @@ const (
 )
 
 type Node struct {
-	Kind     NodeKind
-	Style    Style
-	Line     int
-	Column   int
-	Tag      string
-	Value    string
+	Kind   NodeKind
+	Style  Style
+	Line   int
+	Column int
+	Tag    string
+	Value  string
 	// TODO Alias should probably be the string, and then perhaps have a hidden cache?
 	Alias    *Node // Resolved alias for alias nodes.
 	Anchors  map[string]*Node
 	Children []*Node
+	Header   string
+	Inline   string
+	Footer   string
 }
 
 func (n *Node) implicit() bool {
@@ -59,11 +62,24 @@ func (n *Node) ShortTag() string {
 
 func (n *Node) LongTag() string {
 	if n.Tag == "" || n.Tag == "!" {
-		if n.Style&(SingleQuotedStyle|DoubleQuotedStyle) != 0 {
-			return yaml_STR_TAG
+		switch n.Kind {
+		case MappingNode:
+			return yaml_MAP_TAG
+		case SequenceNode:
+			return yaml_SEQ_TAG
+		case AliasNode:
+			if n.Alias != nil {
+				return n.Alias.LongTag()
+			}
+		case ScalarNode:
+			if n.Style&(SingleQuotedStyle|DoubleQuotedStyle) != 0 {
+				return yaml_STR_TAG
+			}
+			tag, _ := resolve("", n.Value)
+			return tag
 		}
-		tag, _ := resolve("", n.Value)
-		return tag
+		return ""
+
 	} else if strings.HasPrefix(n.Tag, "!!") {
 		return longTagPrefix + n.Tag[2:]
 	}
@@ -211,14 +227,18 @@ func (p *parser) parse() *Node {
 func (p *parser) node(kind NodeKind) *Node {
 	return &Node{
 		Kind:   kind,
-		Line:   p.event.start_mark.line,
-		Column: p.event.start_mark.column,
+		Line:   p.event.start_mark.line + 1,
+		Column: p.event.start_mark.column + 1,
+		Header: string(p.event.header_comment),
+		Inline: string(p.event.inline_comment),
+		Footer: string(p.event.footer_comment),
 	}
 }
 
-func (p *parser) parseChild(parent *Node) {
+func (p *parser) parseChild(parent *Node) *Node {
 	child := p.parse()
 	parent.Children = append(parent.Children, child)
+	return child
 }
 
 func (p *parser) document() *Node {
@@ -227,6 +247,9 @@ func (p *parser) document() *Node {
 	p.doc = n
 	p.expect(yaml_DOCUMENT_START_EVENT)
 	p.parseChild(n)
+	if p.peek() == yaml_DOCUMENT_END_EVENT {
+		n.Footer = string(p.event.footer_comment)
+	}
 	p.expect(yaml_DOCUMENT_END_EVENT)
 	return n
 }
@@ -273,6 +296,8 @@ func (p *parser) sequence() *Node {
 	for p.peek() != yaml_SEQUENCE_END_EVENT {
 		p.parseChild(n)
 	}
+	n.Inline = string(p.event.inline_comment)
+	n.Footer = string(p.event.footer_comment)
 	p.expect(yaml_SEQUENCE_END_EVENT)
 	return n
 }
@@ -286,9 +311,15 @@ func (p *parser) mapping() *Node {
 	p.anchor(n, p.event.anchor)
 	p.expect(yaml_MAPPING_START_EVENT)
 	for p.peek() != yaml_MAPPING_END_EVENT {
-		p.parseChild(n)
-		p.parseChild(n)
+		k := p.parseChild(n)
+		v := p.parseChild(n)
+		if v.Footer != "" {
+			k.Footer = v.Footer
+			v.Footer = ""
+		}
 	}
+	n.Inline = string(p.event.inline_comment)
+	n.Footer = string(p.event.footer_comment)
 	p.expect(yaml_MAPPING_END_EVENT)
 	return n
 }
@@ -332,7 +363,7 @@ func (d *decoder) terror(n *Node, tag string, out reflect.Value) {
 			value = " `" + value + "`"
 		}
 	}
-	d.terrors = append(d.terrors, fmt.Sprintf("line %d: cannot unmarshal %s%s into %s", n.Line+1, shortTag(tag), value, out.Type()))
+	d.terrors = append(d.terrors, fmt.Sprintf("line %d: cannot unmarshal %s%s into %s", n.Line, shortTag(tag), value, out.Type()))
 }
 
 func (d *decoder) callUnmarshaler(n *Node, u Unmarshaler) (good bool) {
@@ -713,7 +744,7 @@ func (d *decoder) mapping(n *Node, out reflect.Value) (good bool) {
 
 func (d *decoder) setMapIndex(n *Node, out, k, v reflect.Value) {
 	if d.strict && out.MapIndex(k) != zeroValue {
-		d.terrors = append(d.terrors, fmt.Sprintf("line %d: key %#v already set in map", n.Line+1, k.Interface()))
+		d.terrors = append(d.terrors, fmt.Sprintf("line %d: key %#v already set in map", n.Line, k.Interface()))
 		return
 	}
 	out.SetMapIndex(k, v)
@@ -782,7 +813,7 @@ func (d *decoder) mappingStruct(n *Node, out reflect.Value) (good bool) {
 		if info, ok := sinfo.FieldsMap[name.String()]; ok {
 			if d.strict {
 				if doneFields[info.Id] {
-					d.terrors = append(d.terrors, fmt.Sprintf("line %d: field %s already set in type %s", ni.Line+1, name.String(), out.Type()))
+					d.terrors = append(d.terrors, fmt.Sprintf("line %d: field %s already set in type %s", ni.Line, name.String(), out.Type()))
 					continue
 				}
 				doneFields[info.Id] = true
@@ -802,7 +833,7 @@ func (d *decoder) mappingStruct(n *Node, out reflect.Value) (good bool) {
 			d.unmarshal(n.Children[i+1], value)
 			d.setMapIndex(n.Children[i+1], inlineMap, name, value)
 		} else if d.strict {
-			d.terrors = append(d.terrors, fmt.Sprintf("line %d: field %s not found in type %s", ni.Line+1, name.String(), out.Type()))
+			d.terrors = append(d.terrors, fmt.Sprintf("line %d: field %s not found in type %s", ni.Line, name.String(), out.Type()))
 		}
 	}
 	return true

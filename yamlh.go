@@ -279,6 +279,11 @@ type yaml_event_t struct {
 	// The list of tag directives (for yaml_DOCUMENT_START_EVENT).
 	tag_directives []yaml_tag_directive_t
 
+	// The comments
+	header_comment []byte
+	inline_comment []byte
+	footer_comment []byte
+
 	// The anchor (for yaml_SCALAR_EVENT, yaml_SEQUENCE_START_EVENT, yaml_MAPPING_START_EVENT, yaml_ALIAS_EVENT).
 	anchor []byte
 
@@ -562,6 +567,15 @@ type yaml_parser_t struct {
 	offset int         // The offset of the current position (in bytes).
 	mark   yaml_mark_t // The mark of the current position.
 
+	// Comments
+
+	header_comment []byte // The current header comments
+	inline_comment []byte // The current inline comments
+	footer_comment []byte // The current footer comments
+
+	comments      []yaml_comment_t // The folded comments for all parsed tokens
+	comments_head int
+
 	// Scanner stuff
 
 	stream_start_produced bool // Have we started to scan the input stream?
@@ -594,6 +608,13 @@ type yaml_parser_t struct {
 	document *yaml_document_t // The currently parsed document.
 }
 
+type yaml_comment_t struct {
+	after  yaml_mark_t
+	header []byte
+	inline []byte
+	footer []byte
+}
+
 // Emitter Definitions
 
 // The prototype of a write handler.
@@ -624,8 +645,10 @@ const (
 	yaml_EMIT_DOCUMENT_CONTENT_STATE           // Expect the content of a document.
 	yaml_EMIT_DOCUMENT_END_STATE               // Expect DOCUMENT-END.
 	yaml_EMIT_FLOW_SEQUENCE_FIRST_ITEM_STATE   // Expect the first item of a flow sequence.
+	yaml_EMIT_FLOW_SEQUENCE_TRAIL_ITEM_STATE   // Expect the next item of a flow sequence, with the comma already written out
 	yaml_EMIT_FLOW_SEQUENCE_ITEM_STATE         // Expect an item of a flow sequence.
 	yaml_EMIT_FLOW_MAPPING_FIRST_KEY_STATE     // Expect the first key of a flow mapping.
+	yaml_EMIT_FLOW_MAPPING_TRAIL_KEY_STATE     // Expect the next key of a flow mapping, with the comma already written out
 	yaml_EMIT_FLOW_MAPPING_KEY_STATE           // Expect a key of a flow mapping.
 	yaml_EMIT_FLOW_MAPPING_SIMPLE_VALUE_STATE  // Expect a value for a simple key of a flow mapping.
 	yaml_EMIT_FLOW_MAPPING_VALUE_STATE         // Expect a value of a flow mapping.
@@ -697,6 +720,8 @@ type yaml_emitter_t struct {
 	indention  bool // If the last character was an indentation character (' ', '-', '?', ':')?
 	open_ended bool // If an explicit document end is required?
 
+	space_above bool // If there's an empty line right above?
+
 	// Anchor analysis.
 	anchor_data struct {
 		anchor []byte // The anchor value.
@@ -719,6 +744,11 @@ type yaml_emitter_t struct {
 		block_allowed         bool                // Can the scalar be expressed in the literal or folded styles?
 		style                 yaml_scalar_style_t // The output style.
 	}
+
+	// Comments
+	header_comment []byte
+	inline_comment []byte
+	footer_comment []byte
 
 	// Dumper stuff
 

@@ -75,11 +75,15 @@ func (e *encoder) must(ok bool) {
 
 func (e *encoder) marshalDoc(tag string, in reflect.Value) {
 	e.init()
-	yaml_document_start_event_initialize(&e.event, nil, nil, true)
-	e.emit()
-	e.marshal(tag, in)
-	yaml_document_end_event_initialize(&e.event, true)
-	e.emit()
+	if node, ok := in.Interface().(*Node); ok && node.Kind == DocumentNode {
+		e.nodev(in)
+	} else {
+		yaml_document_start_event_initialize(&e.event, nil, nil, true)
+		e.emit()
+		e.marshal(tag, in)
+		yaml_document_end_event_initialize(&e.event, true)
+		e.emit()
+	}
 }
 
 func (e *encoder) marshal(tag string, in reflect.Value) {
@@ -294,7 +298,7 @@ func (e *encoder) stringv(tag string, in reflect.Value) {
 	default:
 		style = yaml_DOUBLE_QUOTED_SCALAR_STYLE
 	}
-	e.emitScalar(s, "", tag, style)
+	e.emitScalar(s, "", tag, style, nil, nil, nil)
 }
 
 func (e *encoder) boolv(tag string, in reflect.Value) {
@@ -304,23 +308,23 @@ func (e *encoder) boolv(tag string, in reflect.Value) {
 	} else {
 		s = "false"
 	}
-	e.emitScalar(s, "", tag, yaml_PLAIN_SCALAR_STYLE)
+	e.emitScalar(s, "", tag, yaml_PLAIN_SCALAR_STYLE, nil, nil, nil)
 }
 
 func (e *encoder) intv(tag string, in reflect.Value) {
 	s := strconv.FormatInt(in.Int(), 10)
-	e.emitScalar(s, "", tag, yaml_PLAIN_SCALAR_STYLE)
+	e.emitScalar(s, "", tag, yaml_PLAIN_SCALAR_STYLE, nil, nil, nil)
 }
 
 func (e *encoder) uintv(tag string, in reflect.Value) {
 	s := strconv.FormatUint(in.Uint(), 10)
-	e.emitScalar(s, "", tag, yaml_PLAIN_SCALAR_STYLE)
+	e.emitScalar(s, "", tag, yaml_PLAIN_SCALAR_STYLE, nil, nil, nil)
 }
 
 func (e *encoder) timev(tag string, in reflect.Value) {
 	t := in.Interface().(time.Time)
 	s := t.Format(time.RFC3339Nano)
-	e.emitScalar(s, "", tag, yaml_PLAIN_SCALAR_STYLE)
+	e.emitScalar(s, "", tag, yaml_PLAIN_SCALAR_STYLE, nil, nil, nil)
 }
 
 func (e *encoder) floatv(tag string, in reflect.Value) {
@@ -339,16 +343,20 @@ func (e *encoder) floatv(tag string, in reflect.Value) {
 	case "NaN":
 		s = ".nan"
 	}
-	e.emitScalar(s, "", tag, yaml_PLAIN_SCALAR_STYLE)
+	e.emitScalar(s, "", tag, yaml_PLAIN_SCALAR_STYLE, nil, nil, nil)
 }
 
 func (e *encoder) nilv() {
-	e.emitScalar("null", "", "", yaml_PLAIN_SCALAR_STYLE)
+	e.emitScalar("null", "", "", yaml_PLAIN_SCALAR_STYLE, nil, nil, nil)
 }
 
-func (e *encoder) emitScalar(value, anchor, tag string, style yaml_scalar_style_t) {
+func (e *encoder) emitScalar(value, anchor, tag string, style yaml_scalar_style_t, header, inline, footer []byte) {
+	// TODO Kill this function. Replace all initialize calls by their underlining Go literals.
 	implicit := tag == ""
 	e.must(yaml_scalar_event_initialize(&e.event, []byte(anchor), []byte(tag), []byte(value), implicit, implicit, style))
+	e.event.header_comment = header
+	e.event.inline_comment = inline
+	e.event.footer_comment = footer
 	e.emit()
 }
 
@@ -359,9 +367,15 @@ func (e *encoder) nodev(in reflect.Value) {
 func (e *encoder) node(node *Node) {
 	switch node.Kind {
 	case DocumentNode:
+		yaml_document_start_event_initialize(&e.event, nil, nil, true)
+		e.event.header_comment = []byte(node.Header)
+		e.emit()
 		for _, node := range node.Children {
 			e.node(node)
 		}
+		yaml_document_end_event_initialize(&e.event, true)
+		e.event.footer_comment = []byte(node.Footer)
+		e.emit()
 
 	case SequenceNode:
 		style := yaml_BLOCK_SEQUENCE_STYLE
@@ -369,11 +383,14 @@ func (e *encoder) node(node *Node) {
 			style = yaml_FLOW_SEQUENCE_STYLE
 		}
 		e.must(yaml_sequence_start_event_initialize(&e.event, nil, []byte(node.Tag), node.implicit(), style))
+		e.event.header_comment = []byte(node.Header)
 		e.emit()
 		for _, node := range node.Children {
 			e.node(node)
 		}
 		e.must(yaml_sequence_end_event_initialize(&e.event))
+		e.event.inline_comment = []byte(node.Inline)
+		e.event.footer_comment = []byte(node.Footer)
 		e.emit()
 
 	case MappingNode:
@@ -382,6 +399,7 @@ func (e *encoder) node(node *Node) {
 			style = yaml_FLOW_MAPPING_STYLE
 		}
 		yaml_mapping_start_event_initialize(&e.event, nil, []byte(node.Tag), node.implicit(), style)
+		e.event.header_comment = []byte(node.Header)
 		e.emit()
 
 		for i := 0; i+1 < len(node.Children); i += 2 {
@@ -390,6 +408,8 @@ func (e *encoder) node(node *Node) {
 		}
 
 		yaml_mapping_end_event_initialize(&e.event)
+		e.event.inline_comment = []byte(node.Inline)
+		e.event.footer_comment = []byte(node.Footer)
 		e.emit()
 
 	case ScalarNode, AliasNode:
@@ -408,7 +428,7 @@ func (e *encoder) node(node *Node) {
 		if style == yaml_PLAIN_SCALAR_STYLE && strings.Contains(node.Value, "\n") {
 			style = yaml_LITERAL_SCALAR_STYLE
 		}
-		e.emitScalar(node.Value, "", node.Tag, style)
+		e.emitScalar(node.Value, "", node.Tag, style, []byte(node.Header), []byte(node.Inline), []byte(node.Footer))
 
 		// TODO Check if binaries are being decoded into node.Value or not.
 		//switch {

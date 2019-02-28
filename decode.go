@@ -33,15 +33,14 @@ const (
 )
 
 type Node struct {
-	Kind   NodeKind
-	Style  Style
-	Line   int
-	Column int
-	Tag    string
-	Value  string
-	// TODO Alias should probably be the string, and then perhaps have a hidden cache?
-	Alias    *Node // Resolved alias for alias nodes.
-	Anchors  map[string]*Node
+	Kind     NodeKind
+	Style    Style
+	Line     int
+	Column   int
+	Tag      string
+	Value    string
+	Anchor   string
+	Alias    *Node
 	Children []*Node
 	Header   string
 	Inline   string
@@ -103,6 +102,7 @@ type parser struct {
 	parser   yaml_parser_t
 	event    yaml_event_t
 	doc      *Node
+	anchors  map[string]*Node
 	doneInit bool
 }
 
@@ -131,6 +131,7 @@ func (p *parser) init() {
 	if p.doneInit {
 		return
 	}
+	p.anchors = make(map[string]*Node)
 	p.expect(yaml_STREAM_START_EVENT)
 	p.doneInit = true
 }
@@ -199,7 +200,8 @@ func (p *parser) fail() {
 
 func (p *parser) anchor(n *Node, anchor []byte) {
 	if anchor != nil {
-		p.doc.Anchors[string(anchor)] = n
+		n.Anchor = string(anchor)
+		p.anchors[n.Anchor] = n
 	}
 }
 
@@ -243,7 +245,6 @@ func (p *parser) parseChild(parent *Node) *Node {
 
 func (p *parser) document() *Node {
 	n := p.node(DocumentNode)
-	n.Anchors = make(map[string]*Node)
 	p.doc = n
 	p.expect(yaml_DOCUMENT_START_EVENT)
 	p.parseChild(n)
@@ -257,7 +258,7 @@ func (p *parser) document() *Node {
 func (p *parser) alias() *Node {
 	n := p.node(AliasNode)
 	n.Value = string(p.event.anchor)
-	n.Alias = p.doc.Anchors[n.Value]
+	n.Alias = p.anchors[n.Value]
 	if n.Alias == nil {
 		failf("unknown anchor '%s' referenced", n.Value)
 	}
@@ -848,8 +849,7 @@ func (d *decoder) merge(n *Node, out reflect.Value) {
 	case MappingNode:
 		d.unmarshal(n, out)
 	case AliasNode:
-		an, ok := d.doc.Anchors[n.Value]
-		if ok && an.Kind != MappingNode {
+		if n.Alias != nil && n.Alias.Kind != MappingNode {
 			failWantMap()
 		}
 		d.unmarshal(n, out)
@@ -858,8 +858,7 @@ func (d *decoder) merge(n *Node, out reflect.Value) {
 		for i := len(n.Children) - 1; i >= 0; i-- {
 			ni := n.Children[i]
 			if ni.Kind == AliasNode {
-				an, ok := d.doc.Anchors[ni.Value]
-				if ok && an.Kind != MappingNode {
+				if ni.Alias != nil && ni.Alias.Kind != MappingNode {
 					failWantMap()
 				}
 			} else if ni.Kind != MappingNode {

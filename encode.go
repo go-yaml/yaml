@@ -14,12 +14,10 @@ import (
 )
 
 type encoder struct {
-	emitter yaml_emitter_t
-	event   yaml_event_t
-	out     []byte
-	flow    bool
-	// doneInit holds whether the initial stream_start_event has been
-	// emitted.
+	emitter  yaml_emitter_t
+	event    yaml_event_t
+	out      []byte
+	flow     bool
 	doneInit bool
 }
 
@@ -382,7 +380,7 @@ func (e *encoder) node(node *Node) {
 		if node.Style&FlowStyle != 0 {
 			style = yaml_FLOW_SEQUENCE_STYLE
 		}
-		e.must(yaml_sequence_start_event_initialize(&e.event, nil, []byte(node.Tag), node.implicit(), style))
+		e.must(yaml_sequence_start_event_initialize(&e.event, []byte(node.Anchor), []byte(node.Tag), node.implicit(), style))
 		e.event.header_comment = []byte(node.Header)
 		e.emit()
 		for _, node := range node.Children {
@@ -398,7 +396,7 @@ func (e *encoder) node(node *Node) {
 		if node.Style&FlowStyle != 0 {
 			style = yaml_FLOW_MAPPING_STYLE
 		}
-		yaml_mapping_start_event_initialize(&e.event, nil, []byte(node.Tag), node.implicit(), style)
+		yaml_mapping_start_event_initialize(&e.event, []byte(node.Anchor), []byte(node.Tag), node.implicit(), style)
 		e.event.header_comment = []byte(node.Header)
 		e.emit()
 
@@ -412,7 +410,12 @@ func (e *encoder) node(node *Node) {
 		e.event.footer_comment = []byte(node.Footer)
 		e.emit()
 
-	case ScalarNode, AliasNode:
+	case AliasNode:
+		// TODO This is lacking comment handling. Test and fix.
+		yaml_alias_event_initialize(&e.event, []byte(node.Value))
+		e.emit()
+
+	case ScalarNode:
 		style := yaml_PLAIN_SCALAR_STYLE
 		switch {
 		case node.Style&DoubleQuotedStyle != 0:
@@ -428,7 +431,7 @@ func (e *encoder) node(node *Node) {
 		if style == yaml_PLAIN_SCALAR_STYLE && strings.Contains(node.Value, "\n") {
 			style = yaml_LITERAL_SCALAR_STYLE
 		}
-		e.emitScalar(node.Value, "", node.Tag, style, []byte(node.Header), []byte(node.Inline), []byte(node.Footer))
+		e.emitScalar(node.Value, node.Anchor, node.Tag, style, []byte(node.Header), []byte(node.Inline), []byte(node.Footer))
 
 		// TODO Check if binaries are being decoded into node.Value or not.
 		//switch {

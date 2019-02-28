@@ -288,29 +288,14 @@ func yaml_document_end_event_initialize(event *yaml_event_t, implicit bool) {
 	}
 }
 
-///*
-// * Create ALIAS.
-// */
-//
-//YAML_DECLARE(int)
-//yaml_alias_event_initialize(event *yaml_event_t, anchor *yaml_char_t)
-//{
-//    mark yaml_mark_t = { 0, 0, 0 }
-//    anchor_copy *yaml_char_t = NULL
-//
-//    assert(event) // Non-NULL event object is expected.
-//    assert(anchor) // Non-NULL anchor is expected.
-//
-//    if (!yaml_check_utf8(anchor, strlen((char *)anchor))) return 0
-//
-//    anchor_copy = yaml_strdup(anchor)
-//    if (!anchor_copy)
-//        return 0
-//
-//    ALIAS_EVENT_INIT(*event, anchor_copy, mark, mark)
-//
-//    return 1
-//}
+// Create ALIAS.
+func yaml_alias_event_initialize(event *yaml_event_t, anchor []byte) bool {
+	*event = yaml_event_t{
+		typ: yaml_ALIAS_EVENT,
+		anchor: anchor,
+	}
+	return true
+}
 
 // Create SCALAR.
 func yaml_scalar_event_initialize(event *yaml_event_t, anchor, tag, value []byte, plain_implicit, quoted_implicit bool, style yaml_scalar_style_t) bool {

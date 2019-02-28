@@ -19,7 +19,6 @@ var nodeTests = []struct {
 			Kind:    yaml.DocumentNode,
 			Line:    1,
 			Column:  1,
-			Anchors: map[string]*yaml.Node{},
 			Children: []*yaml.Node{{
 				Kind:   yaml.ScalarNode,
 				Value:  "null",
@@ -35,7 +34,6 @@ var nodeTests = []struct {
 			Kind:    yaml.DocumentNode,
 			Line:    1,
 			Column:  1,
-			Anchors: map[string]*yaml.Node{},
 			Children: []*yaml.Node{{
 				Kind:   yaml.ScalarNode,
 				Value:  "foo",
@@ -50,7 +48,6 @@ var nodeTests = []struct {
 			Kind:    yaml.DocumentNode,
 			Line:    1,
 			Column:  1,
-			Anchors: map[string]*yaml.Node{},
 			Children: []*yaml.Node{{
 				Kind:   yaml.ScalarNode,
 				Style:  yaml.DoubleQuotedStyle,
@@ -66,7 +63,6 @@ var nodeTests = []struct {
 			Kind:    yaml.DocumentNode,
 			Line:    1,
 			Column:  1,
-			Anchors: map[string]*yaml.Node{},
 			Children: []*yaml.Node{{
 				Kind:   yaml.ScalarNode,
 				Style:  yaml.SingleQuotedStyle,
@@ -82,7 +78,6 @@ var nodeTests = []struct {
 			Kind:    yaml.DocumentNode,
 			Line:    1,
 			Column:  1,
-			Anchors: map[string]*yaml.Node{},
 			Children: []*yaml.Node{{
 				Kind:   yaml.ScalarNode,
 				Style:  yaml.SingleQuotedStyle,
@@ -98,7 +93,6 @@ var nodeTests = []struct {
 			Kind:    yaml.DocumentNode,
 			Line:    1,
 			Column:  1,
-			Anchors: map[string]*yaml.Node{},
 			Children: []*yaml.Node{{
 				Kind:   yaml.ScalarNode,
 				Style:  yaml.LiteralStyle,
@@ -114,7 +108,6 @@ var nodeTests = []struct {
 			Kind:    yaml.DocumentNode,
 			Line:    1,
 			Column:  1,
-			Anchors: map[string]*yaml.Node{},
 			Children: []*yaml.Node{{
 				Kind:   yaml.ScalarNode,
 				Value:  "true",
@@ -129,7 +122,6 @@ var nodeTests = []struct {
 			Kind:    yaml.DocumentNode,
 			Line:    1,
 			Column:  1,
-			Anchors: map[string]*yaml.Node{},
 			Children: []*yaml.Node{{
 				Kind:   yaml.ScalarNode,
 				Value:  "-10",
@@ -144,7 +136,6 @@ var nodeTests = []struct {
 			Kind:    yaml.DocumentNode,
 			Line:    1,
 			Column:  1,
-			Anchors: map[string]*yaml.Node{},
 			Children: []*yaml.Node{{
 				Kind:   yaml.ScalarNode,
 				Value:  "4294967296",
@@ -159,7 +150,6 @@ var nodeTests = []struct {
 			Kind:    yaml.DocumentNode,
 			Line:    1,
 			Column:  1,
-			Anchors: map[string]*yaml.Node{},
 			Children: []*yaml.Node{{
 				Kind:   yaml.ScalarNode,
 				Value:  "0.1000",
@@ -174,7 +164,6 @@ var nodeTests = []struct {
 			Kind:    yaml.DocumentNode,
 			Line:    1,
 			Column:  1,
-			Anchors: map[string]*yaml.Node{},
 			Children: []*yaml.Node{{
 				Kind:   yaml.ScalarNode,
 				Value:  "-.inf",
@@ -189,7 +178,6 @@ var nodeTests = []struct {
 			Kind:    yaml.DocumentNode,
 			Line:    1,
 			Column:  1,
-			Anchors: map[string]*yaml.Node{},
 			Children: []*yaml.Node{{
 				Kind:   yaml.ScalarNode,
 				Value:  ".nan",
@@ -204,7 +192,6 @@ var nodeTests = []struct {
 			Kind:    yaml.DocumentNode,
 			Line:    1,
 			Column:  1,
-			Anchors: map[string]*yaml.Node{},
 			Children: []*yaml.Node{{
 				Kind:   yaml.MappingNode,
 				Style:  yaml.FlowStyle,
@@ -221,7 +208,6 @@ var nodeTests = []struct {
 			Kind:    yaml.DocumentNode,
 			Line:    1,
 			Column:  1,
-			Anchors: map[string]*yaml.Node{},
 			Children: []*yaml.Node{{
 				Kind:   yaml.MappingNode,
 				Value:  "",
@@ -248,7 +234,6 @@ var nodeTests = []struct {
 			Kind:    yaml.DocumentNode,
 			Line:    1,
 			Column:  1,
-			Anchors: map[string]*yaml.Node{},
 			Children: []*yaml.Node{{
 				Kind:   yaml.MappingNode,
 				Line:   1,
@@ -293,7 +278,6 @@ var nodeTests = []struct {
 			Kind:    yaml.DocumentNode,
 			Line:    1,
 			Column:  1,
-			Anchors: map[string]*yaml.Node{},
 			Children: []*yaml.Node{{
 				Kind:   yaml.SequenceNode,
 				Value:  "",
@@ -320,7 +304,6 @@ var nodeTests = []struct {
 			Kind:    yaml.DocumentNode,
 			Line:    1,
 			Column:  1,
-			Anchors: map[string]*yaml.Node{},
 			Children: []*yaml.Node{{
 				Kind:   yaml.SequenceNode,
 				Line:   1,
@@ -355,7 +338,6 @@ var nodeTests = []struct {
 			Kind:    yaml.DocumentNode,
 			Line:    1,
 			Column:  1,
-			Anchors: map[string]*yaml.Node{},
 			Children: []*yaml.Node{{
 				Kind:   yaml.SequenceNode,
 				Style:  yaml.FlowStyle,
@@ -383,7 +365,6 @@ var nodeTests = []struct {
 			Kind:    yaml.DocumentNode,
 			Line:    1,
 			Column:  1,
-			Anchors: map[string]*yaml.Node{},
 			Children: []*yaml.Node{{
 				Kind:   yaml.SequenceNode,
 				Line:   1,
@@ -413,13 +394,75 @@ var nodeTests = []struct {
 			}},
 		},
 	}, {
+		"a: &x 1\nb: &y 2\nc: *x\nd: *y\n",
+		"!!map",
+		yaml.Node{
+			Kind:   yaml.DocumentNode,
+			Line:   1,
+			Column: 1,
+			Children: []*yaml.Node{{
+				Kind: yaml.MappingNode,
+				Line: 1,
+				Column: 1,
+				Children: []*yaml.Node{{
+					Kind: yaml.ScalarNode,
+					Line: 1,
+					Column: 1,
+					Value: "a",
+				},
+				saveNode("x", &yaml.Node{
+					Kind:   yaml.ScalarNode,
+					Line:   1,
+					Column: 4,
+					Value:  "1",
+					Anchor: "x",
+				}),
+				{
+					Kind: yaml.ScalarNode,
+					Line: 2,
+					Column: 1,
+					Value: "b",
+				},
+				saveNode("y", &yaml.Node{
+					Kind:   yaml.ScalarNode,
+					Line:   2,
+					Column: 4,
+					Value:  "2",
+					Anchor: "y",
+				}),
+				{
+					Kind: yaml.ScalarNode,
+					Line: 3,
+					Column: 1,
+					Value: "c",
+				}, {
+					Kind: yaml.AliasNode,
+					Line: 3,
+					Column: 4,
+					Value: "x",
+					Alias: dropNode("x"),
+				}, {
+					Kind: yaml.ScalarNode,
+					Line: 4,
+					Column: 1,
+					Value: "d",
+				}, {
+					Kind: yaml.AliasNode,
+					Line: 4,
+					Column: 4,
+					Value: "y",
+					Alias: dropNode("y"),
+				}},
+			}},
+		},
+	}, {
+
 		"# One\n# Two\ntrue # Three\n# Four\n# Five\n",
 		"!!bool",
 		yaml.Node{
 			Kind:    yaml.DocumentNode,
 			Line:    3,
 			Column:  1,
-			Anchors: map[string]*yaml.Node{},
 			Children: []*yaml.Node{{
 				Kind:   yaml.ScalarNode,
 				Value:  "true",
@@ -437,7 +480,6 @@ var nodeTests = []struct {
 			Kind:    yaml.DocumentNode,
 			Line:    7,
 			Column:  1,
-			Anchors: map[string]*yaml.Node{},
 			Header:  "# DH1\n\n# DH2",
 			Footer:  "# DF1\n\n# DF2",
 			Children: []*yaml.Node{{
@@ -457,7 +499,6 @@ var nodeTests = []struct {
 			Kind:    yaml.DocumentNode,
 			Line:    7,
 			Column:  1,
-			Anchors: map[string]*yaml.Node{},
 			Header:  "# DH1\n\n# DH2",
 			Footer:  "# DF1\n\n# DF2",
 			Children: []*yaml.Node{{
@@ -500,7 +541,6 @@ var nodeTests = []struct {
 			Kind:    yaml.DocumentNode,
 			Line:    7,
 			Column:  1,
-			Anchors: map[string]*yaml.Node{},
 			Header:  "# DH1\n\n# DH2",
 			Footer:  "# DF1\n\n# DF2",
 			Children: []*yaml.Node{{
@@ -533,7 +573,6 @@ var nodeTests = []struct {
 			Kind:    yaml.DocumentNode,
 			Line:    3,
 			Column:  1,
-			Anchors: map[string]*yaml.Node{},
 			Header:  "# DH1",
 			Children: []*yaml.Node{{
 				Kind:   yaml.SequenceNode,
@@ -561,7 +600,6 @@ var nodeTests = []struct {
 			Kind:    yaml.DocumentNode,
 			Line:    4,
 			Column:  1,
-			Anchors: map[string]*yaml.Node{},
 			Header:  "# DH1",
 			Footer:  "# DF1",
 			Children: []*yaml.Node{{
@@ -617,7 +655,6 @@ var nodeTests = []struct {
 			Kind:    yaml.DocumentNode,
 			Line:    2,
 			Column:  1,
-			Anchors: map[string]*yaml.Node{},
 			Children: []*yaml.Node{{
 				Kind:   yaml.SequenceNode,
 				Style:  yaml.FlowStyle,
@@ -646,7 +683,6 @@ var nodeTests = []struct {
 			Kind:    yaml.DocumentNode,
 			Line:    4,
 			Column:  1,
-			Anchors: map[string]*yaml.Node{},
 			Header:  "# DH1",
 			Footer:  "# DF1",
 			Children: []*yaml.Node{{
@@ -682,7 +718,6 @@ var nodeTests = []struct {
 			Kind:    yaml.DocumentNode,
 			Line:    4,
 			Column:  1,
-			Anchors: map[string]*yaml.Node{},
 			Header:  "# DH1",
 			Footer:  "# DF1",
 			Children: []*yaml.Node{{
@@ -716,7 +751,6 @@ var nodeTests = []struct {
 			Kind:    yaml.DocumentNode,
 			Line:    4,
 			Column:  1,
-			Anchors: map[string]*yaml.Node{},
 			Header:  "# DH1",
 			Footer:  "# DF1",
 			Children: []*yaml.Node{{
@@ -762,7 +796,6 @@ var nodeTests = []struct {
 			Kind:    yaml.DocumentNode,
 			Line:    4,
 			Column:  1,
-			Anchors: map[string]*yaml.Node{},
 			Header:  "# DH1",
 			Footer:  "# DF1",
 			Children: []*yaml.Node{{
@@ -818,4 +851,21 @@ func (s *S) TestNodeRoundtrip(c *C) {
 			c.Assert(node.Children[0].ShortTag(), Equals, item.tag)
 		}
 	}
+}
+
+var savedNodes = make(map[string]*yaml.Node)
+
+func saveNode(name string, node *yaml.Node) *yaml.Node {
+	savedNodes[name] = node
+	return node
+}
+
+func peekNode(name string) *yaml.Node {
+	return savedNodes[name]
+}
+
+func dropNode(name string) *yaml.Node {
+	node := savedNodes[name]
+	delete(savedNodes, name)
+	return node
 }

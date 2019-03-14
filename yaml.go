@@ -352,7 +352,7 @@ func getStructInfo(st reflect.Type) (*structInfo, error) {
 				case "inline":
 					inline = true
 				default:
-					return nil, errors.New(fmt.Sprintf("Unsupported flag %q in tag %q of type %s", flag, tag, st))
+					return nil, errors.New(fmt.Sprintf("unsupported flag %q in tag %q of type %s", flag, tag, st))
 				}
 			}
 			tag = fields[0]
@@ -362,10 +362,10 @@ func getStructInfo(st reflect.Type) (*structInfo, error) {
 			switch field.Type.Kind() {
 			case reflect.Map:
 				if inlineMap >= 0 {
-					return nil, errors.New("Multiple ,inline maps in struct " + st.String())
+					return nil, errors.New("multiple ,inline maps in struct " + st.String())
 				}
 				if field.Type.Key() != reflect.TypeOf("") {
-					return nil, errors.New("Option ,inline needs a map with string keys in struct " + st.String())
+					return nil, errors.New("option ,inline needs a map with string keys in struct " + st.String())
 				}
 				inlineMap = info.Num
 			case reflect.Struct:
@@ -375,7 +375,7 @@ func getStructInfo(st reflect.Type) (*structInfo, error) {
 				}
 				for _, finfo := range sinfo.FieldsList {
 					if _, found := fieldsMap[finfo.Key]; found {
-						msg := "Duplicated key '" + finfo.Key + "' in struct " + st.String()
+						msg := "duplicated key '" + finfo.Key + "' in struct " + st.String()
 						return nil, errors.New(msg)
 					}
 					if finfo.Inline == nil {
@@ -388,8 +388,8 @@ func getStructInfo(st reflect.Type) (*structInfo, error) {
 					fieldsList = append(fieldsList, finfo)
 				}
 			default:
-				//return nil, errors.New("Option ,inline needs a struct value or map field")
-				return nil, errors.New("Option ,inline needs a struct value field")
+				//return nil, errors.New("option ,inline needs a struct value or map field")
+				return nil, errors.New("option ,inline needs a struct value field")
 			}
 			continue
 		}
@@ -401,7 +401,7 @@ func getStructInfo(st reflect.Type) (*structInfo, error) {
 		}
 
 		if _, found = fieldsMap[info.Key]; found {
-			msg := "Duplicated key '" + info.Key + "' in struct " + st.String()
+			msg := "duplicated key '" + info.Key + "' in struct " + st.String()
 			return nil, errors.New(msg)
 		}
 

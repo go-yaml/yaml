@@ -16,11 +16,12 @@ import (
 )
 
 // The Unmarshaler interface may be implemented by types to customize their
-// behavior when being unmarshaled from a YAML document. The UnmarshalYAML
-// method receives a function that may be called to unmarshal the original
-// YAML value into a field or variable. It is safe to call the unmarshal
-// function parameter more than once if necessary.
+// behavior when being unmarshaled from a YAML document.
 type Unmarshaler interface {
+	UnmarshalYAML(value *Node) error
+}
+
+type obsoleteUnmarshaler interface {
 	UnmarshalYAML(unmarshal func(interface{}) error) error
 }
 

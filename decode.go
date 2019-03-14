@@ -367,6 +367,13 @@ func (d *decoder) terror(n *Node, tag string, out reflect.Value) {
 }
 
 func (d *decoder) callUnmarshaler(n *Node, u Unmarshaler) (good bool) {
+	if err := u.UnmarshalYAML(n); err != nil {
+		fail(err)
+	}
+	return true
+}
+
+func (d *decoder) callObsoleteUnmarshaler(n *Node, u obsoleteUnmarshaler) (good bool) {
 	terrlen := len(d.terrors)
 	err := u.UnmarshalYAML(func(v interface{}) (err error) {
 		defer handleErr(&err)
@@ -410,8 +417,13 @@ func (d *decoder) prepare(n *Node, out reflect.Value) (newout reflect.Value, unm
 			again = true
 		}
 		if out.CanAddr() {
-			if u, ok := out.Addr().Interface().(Unmarshaler); ok {
+			outi := out.Addr().Interface()
+			if u, ok := outi.(Unmarshaler); ok {
 				good = d.callUnmarshaler(n, u)
+				return out, true, good
+			}
+			if u, ok := outi.(obsoleteUnmarshaler); ok {
+				good = d.callObsoleteUnmarshaler(n, u)
 				return out, true, good
 			}
 		}

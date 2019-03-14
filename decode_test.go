@@ -863,8 +863,8 @@ type unmarshalerType struct {
 	value interface{}
 }
 
-func (o *unmarshalerType) UnmarshalYAML(unmarshal func(v interface{}) error) error {
-	if err := unmarshal(&o.value); err != nil {
+func (o *unmarshalerType) UnmarshalYAML(value *yaml.Node) error {
+	if err := value.Decode(&o.value); err != nil {
 		return err
 	}
 	if i, ok := o.value.(int); ok {
@@ -883,9 +883,45 @@ type unmarshalerValue struct {
 	Field unmarshalerType "_"
 }
 
+
+type obsoleteUnmarshalerType struct {
+	value interface{}
+}
+
+func (o *obsoleteUnmarshalerType) UnmarshalYAML(unmarshal func(v interface{}) error) error {
+	if err := unmarshal(&o.value); err != nil {
+		return err
+	}
+	if i, ok := o.value.(int); ok {
+		if result, ok := unmarshalerResult[i]; ok {
+			return result
+		}
+	}
+	return nil
+}
+
+type obsoleteUnmarshalerPointer struct {
+	Field *obsoleteUnmarshalerType "_"
+}
+
+type obsoleteUnmarshalerValue struct {
+	Field obsoleteUnmarshalerType "_"
+}
+
 func (s *S) TestUnmarshalerPointerField(c *C) {
 	for _, item := range unmarshalerTests {
 		obj := &unmarshalerPointer{}
+		err := yaml.Unmarshal([]byte(item.data), obj)
+		c.Assert(err, IsNil)
+		if item.value == nil {
+			c.Assert(obj.Field, IsNil)
+		} else {
+			c.Assert(obj.Field, NotNil, Commentf("Pointer not initialized (%#v)", item.value))
+			c.Assert(obj.Field.value, DeepEquals, item.value)
+		}
+	}
+	for _, item := range unmarshalerTests {
+		obj := &obsoleteUnmarshalerPointer{}
 		err := yaml.Unmarshal([]byte(item.data), obj)
 		c.Assert(err, IsNil)
 		if item.value == nil {
@@ -899,7 +935,7 @@ func (s *S) TestUnmarshalerPointerField(c *C) {
 
 func (s *S) TestUnmarshalerValueField(c *C) {
 	for _, item := range unmarshalerTests {
-		obj := &unmarshalerValue{}
+		obj := &obsoleteUnmarshalerValue{}
 		err := yaml.Unmarshal([]byte(item.data), obj)
 		c.Assert(err, IsNil)
 		c.Assert(obj.Field, NotNil, Commentf("Pointer not initialized (%#v)", item.value))
@@ -908,7 +944,7 @@ func (s *S) TestUnmarshalerValueField(c *C) {
 }
 
 func (s *S) TestUnmarshalerWholeDocument(c *C) {
-	obj := &unmarshalerType{}
+	obj := &obsoleteUnmarshalerType{}
 	err := yaml.Unmarshal([]byte(unmarshalerTests[0].data), obj)
 	c.Assert(err, IsNil)
 	value, ok := obj.value.(map[interface{}]interface{})
@@ -927,7 +963,7 @@ func (s *S) TestUnmarshalerTypeError(c *C) {
 	type T struct {
 		Before int
 		After  int
-		M      map[string]*unmarshalerType
+		M      map[string]*obsoleteUnmarshalerType
 	}
 	var v T
 	data := `{before: A, m: {abc: 1, def: 2, ghi: 3, jkl: 4}, after: B}`

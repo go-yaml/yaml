@@ -15,15 +15,6 @@ import (
 	"sync"
 )
 
-// MapSlice encodes and decodes as a YAML map.
-// The order of keys is preserved when encoding and decoding.
-type MapSlice []MapItem
-
-// MapItem is an item in a MapSlice.
-type MapItem struct {
-	Key, Value interface{}
-}
-
 // The Unmarshaler interface may be implemented by types to customize their
 // behavior when being unmarshaled from a YAML document. The UnmarshalYAML
 // method receives a function that may be called to unmarshal the original

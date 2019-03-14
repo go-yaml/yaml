@@ -338,7 +338,6 @@ type decoder struct {
 
 var (
 	nodeType       = reflect.TypeOf(Node{})
-	mapItemType    = reflect.TypeOf(MapItem{})
 	durationType   = reflect.TypeOf(time.Duration(0))
 	defaultMapType = reflect.TypeOf(map[interface{}]interface{}{})
 	ifaceType      = defaultMapType.Elem()
@@ -685,23 +684,12 @@ func (d *decoder) mapping(n *Node, out reflect.Value) (good bool) {
 	switch out.Kind() {
 	case reflect.Struct:
 		return d.mappingStruct(n, out)
-	case reflect.Slice:
-		return d.mappingSlice(n, out)
 	case reflect.Map:
 		// okay
 	case reflect.Interface:
-		if d.mapType.Kind() == reflect.Map {
-			iface := out
-			out = reflect.MakeMap(d.mapType)
-			iface.Set(out)
-		} else {
-			slicev := reflect.New(d.mapType).Elem()
-			if !d.mappingSlice(n, slicev) {
-				return false
-			}
-			out.Set(slicev)
-			return true
-		}
+		iface := out
+		out = reflect.MakeMap(d.mapType)
+		iface.Set(out)
 	default:
 		d.terror(n, yaml_MAP_TAG, out)
 		return false
@@ -749,37 +737,6 @@ func (d *decoder) setMapIndex(n *Node, out, k, v reflect.Value) {
 		return
 	}
 	out.SetMapIndex(k, v)
-}
-
-func (d *decoder) mappingSlice(n *Node, out reflect.Value) (good bool) {
-	outt := out.Type()
-	if outt.Elem() != mapItemType {
-		d.terror(n, yaml_MAP_TAG, out)
-		return false
-	}
-
-	mapType := d.mapType
-	d.mapType = outt
-
-	var slice []MapItem
-	var l = len(n.Children)
-	for i := 0; i < l; i += 2 {
-		if isMerge(n.Children[i]) {
-			d.merge(n.Children[i+1], out)
-			continue
-		}
-		item := MapItem{}
-		k := reflect.ValueOf(&item.Key).Elem()
-		if d.unmarshal(n.Children[i], k) {
-			v := reflect.ValueOf(&item.Value).Elem()
-			if d.unmarshal(n.Children[i+1], v) {
-				slice = append(slice, item)
-			}
-		}
-	}
-	out.Set(reflect.ValueOf(slice))
-	d.mapType = mapType
-	return true
 }
 
 func (d *decoder) mappingStruct(n *Node, out reflect.Value) (good bool) {

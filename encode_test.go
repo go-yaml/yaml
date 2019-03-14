@@ -12,7 +12,7 @@ import (
 	"os"
 
 	. "gopkg.in/check.v1"
-	"gopkg.in/yaml.v2"
+	"gopkg.in/niemeyer/ynext.v3"
 )
 
 var marshalIntTest = 123
@@ -313,12 +313,6 @@ var marshalTests = []struct {
 	}, {
 		map[string]string{"a": strings.Repeat("\x90", 54)},
 		"a: !!binary |\n  " + strings.Repeat("kJCQ", 17) + "kJ\n  CQ\n",
-	},
-
-	// Ordered maps.
-	{
-		&yaml.MapSlice{{"b", 2}, {"a", 1}, {"d", 4}, {"c", 3}, {"sub", yaml.MapSlice{{"e", 5}}}},
-		"b: 2\na: 1\nd: 4\nc: 3\nsub:\n  e: 5\n",
 	},
 
 	// Encode unicode as utf-8 rather than in escaped form.

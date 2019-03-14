@@ -551,12 +551,6 @@ var unmarshalTests = []struct {
 		map[string]string{"a": strings.Repeat("\x00", 52)},
 	},
 
-	// Ordered maps.
-	{
-		"{b: 2, a: 1, d: 4, c: 3, sub: {e: 5}}",
-		&yaml.MapSlice{{"b", 2}, {"a", 1}, {"d", 4}, {"c", 3}, {"sub", yaml.MapSlice{{"e", 5}}}},
-	},
-
 	// Issue #39.
 	{
 		"a:\n b:\n  c: d\n",

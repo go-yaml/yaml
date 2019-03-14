@@ -73,7 +73,11 @@ func (e *encoder) must(ok bool) {
 
 func (e *encoder) marshalDoc(tag string, in reflect.Value) {
 	e.init()
-	if node, ok := in.Interface().(*Node); ok && node.Kind == DocumentNode {
+	var node *Node
+	if in.IsValid() {
+		node, _ = in.Interface().(*Node)
+	}
+	if node != nil && node.Kind == DocumentNode {
 		e.nodev(in)
 	} else {
 		yaml_document_start_event_initialize(&e.event, nil, nil, true)
@@ -156,16 +160,6 @@ func (e *encoder) mapv(tag string, in reflect.Value) {
 		for _, k := range keys {
 			e.marshal("", k)
 			e.marshal("", in.MapIndex(k))
-		}
-	})
-}
-
-func (e *encoder) itemsv(tag string, in reflect.Value) {
-	e.mappingv(tag, func() {
-		slice := in.Convert(reflect.TypeOf([]MapItem{})).Interface().([]MapItem)
-		for _, item := range slice {
-			e.marshal("", reflect.ValueOf(item.Key))
-			e.marshal("", reflect.ValueOf(item.Value))
 		}
 	})
 }

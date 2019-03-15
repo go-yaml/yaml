@@ -18,6 +18,7 @@ type encoder struct {
 	event    yaml_event_t
 	out      []byte
 	flow     bool
+	indent   int
 	doneInit bool
 }
 
@@ -41,6 +42,7 @@ func (e *encoder) init() {
 	if e.doneInit {
 		return
 	}
+	e.emitter.best_indent = e.indent
 	yaml_stream_start_event_initialize(&e.event, yaml_UTF8_ENCODING)
 	e.emit()
 	e.doneInit = true

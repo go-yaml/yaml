@@ -512,6 +512,17 @@ func (s *S) TestMarshalerError(c *C) {
 	c.Assert(err, Equals, failingErr)
 }
 
+func (s *S) TestSetIndent(c *C) {
+	var buf bytes.Buffer
+	enc := yaml.NewEncoder(&buf)
+	enc.SetIndent(8)
+	err := enc.Encode(map[string]interface{}{"a": map[string]interface{}{"b": map[string]string{"c": "d"}}})
+	c.Assert(err, Equals, nil)
+	err = enc.Close()
+	c.Assert(err, Equals, nil)
+	c.Assert(buf.String(), Equals, "a:\n        b:\n                c: d\n")
+}
+
 func (s *S) TestSortedOutput(c *C) {
 	order := []interface{}{
 		false,

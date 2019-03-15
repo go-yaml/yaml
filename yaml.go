@@ -239,6 +239,14 @@ func (e *Encoder) Encode(v interface{}) (err error) {
 	return nil
 }
 
+// SetIndent changes the used indentation used when encoding.
+func (e *Encoder) SetIndent(spaces int) {
+	if spaces < 0 {
+		panic("yaml: cannot indent to a negative number of spaces")
+	}
+	e.encoder.indent = spaces
+}
+
 // Close closes the encoder by writing any remaining data.
 // It does not write a stream terminating string "...".
 func (e *Encoder) Close() (err error) {

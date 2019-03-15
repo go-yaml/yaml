@@ -555,24 +555,27 @@ func (d *decoder) scalar(n *Node, out reflect.Value) bool {
 		}
 		return true
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		// This used to work in v2, but it's very unfriendly.
+		isDuration := out.Type() == durationType
+
 		switch resolved := resolved.(type) {
 		case int:
-			if !out.OverflowInt(int64(resolved)) {
+			if !isDuration && !out.OverflowInt(int64(resolved)) {
 				out.SetInt(int64(resolved))
 				return true
 			}
 		case int64:
-			if !out.OverflowInt(resolved) {
+			if !isDuration && !out.OverflowInt(resolved) {
 				out.SetInt(resolved)
 				return true
 			}
 		case uint64:
-			if resolved <= math.MaxInt64 && !out.OverflowInt(int64(resolved)) {
+			if !isDuration && resolved <= math.MaxInt64 && !out.OverflowInt(int64(resolved)) {
 				out.SetInt(int64(resolved))
 				return true
 			}
 		case float64:
-			if resolved <= math.MaxInt64 && !out.OverflowInt(int64(resolved)) {
+			if !isDuration && resolved <= math.MaxInt64 && !out.OverflowInt(int64(resolved)) {
 				out.SetInt(int64(resolved))
 				return true
 			}

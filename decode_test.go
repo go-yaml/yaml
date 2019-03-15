@@ -809,6 +809,13 @@ func (s *S) TestUnmarshalNaN(c *C) {
 	c.Assert(math.IsNaN(value["notanum"].(float64)), Equals, true)
 }
 
+func (s *S) TestUnmarshalDurationInt(c *C) {
+	// Don't accept plain ints as durations as it's unclear (issue #200).
+	var d time.Duration
+	err := yaml.Unmarshal([]byte("123"), &d)
+	c.Assert(err, ErrorMatches, "(?s).* line 1: cannot unmarshal !!int `123` into time.Duration")
+}
+
 var unmarshalErrorTests = []struct {
 	data, error string
 }{

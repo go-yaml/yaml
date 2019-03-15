@@ -1,6 +1,7 @@
 package yaml_test
 
 import (
+	"bytes"
 	"os"
 
 	. "gopkg.in/check.v1"
@@ -844,9 +845,14 @@ func (s *S) TestNodeRoundtrip(c *C) {
 		err := yaml.Unmarshal([]byte(item.yaml), &node)
 		c.Assert(err, IsNil)
 		c.Assert(node, DeepEquals, item.node)
-		data, err := yaml.Marshal(&node)
+		buf := bytes.Buffer{}
+		enc := yaml.NewEncoder(&buf)
+		enc.SetIndent(2)
+		err = enc.Encode(&node)
 		c.Assert(err, IsNil)
-		c.Assert(string(data), Equals, item.yaml)
+		err = enc.Close()
+		c.Assert(err, IsNil)
+		c.Assert(buf.String(), Equals, item.yaml)
 		if len(node.Children) > 0 {
 			c.Assert(node.Children[0].ShortTag(), Equals, item.tag)
 		}

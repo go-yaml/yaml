@@ -42,6 +42,9 @@ func (e *encoder) init() {
 	if e.doneInit {
 		return
 	}
+	if e.indent == 0 {
+		e.indent = 4
+	}
 	e.emitter.best_indent = e.indent
 	yaml_stream_start_event_initialize(&e.event, yaml_UTF8_ENCODING)
 	e.emit()

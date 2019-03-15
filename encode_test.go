@@ -104,7 +104,7 @@ var marshalTests = []struct {
 		"v:\n- A\n- |-\n    B\n    C\n",
 	}, {
 		map[string][]interface{}{"v": []interface{}{"A", 1, map[string][]int{"B": []int{2, 3}}}},
-		"v:\n- A\n- 1\n-   B:\n    - 2\n    - 3\n",
+		"v:\n- A\n- 1\n- B:\n    - 2\n    - 3\n",
 	}, {
 		map[string]interface{}{"a": map[interface{}]interface{}{"b": "c"}},
 		"a:\n    b: c\n",

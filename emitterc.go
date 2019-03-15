@@ -742,8 +742,10 @@ func yaml_emitter_emit_block_mapping_key(emitter *yaml_emitter_t, event *yaml_ev
 	if !yaml_emitter_process_header_comment(emitter) {
 		return false
 	}
-	if !yaml_emitter_write_indent(emitter) {
-		return false
+	if emitter.states[len(emitter.states)-1] != yaml_EMIT_BLOCK_SEQUENCE_ITEM_STATE {
+		if !yaml_emitter_write_indent(emitter) {
+			return false
+		}
 	}
 	if yaml_emitter_check_simple_key(emitter) {
 		emitter.states = append(emitter.states, yaml_EMIT_BLOCK_MAPPING_SIMPLE_VALUE_STATE)

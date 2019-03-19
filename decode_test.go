@@ -691,13 +691,13 @@ var unmarshalTests = []struct {
 		M{"ñoño": "very yes 🟔"},
 	},
 
-	// YAML Float regex shouldn't match this
+	// This *is* in fact a float number, per the spec. #171 was a mistake.
 	{
 		"a: 123456e1\n",
-		M{"a": "123456e1"},
+		M{"a": 123456e1},
 	}, {
 		"a: 123456E1\n",
-		M{"a": "123456E1"},
+		M{"a": 123456E1},
 	},
 	// yaml-test-suite 3GZX: Spec Example 7.1. Alias Nodes
 	{

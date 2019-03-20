@@ -1,6 +1,7 @@
 package yaml_test
 
 import (
+	"bytes"
 	"errors"
 	"io"
 	"math"
@@ -890,7 +891,6 @@ type unmarshalerValue struct {
 	Field unmarshalerType "_"
 }
 
-
 type obsoleteUnmarshalerType struct {
 	value interface{}
 }
@@ -1197,19 +1197,24 @@ func (s *S) TestUnmarshalSliceOnPreset(c *C) {
 }
 
 var unmarshalStrictTests = []struct {
-	data  string
-	value interface{}
-	error string
+	known  bool
+	unique bool
+	data   string
+	value  interface{}
+	error  string
 }{{
+	known: true,
 	data:  "a: 1\nc: 2\n",
 	value: struct{ A, B int }{A: 1},
 	error: `yaml: unmarshal errors:\n  line 2: field c not found in type struct { A int; B int }`,
 }, {
-	data:  "a: 1\nb: 2\na: 3\n",
-	value: struct{ A, B int }{A: 3, B: 2},
-	error: `yaml: unmarshal errors:\n  line 3: field a already set in type struct { A int; B int }`,
+	unique: true,
+	data:   "a: 1\nb: 2\na: 3\n",
+	value:  struct{ A, B int }{A: 3, B: 2},
+	error:  `yaml: unmarshal errors:\n  line 3: field a already set in type struct { A int; B int }`,
 }, {
-	data: "c: 3\na: 1\nb: 2\nc: 4\n",
+	unique: true,
+	data:   "c: 3\na: 1\nb: 2\nc: 4\n",
 	value: struct {
 		A       int
 		inlineB `yaml:",inline"`
@@ -1224,7 +1229,8 @@ var unmarshalStrictTests = []struct {
 	},
 	error: `yaml: unmarshal errors:\n  line 4: field c already set in type struct { A int; yaml_test.inlineB "yaml:\\",inline\\"" }`,
 }, {
-	data: "c: 0\na: 1\nb: 2\nc: 1\n",
+	unique: true,
+	data:   "c: 0\na: 1\nb: 2\nc: 1\n",
 	value: struct {
 		A       int
 		inlineB `yaml:",inline"`
@@ -1239,7 +1245,8 @@ var unmarshalStrictTests = []struct {
 	},
 	error: `yaml: unmarshal errors:\n  line 4: field c already set in type struct { A int; yaml_test.inlineB "yaml:\\",inline\\"" }`,
 }, {
-	data: "c: 1\na: 1\nb: 2\nc: 3\n",
+	unique: true,
+	data:   "c: 1\na: 1\nb: 2\nc: 3\n",
 	value: struct {
 		A int
 		M map[string]interface{} `yaml:",inline"`
@@ -1252,7 +1259,8 @@ var unmarshalStrictTests = []struct {
 	},
 	error: `yaml: unmarshal errors:\n  line 4: key "c" already set in map`,
 }, {
-	data: "a: 1\n9: 2\nnull: 3\n9: 4",
+	unique: true,
+	data:   "a: 1\n9: 2\nnull: 3\n9: 4",
 	value: map[interface{}]interface{}{
 		"a": 1,
 		nil: 3,
@@ -1261,7 +1269,7 @@ var unmarshalStrictTests = []struct {
 	error: `yaml: unmarshal errors:\n  line 4: key 9 already set in map`,
 }}
 
-func (s *S) TestUnmarshalStrict(c *C) {
+func (s *S) TestUnmarshalKnownFields(c *C) {
 	for i, item := range unmarshalStrictTests {
 		c.Logf("test %d: %q", i, item.data)
 		// First test that normal Unmarshal unmarshals to the expected value.
@@ -1271,10 +1279,13 @@ func (s *S) TestUnmarshalStrict(c *C) {
 		c.Assert(err, Equals, nil)
 		c.Assert(value.Elem().Interface(), DeepEquals, item.value)
 
-		// Then test that UnmarshalStrict fails on the same thing.
+		// Then test that it fails on the same thing with KnownFields on.
 		t = reflect.ValueOf(item.value).Type()
 		value = reflect.New(t)
-		err = yaml.UnmarshalStrict([]byte(item.data), value.Interface())
+		dec := yaml.NewDecoder(bytes.NewBuffer([]byte(item.data)))
+		dec.KnownFields(item.known)
+		dec.UniqueKeys(item.unique)
+		err = dec.Decode(value.Interface())
 		c.Assert(err, ErrorMatches, item.error)
 	}
 }

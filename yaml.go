@@ -73,18 +73,11 @@ func Unmarshal(in []byte, out interface{}) (err error) {
 	return unmarshal(in, out, false)
 }
 
-// UnmarshalStrict is like Unmarshal except that any fields that are found
-// in the data that do not have corresponding struct members, or mapping
-// keys that are duplicates, will result in
-// an error.
-func UnmarshalStrict(in []byte, out interface{}) (err error) {
-	return unmarshal(in, out, true)
-}
-
 // A Decorder reads and decodes YAML values from an input stream.
 type Decoder struct {
-	strict bool
-	parser *parser
+	parser      *parser
+	knownFields bool
+	uniqueKeys  bool
 }
 
 // NewDecoder returns a new decoder that reads from r.
@@ -97,10 +90,16 @@ func NewDecoder(r io.Reader) *Decoder {
 	}
 }
 
-// SetStrict sets whether strict decoding behaviour is enabled when
-// decoding items in the data (see UnmarshalStrict). By default, decoding is not strict.
-func (dec *Decoder) SetStrict(strict bool) {
-	dec.strict = strict
+// KnownFields ensures that the keys in decoded mappings to
+// exist as fields in the struct being decoded into.
+func (dec *Decoder) KnownFields(enable bool) {
+	dec.knownFields = enable
+}
+
+// UniqueKeys enforces the keys in decoded mappings to exist
+// only once inside the given mapping.
+func (dec *Decoder) UniqueKeys(enable bool) {
+	dec.uniqueKeys = enable
 }
 
 // Decode reads the next YAML-encoded value from its input
@@ -109,7 +108,9 @@ func (dec *Decoder) SetStrict(strict bool) {
 // See the documentation for Unmarshal for details about the
 // conversion of YAML into a Go value.
 func (dec *Decoder) Decode(v interface{}) (err error) {
-	d := newDecoder(dec.strict)
+	d := newDecoder()
+	d.knownFields = dec.knownFields
+	d.uniqueKeys = dec.uniqueKeys
 	defer handleErr(&err)
 	node := dec.parser.parse()
 	if node == nil {
@@ -127,7 +128,7 @@ func (dec *Decoder) Decode(v interface{}) (err error) {
 }
 
 func (n *Node) Decode(v interface{}) (err error) {
-	d := newDecoder(false)
+	d := newDecoder()
 	defer handleErr(&err)
 	out := reflect.ValueOf(v)
 	if out.Kind() == reflect.Ptr && !out.IsNil() {
@@ -142,7 +143,7 @@ func (n *Node) Decode(v interface{}) (err error) {
 
 func unmarshal(in []byte, out interface{}, strict bool) (err error) {
 	defer handleErr(&err)
-	d := newDecoder(strict)
+	d := newDecoder()
 	p := newParser(in)
 	defer p.destroy()
 	node := p.parse()

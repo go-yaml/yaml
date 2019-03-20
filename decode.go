@@ -333,7 +333,9 @@ type decoder struct {
 	aliases map[*Node]bool
 	mapType reflect.Type
 	terrors []string
-	strict  bool
+
+	knownFields bool
+	uniqueKeys  bool
 }
 
 var (
@@ -345,8 +347,8 @@ var (
 	ptrTimeType    = reflect.TypeOf(&time.Time{})
 )
 
-func newDecoder(strict bool) *decoder {
-	d := &decoder{mapType: defaultMapType, strict: strict}
+func newDecoder() *decoder {
+	d := &decoder{mapType: defaultMapType}
 	d.aliases = make(map[*Node]bool)
 	return d
 }
@@ -747,7 +749,7 @@ func (d *decoder) mapping(n *Node, out reflect.Value) (good bool) {
 }
 
 func (d *decoder) setMapIndex(n *Node, out, k, v reflect.Value) {
-	if d.strict && out.MapIndex(k) != zeroValue {
+	if d.uniqueKeys && out.MapIndex(k) != zeroValue {
 		d.terrors = append(d.terrors, fmt.Sprintf("line %d: key %#v already set in map", n.Line, k.Interface()))
 		return
 	}
@@ -771,7 +773,7 @@ func (d *decoder) mappingStruct(n *Node, out reflect.Value) (good bool) {
 	}
 
 	var doneFields []bool
-	if d.strict {
+	if d.uniqueKeys {
 		doneFields = make([]bool, len(sinfo.FieldsList))
 	}
 	for i := 0; i < l; i += 2 {
@@ -784,7 +786,7 @@ func (d *decoder) mappingStruct(n *Node, out reflect.Value) (good bool) {
 			continue
 		}
 		if info, ok := sinfo.FieldsMap[name.String()]; ok {
-			if d.strict {
+			if d.uniqueKeys {
 				if doneFields[info.Id] {
 					d.terrors = append(d.terrors, fmt.Sprintf("line %d: field %s already set in type %s", ni.Line, name.String(), out.Type()))
 					continue
@@ -805,7 +807,7 @@ func (d *decoder) mappingStruct(n *Node, out reflect.Value) (good bool) {
 			value := reflect.New(elemType).Elem()
 			d.unmarshal(n.Children[i+1], value)
 			d.setMapIndex(n.Children[i+1], inlineMap, name, value)
-		} else if d.strict {
+		} else if d.knownFields {
 			d.terrors = append(d.terrors, fmt.Sprintf("line %d: field %s not found in type %s", ni.Line, name.String(), out.Type()))
 		}
 	}

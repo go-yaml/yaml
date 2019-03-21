@@ -348,7 +348,7 @@ var (
 )
 
 func newDecoder() *decoder {
-	d := &decoder{mapType: defaultMapType}
+	d := &decoder{mapType: defaultMapType, uniqueKeys: true}
 	d.aliases = make(map[*Node]bool)
 	return d
 }
@@ -698,6 +698,22 @@ func (d *decoder) sequence(n *Node, out reflect.Value) (good bool) {
 }
 
 func (d *decoder) mapping(n *Node, out reflect.Value) (good bool) {
+	l := len(n.Children)
+	if d.uniqueKeys {
+		nerrs := len(d.terrors)
+		for i := 0; i < l; i += 2 {
+			ni := n.Children[i]
+			for j := i+2; j < l; j += 2 {
+				nj := n.Children[j]
+				if ni.Kind == nj.Kind && ni.Value == nj.Value {
+					d.terrors = append(d.terrors, fmt.Sprintf("line %d: mapping key %#v already defined at line %d", nj.Line, nj.Value, ni.Line))
+				}
+			}
+		}
+		if len(d.terrors) > nerrs {
+			return false
+		}
+	}
 	switch out.Kind() {
 	case reflect.Struct:
 		return d.mappingStruct(n, out)
@@ -723,7 +739,6 @@ func (d *decoder) mapping(n *Node, out reflect.Value) (good bool) {
 	if out.IsNil() {
 		out.Set(reflect.MakeMap(outt))
 	}
-	l := len(n.Children)
 	for i := 0; i < l; i += 2 {
 		if isMerge(n.Children[i]) {
 			d.merge(n.Children[i+1], out)
@@ -740,20 +755,12 @@ func (d *decoder) mapping(n *Node, out reflect.Value) (good bool) {
 			}
 			e := reflect.New(et).Elem()
 			if d.unmarshal(n.Children[i+1], e) {
-				d.setMapIndex(n.Children[i+1], out, k, e)
+				out.SetMapIndex(k, e)
 			}
 		}
 	}
 	d.mapType = mapType
 	return true
-}
-
-func (d *decoder) setMapIndex(n *Node, out, k, v reflect.Value) {
-	if d.uniqueKeys && out.MapIndex(k) != zeroValue {
-		d.terrors = append(d.terrors, fmt.Sprintf("line %d: key %#v already set in map", n.Line, k.Interface()))
-		return
-	}
-	out.SetMapIndex(k, v)
 }
 
 func (d *decoder) mappingStruct(n *Node, out reflect.Value) (good bool) {
@@ -806,7 +813,7 @@ func (d *decoder) mappingStruct(n *Node, out reflect.Value) (good bool) {
 			}
 			value := reflect.New(elemType).Elem()
 			d.unmarshal(n.Children[i+1], value)
-			d.setMapIndex(n.Children[i+1], inlineMap, name, value)
+			inlineMap.SetMapIndex(name, value)
 		} else if d.knownFields {
 			d.terrors = append(d.terrors, fmt.Sprintf("line %d: field %s not found in type %s", ni.Line, name.String(), out.Type()))
 		}

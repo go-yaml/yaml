@@ -77,7 +77,6 @@ func Unmarshal(in []byte, out interface{}) (err error) {
 type Decoder struct {
 	parser      *parser
 	knownFields bool
-	uniqueKeys  bool
 }
 
 // NewDecoder returns a new decoder that reads from r.
@@ -96,12 +95,6 @@ func (dec *Decoder) KnownFields(enable bool) {
 	dec.knownFields = enable
 }
 
-// UniqueKeys enforces the keys in decoded mappings to exist
-// only once inside the given mapping.
-func (dec *Decoder) UniqueKeys(enable bool) {
-	dec.uniqueKeys = enable
-}
-
 // Decode reads the next YAML-encoded value from its input
 // and stores it in the value pointed to by v.
 //
@@ -110,7 +103,6 @@ func (dec *Decoder) UniqueKeys(enable bool) {
 func (dec *Decoder) Decode(v interface{}) (err error) {
 	d := newDecoder()
 	d.knownFields = dec.knownFields
-	d.uniqueKeys = dec.uniqueKeys
 	defer handleErr(&err)
 	node := dec.parser.parse()
 	if node == nil {

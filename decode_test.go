@@ -1211,7 +1211,7 @@ var unmarshalStrictTests = []struct {
 	unique: true,
 	data:   "a: 1\nb: 2\na: 3\n",
 	value:  struct{ A, B int }{A: 3, B: 2},
-	error:  `yaml: unmarshal errors:\n  line 3: field a already set in type struct { A int; B int }`,
+	error: `yaml: unmarshal errors:\n  line 3: mapping key "a" already defined at line 1`,
 }, {
 	unique: true,
 	data:   "c: 3\na: 1\nb: 2\nc: 4\n",
@@ -1227,7 +1227,7 @@ var unmarshalStrictTests = []struct {
 			},
 		},
 	},
-	error: `yaml: unmarshal errors:\n  line 4: field c already set in type struct { A int; yaml_test.inlineB "yaml:\\",inline\\"" }`,
+	error: `yaml: unmarshal errors:\n  line 4: mapping key "c" already defined at line 1`,
 }, {
 	unique: true,
 	data:   "c: 0\na: 1\nb: 2\nc: 1\n",
@@ -1243,7 +1243,7 @@ var unmarshalStrictTests = []struct {
 			},
 		},
 	},
-	error: `yaml: unmarshal errors:\n  line 4: field c already set in type struct { A int; yaml_test.inlineB "yaml:\\",inline\\"" }`,
+	error: `yaml: unmarshal errors:\n  line 4: mapping key "c" already defined at line 1`,
 }, {
 	unique: true,
 	data:   "c: 1\na: 1\nb: 2\nc: 3\n",
@@ -1257,7 +1257,7 @@ var unmarshalStrictTests = []struct {
 			"c": 3,
 		},
 	},
-	error: `yaml: unmarshal errors:\n  line 4: key "c" already set in map`,
+	error: `yaml: unmarshal errors:\n  line 4: mapping key "c" already defined at line 1`,
 }, {
 	unique: true,
 	data:   "a: 1\n9: 2\nnull: 3\n9: 4",
@@ -1266,26 +1266,27 @@ var unmarshalStrictTests = []struct {
 		nil: 3,
 		9:   4,
 	},
-	error: `yaml: unmarshal errors:\n  line 4: key 9 already set in map`,
+	error: `yaml: unmarshal errors:\n  line 4: mapping key "9" already defined at line 2`,
 }}
 
 func (s *S) TestUnmarshalKnownFields(c *C) {
 	for i, item := range unmarshalStrictTests {
 		c.Logf("test %d: %q", i, item.data)
 		// First test that normal Unmarshal unmarshals to the expected value.
-		t := reflect.ValueOf(item.value).Type()
-		value := reflect.New(t)
-		err := yaml.Unmarshal([]byte(item.data), value.Interface())
-		c.Assert(err, Equals, nil)
-		c.Assert(value.Elem().Interface(), DeepEquals, item.value)
+		if !item.unique {
+			t := reflect.ValueOf(item.value).Type()
+			value := reflect.New(t)
+			err := yaml.Unmarshal([]byte(item.data), value.Interface())
+			c.Assert(err, Equals, nil)
+			c.Assert(value.Elem().Interface(), DeepEquals, item.value)
+		}
 
 		// Then test that it fails on the same thing with KnownFields on.
-		t = reflect.ValueOf(item.value).Type()
-		value = reflect.New(t)
+		t := reflect.ValueOf(item.value).Type()
+		value := reflect.New(t)
 		dec := yaml.NewDecoder(bytes.NewBuffer([]byte(item.data)))
 		dec.KnownFields(item.known)
-		dec.UniqueKeys(item.unique)
-		err = dec.Decode(value.Interface())
+		err := dec.Decode(value.Interface())
 		c.Assert(err, ErrorMatches, item.error)
 	}
 }

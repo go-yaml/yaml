@@ -94,10 +94,27 @@ var unmarshalTests = []struct {
 	//{"sexa: 190:20:30.15", map[string]interface{}{"sexa": 0}}, // Unsupported
 	//{"notanum: .NaN", map[string]interface{}{"notanum": math.NaN()}}, // Equality of NaN fails.
 
-	// Bools from spec
+	// Bools are per 1.2 spec.
 	{
 		"canonical: true",
 		map[string]interface{}{"canonical": true},
+	},
+	// For backwards compatibility with 1.1, decoding old strings into typed values still works.
+	{
+		"option: on",
+		map[string]bool{"option": true},
+	}, {
+		"option: y",
+		map[string]bool{"option": true},
+	}, {
+		"option: Off",
+		map[string]bool{"option": false},
+	}, {
+		"option: No",
+		map[string]bool{"option": false},
+	}, {
+		"option: other",
+		map[string]bool{},
 	},
 	// Ints from spec
 	{
@@ -249,6 +266,10 @@ var unmarshalTests = []struct {
 		&struct {
 			B int "a"
 		}{1},
+	}, {
+		// Some limited backwards compatibility with the 1.1 spec.
+		"a: YES",
+		&struct{ A bool }{true},
 	},
 
 	// Some cross type conversions
@@ -1216,7 +1237,7 @@ var unmarshalStrictTests = []struct {
 	unique: true,
 	data:   "a: 1\nb: 2\na: 3\n",
 	value:  struct{ A, B int }{A: 3, B: 2},
-	error: `yaml: unmarshal errors:\n  line 3: mapping key "a" already defined at line 1`,
+	error:  `yaml: unmarshal errors:\n  line 3: mapping key "a" already defined at line 1`,
 }, {
 	unique: true,
 	data:   "c: 3\na: 1\nb: 2\nc: 4\n",

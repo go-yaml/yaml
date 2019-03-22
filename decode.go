@@ -627,6 +627,17 @@ func (d *decoder) scalar(n *Node, out reflect.Value) bool {
 		case bool:
 			out.SetBool(resolved)
 			return true
+		case string:
+			// This offers some compatibility with the 1.1 spec (https://yaml.org/type/bool.html).
+			// It only works if explicitly attempting to unmarshal into a typed bool value.
+			switch resolved {
+			case "y", "Y", "yes", "Yes", "YES", "on", "On", "ON":
+				out.SetBool(true)
+				return true
+			case "n", "N", "no", "No", "NO", "off", "Off", "OFF":
+				out.SetBool(false)
+				return true
+			}
 		}
 	case reflect.Float32, reflect.Float64:
 		switch resolved := resolved.(type) {

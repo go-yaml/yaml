@@ -196,7 +196,12 @@ var unmarshalTests = []struct {
 	// Map inside interface with no type hints.
 	{
 		"a: {b: c}",
-		map[interface{}]interface{}{"a": map[interface{}]interface{}{"b": "c"}},
+		map[interface{}]interface{}{"a": map[string]interface{}{"b": "c"}},
+	},
+	// Non-string map inside interface with no type hints.
+	{
+		"a: {b: c, 1: d}",
+		map[interface{}]interface{}{"a": map[interface{}]interface{}{"b": "c", 1: "d"}},
 	},
 
 	// Structs and type conversions.
@@ -513,7 +518,7 @@ var unmarshalTests = []struct {
 	// issue #295 (allow scalars with colons in flow mappings and sequences)
 	{
 		"a: {b: https://github.com/go-yaml/yaml}",
-		map[string]interface{}{"a": map[interface{}]interface{}{
+		map[string]interface{}{"a": map[string]interface{}{
 			"b": "https://github.com/go-yaml/yaml",
 		}},
 	},
@@ -555,7 +560,7 @@ var unmarshalTests = []struct {
 	// Issue #39.
 	{
 		"a:\n b:\n  c: d\n",
-		map[string]struct{ B interface{} }{"a": {map[interface{}]interface{}{"c": "d"}}},
+		map[string]struct{ B interface{} }{"a": {map[string]interface{}{"c": "d"}}},
 	},
 
 	// Custom map type.
@@ -682,7 +687,7 @@ var unmarshalTests = []struct {
 	// yaml-test-suite 3GZX: Spec Example 7.1. Alias Nodes
 	{
 		"First occurrence: &anchor Foo\nSecond occurrence: *anchor\nOverride anchor: &anchor Bar\nReuse anchor: *anchor\n",
-		map[interface{}]interface{}{
+		map[string]interface{}{
 			"First occurrence":  "Foo",
 			"Second occurrence": "Foo",
 			"Override anchor":   "Bar",
@@ -696,7 +701,7 @@ var unmarshalTests = []struct {
 	},
 }
 
-type M map[interface{}]interface{}
+type M map[string]interface{}
 
 type inlineB struct {
 	B       int
@@ -759,12 +764,12 @@ var decoderTests = []struct {
 }, {
 	"a: b",
 	[]interface{}{
-		map[interface{}]interface{}{"a": "b"},
+		map[string]interface{}{"a": "b"},
 	},
 }, {
 	"---\na: b\n...\n",
 	[]interface{}{
-		map[interface{}]interface{}{"a": "b"},
+		map[string]interface{}{"a": "b"},
 	},
 }, {
 	"---\n'hello'\n...\n---\ngoodbye\n...\n",
@@ -855,7 +860,7 @@ var unmarshalerTests = []struct {
 	data, tag string
 	value     interface{}
 }{
-	{"_: {hi: there}", "!!map", map[interface{}]interface{}{"hi": "there"}},
+	{"_: {hi: there}", "!!map", map[string]interface{}{"hi": "there"}},
 	{"_: [1,A]", "!!seq", []interface{}{1, "A"}},
 	{"_: 10", "!!int", 10},
 	{"_: null", "!!null", nil},

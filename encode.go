@@ -94,6 +94,7 @@ func (e *encoder) marshalDoc(tag string, in reflect.Value) {
 }
 
 func (e *encoder) marshal(tag string, in reflect.Value) {
+	tag = shortTag(tag)
 	if !in.IsValid() || in.Kind() == reflect.Ptr && in.IsNil() {
 		e.nilv()
 		return
@@ -267,7 +268,7 @@ func (e *encoder) stringv(tag string, in reflect.Value) {
 	canUsePlain := true
 	switch {
 	case !utf8.ValidString(s):
-		if tag == yaml_BINARY_TAG {
+		if tag == binaryTag {
 			failf("explicitly tagged !!binary data must be base64-encoded")
 		}
 		if tag != "" {
@@ -275,14 +276,14 @@ func (e *encoder) stringv(tag string, in reflect.Value) {
 		}
 		// It can't be encoded directly as YAML so use a binary tag
 		// and encode it as base64.
-		tag = yaml_BINARY_TAG
+		tag = binaryTag
 		s = encodeBase64(s)
 	case tag == "":
 		// Check to see if it would resolve to a specific
 		// tag when encoded unquoted. If it doesn't,
 		// there's no need to quote it.
 		rtag, _ := resolve("", s)
-		canUsePlain = rtag == yaml_STR_TAG && !isBase60Float(s)
+		canUsePlain = rtag == strTag && !isBase60Float(s)
 	}
 	// Note: it's possible for user code to emit invalid YAML
 	// if they explicitly specify a tag and a string containing
@@ -350,6 +351,9 @@ func (e *encoder) nilv() {
 func (e *encoder) emitScalar(value, anchor, tag string, style yaml_scalar_style_t, header, inline, footer []byte) {
 	// TODO Kill this function. Replace all initialize calls by their underlining Go literals.
 	implicit := tag == ""
+	if !implicit {
+		tag = longTag(tag)
+	}
 	e.must(yaml_scalar_event_initialize(&e.event, []byte(anchor), []byte(tag), []byte(value), implicit, implicit, style))
 	e.event.header_comment = header
 	e.event.inline_comment = inline
@@ -362,6 +366,38 @@ func (e *encoder) nodev(in reflect.Value) {
 }
 
 func (e *encoder) node(node *Node) {
+	// If the tag was not explicitly requested, and dropping it won't change the
+	// implicit tag of the value, don't include it in the presentation.
+	var tag = node.Tag
+	var stag = shortTag(tag)
+	var rtag string
+	var forceQuoting bool
+	if tag != "" && node.Style&TaggedStyle == 0 {
+		if node.Kind == ScalarNode {
+			if stag == strTag && node.Style&(SingleQuotedStyle|DoubleQuotedStyle|LiteralStyle|FoldedStyle) != 0 {
+				tag = ""
+			} else {
+				rtag, _ = resolve("", node.Value)
+				if rtag == stag {
+					tag = ""
+				} else if stag == strTag {
+					tag = ""
+					forceQuoting = true
+				}
+			}
+		} else {
+			switch node.Kind {
+			case MappingNode:
+				rtag = mapTag
+			case SequenceNode:
+				rtag = seqTag
+			}
+			if rtag == stag {
+				tag = ""
+			}
+		}
+	}
+
 	switch node.Kind {
 	case DocumentNode:
 		yaml_document_start_event_initialize(&e.event, nil, nil, true)
@@ -379,7 +415,7 @@ func (e *encoder) node(node *Node) {
 		if node.Style&FlowStyle != 0 {
 			style = yaml_FLOW_SEQUENCE_STYLE
 		}
-		e.must(yaml_sequence_start_event_initialize(&e.event, []byte(node.Anchor), []byte(node.Tag), node.implicit(), style))
+		e.must(yaml_sequence_start_event_initialize(&e.event, []byte(node.Anchor), []byte(tag), tag == "", style))
 		e.event.header_comment = []byte(node.Header)
 		e.emit()
 		for _, node := range node.Children {
@@ -395,7 +431,7 @@ func (e *encoder) node(node *Node) {
 		if node.Style&FlowStyle != 0 {
 			style = yaml_FLOW_MAPPING_STYLE
 		}
-		yaml_mapping_start_event_initialize(&e.event, []byte(node.Anchor), []byte(node.Tag), node.implicit(), style)
+		yaml_mapping_start_event_initialize(&e.event, []byte(node.Anchor), []byte(tag), tag == "", style)
 		e.event.header_comment = []byte(node.Header)
 		e.emit()
 
@@ -425,17 +461,18 @@ func (e *encoder) node(node *Node) {
 			style = yaml_LITERAL_SCALAR_STYLE
 		case node.Style&FoldedStyle != 0:
 			style = yaml_FOLDED_SCALAR_STYLE
+		case strings.Contains(node.Value, "\n"):
+			style = yaml_LITERAL_SCALAR_STYLE
+		case forceQuoting:
+			style = yaml_DOUBLE_QUOTED_SCALAR_STYLE
 		}
 
-		if style == yaml_PLAIN_SCALAR_STYLE && strings.Contains(node.Value, "\n") {
-			style = yaml_LITERAL_SCALAR_STYLE
-		}
-		e.emitScalar(node.Value, node.Anchor, node.Tag, style, []byte(node.Header), []byte(node.Inline), []byte(node.Footer))
+		e.emitScalar(node.Value, node.Anchor, tag, style, []byte(node.Header), []byte(node.Inline), []byte(node.Footer))
 
 		// TODO Check if binaries are being decoded into node.Value or not.
 		//switch {
 		//if !utf8.ValidString(s) {
-		//	if tag == yaml_BINARY_TAG {
+		//	if tag == binaryTag {
 		//		failf("explicitly tagged !!binary data must be base64-encoded")
 		//	}
 		//	if tag != "" {
@@ -443,7 +480,7 @@ func (e *encoder) node(node *Node) {
 		//	}
 		//	// It can't be encoded directly as YAML so use a binary tag
 		//	// and encode it as base64.
-		//	tag = yaml_BINARY_TAG
+		//	tag = binaryTag
 		//	s = encodeBase64(s)
 		//}
 	}

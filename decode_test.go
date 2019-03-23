@@ -232,6 +232,9 @@ var unmarshalTests = []struct {
 		"a: {b: c}",
 		&struct{ A *struct{ B string } }{&struct{ B string }{"c"}},
 	}, {
+		"a: 'null'",
+		&struct{ A *unmarshalerType }{&unmarshalerType{"null"}},
+	}, {
 		"a: {b: c}",
 		&struct{ A map[string]string }{map[string]string{"b": "c"}},
 	}, {

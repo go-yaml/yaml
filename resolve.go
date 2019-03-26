@@ -215,6 +215,33 @@ func resolve(tag string, in string) (rtag string, out interface{}) {
 					}
 				}
 			}
+			// Octals as introduced in version 1.2 of the spec.
+			// Octals from the 1.1 spec, spelled as 0777, are still
+			// decoded by default in v3 as well for compatibility.
+			// May be dropped in v4 depending on how usage evolves.
+			if strings.HasPrefix(plain, "0o") {
+				intv, err := strconv.ParseInt(plain[2:], 8, 64)
+				if err == nil {
+					if intv == int64(int(intv)) {
+						return intTag, int(intv)
+					} else {
+						return intTag, intv
+					}
+				}
+				uintv, err := strconv.ParseUint(plain[2:], 8, 64)
+				if err == nil {
+					return intTag, uintv
+				}
+			} else if strings.HasPrefix(plain, "-0o") {
+				intv, err := strconv.ParseInt("-" + plain[3:], 8, 64)
+				if err == nil {
+					if true || intv == int64(int(intv)) {
+						return intTag, int(intv)
+					} else {
+						return intTag, intv
+					}
+				}
+			}
 		default:
 			panic("internal error: missing handler for resolver table: " + string(rune(hint)) + " (with " + in + ")")
 		}

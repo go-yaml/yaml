@@ -127,6 +127,15 @@ var unmarshalTests = []struct {
 		"octal: 02472256",
 		map[string]interface{}{"octal": 685230},
 	}, {
+		"octal: -02472256",
+		map[string]interface{}{"octal": -685230},
+	}, {
+		"octal: 0o2472256",
+		map[string]interface{}{"octal": 685230},
+	}, {
+		"octal: -0o2472256",
+		map[string]interface{}{"octal": -685230},
+	}, {
 		"hexa: 0x_0A_74_AE",
 		map[string]interface{}{"hexa": 685230},
 	}, {

@@ -296,6 +296,10 @@ type structInfo struct {
 	// InlineMap is the number of the field in the struct that
 	// contains an ,inline map, or -1 if there's none.
 	InlineMap int
+
+	// InlineUnmarshalers holds indexes to inlined fields that
+	// contain unmarshaler values.
+	InlineUnmarshalers [][]int
 }
 
 type fieldInfo struct {
@@ -313,6 +317,12 @@ type fieldInfo struct {
 
 var structMap = make(map[reflect.Type]*structInfo)
 var fieldMapMutex sync.RWMutex
+var unmarshalerType reflect.Type
+
+func init() {
+	var v Unmarshaler
+	unmarshalerType = reflect.ValueOf(&v).Elem().Type()
+}
 
 func getStructInfo(st reflect.Type) (*structInfo, error) {
 	fieldMapMutex.RLock()
@@ -326,6 +336,7 @@ func getStructInfo(st reflect.Type) (*structInfo, error) {
 	fieldsMap := make(map[string]fieldInfo)
 	fieldsList := make([]fieldInfo, 0, n)
 	inlineMap := -1
+	inlineUnmarshalers := [][]int(nil)
 	for i := 0; i != n; i++ {
 		field := st.Field(i)
 		if field.PkgPath != "" && !field.Anonymous {
@@ -371,23 +382,30 @@ func getStructInfo(st reflect.Type) (*structInfo, error) {
 				}
 				inlineMap = info.Num
 			case reflect.Struct:
-				sinfo, err := getStructInfo(field.Type)
-				if err != nil {
-					return nil, err
-				}
-				for _, finfo := range sinfo.FieldsList {
-					if _, found := fieldsMap[finfo.Key]; found {
-						msg := "duplicated key '" + finfo.Key + "' in struct " + st.String()
-						return nil, errors.New(msg)
+				if reflect.PtrTo(field.Type).Implements(unmarshalerType) {
+					inlineUnmarshalers = append(inlineUnmarshalers, []int{i})
+				} else {
+					sinfo, err := getStructInfo(field.Type)
+					if err != nil {
+						return nil, err
 					}
-					if finfo.Inline == nil {
-						finfo.Inline = []int{i, finfo.Num}
-					} else {
-						finfo.Inline = append([]int{i}, finfo.Inline...)
+					for _, index := range sinfo.InlineUnmarshalers {
+						inlineUnmarshalers = append(inlineUnmarshalers, append([]int{i}, index...))
 					}
-					finfo.Id = len(fieldsList)
-					fieldsMap[finfo.Key] = finfo
-					fieldsList = append(fieldsList, finfo)
+					for _, finfo := range sinfo.FieldsList {
+						if _, found := fieldsMap[finfo.Key]; found {
+							msg := "duplicated key '" + finfo.Key + "' in struct " + st.String()
+							return nil, errors.New(msg)
+						}
+						if finfo.Inline == nil {
+							finfo.Inline = []int{i, finfo.Num}
+						} else {
+							finfo.Inline = append([]int{i}, finfo.Inline...)
+						}
+						finfo.Id = len(fieldsList)
+						fieldsMap[finfo.Key] = finfo
+						fieldsList = append(fieldsList, finfo)
+					}
 				}
 			default:
 				//return nil, errors.New("option ,inline needs a struct value or map field")
@@ -416,6 +434,7 @@ func getStructInfo(st reflect.Type) (*structInfo, error) {
 		FieldsMap:  fieldsMap,
 		FieldsList: fieldsList,
 		InlineMap:  inlineMap,
+		InlineUnmarshalers: inlineUnmarshalers,
 	}
 
 	fieldMapMutex.Lock()

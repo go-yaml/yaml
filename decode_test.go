@@ -929,6 +929,15 @@ type unmarshalerValue struct {
 	Field unmarshalerType "_"
 }
 
+type unmarshalerInlined struct {
+	Field   *unmarshalerType "_"
+	Inlined unmarshalerType  `yaml:",inline"`
+}
+
+type unmarshalerInlinedTwice struct {
+	InlinedTwice unmarshalerInlined `yaml:",inline"`
+}
+
 type obsoleteUnmarshalerType struct {
 	value interface{}
 }
@@ -986,6 +995,20 @@ func (s *S) TestUnmarshalerValueField(c *C) {
 		c.Assert(obj.Field, NotNil, Commentf("Pointer not initialized (%#v)", item.value))
 		c.Assert(obj.Field.value, DeepEquals, item.value)
 	}
+}
+
+func (s *S) TestUnmarshalerInlinedField(c *C) {
+	obj := &unmarshalerInlined{}
+	err := yaml.Unmarshal([]byte("_: a\ninlined: b\n"), obj)
+	c.Assert(err, IsNil)
+	c.Assert(obj.Field, DeepEquals, &unmarshalerType{"a"})
+	c.Assert(obj.Inlined, DeepEquals, unmarshalerType{map[string]interface{}{"_": "a", "inlined": "b"}})
+
+	twc := &unmarshalerInlinedTwice{}
+	err = yaml.Unmarshal([]byte("_: a\ninlined: b\n"), twc)
+	c.Assert(err, IsNil)
+	c.Assert(twc.InlinedTwice.Field, DeepEquals, &unmarshalerType{"a"})
+	c.Assert(twc.InlinedTwice.Inlined, DeepEquals, unmarshalerType{map[string]interface{}{"_": "a", "inlined": "b"}})
 }
 
 func (s *S) TestUnmarshalerWholeDocument(c *C) {

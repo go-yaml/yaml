@@ -825,8 +825,6 @@ func (d *decoder) mappingStruct(n *Node, out reflect.Value) (good bool) {
 	if err != nil {
 		panic(err)
 	}
-	name := settableValueOf("")
-	l := len(n.Children)
 
 	var inlineMap reflect.Value
 	var elemType reflect.Type
@@ -836,10 +834,17 @@ func (d *decoder) mappingStruct(n *Node, out reflect.Value) (good bool) {
 		elemType = inlineMap.Type().Elem()
 	}
 
+	for _, index := range sinfo.InlineUnmarshalers {
+		field := out.FieldByIndex(index)
+		d.prepare(n, field)
+	}
+
 	var doneFields []bool
 	if d.uniqueKeys {
 		doneFields = make([]bool, len(sinfo.FieldsList))
 	}
+	name := settableValueOf("")
+	l := len(n.Children)
 	for i := 0; i < l; i += 2 {
 		ni := n.Children[i]
 		if isMerge(ni) {

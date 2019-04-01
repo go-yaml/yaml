@@ -274,6 +274,26 @@ var marshalTests = []struct {
 		}{1, inlineB{2, inlineC{3}}},
 		"a: 1\nb: 2\nc: 3\n",
 	},
+	// Struct inlining as a pointer
+	{
+		&struct {
+			A int
+			C *inlineB `yaml:",inline"`
+		}{1, &inlineB{2, inlineC{3}}},
+		"a: 1\nb: 2\nc: 3\n",
+	}, {
+		&struct {
+			A int
+			C *inlineB `yaml:",inline"`
+		}{1, nil},
+		"a: 1\n",
+	}, {
+		&struct {
+			A int
+			D *inlineD `yaml:",inline"`
+		}{1, &inlineD{&inlineC{3}, 4}},
+		"a: 1\nc: 3\nd: 4\n",
+	},
 
 	// Map inlining
 	{

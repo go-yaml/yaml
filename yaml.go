@@ -381,11 +381,18 @@ func getStructInfo(st reflect.Type) (*structInfo, error) {
 					return nil, errors.New("option ,inline needs a map with string keys in struct " + st.String())
 				}
 				inlineMap = info.Num
-			case reflect.Struct:
-				if reflect.PtrTo(field.Type).Implements(unmarshalerType) {
+			case reflect.Struct, reflect.Ptr:
+				ftype := field.Type
+				for ftype.Kind() == reflect.Ptr {
+					ftype = ftype.Elem()
+				}
+				if ftype.Kind() != reflect.Struct {
+					return nil, errors.New("option ,inline may only be used on a struct or map field")
+				}
+				if reflect.PtrTo(ftype).Implements(unmarshalerType) {
 					inlineUnmarshalers = append(inlineUnmarshalers, []int{i})
 				} else {
-					sinfo, err := getStructInfo(field.Type)
+					sinfo, err := getStructInfo(ftype)
 					if err != nil {
 						return nil, err
 					}
@@ -408,8 +415,7 @@ func getStructInfo(st reflect.Type) (*structInfo, error) {
 					}
 				}
 			default:
-				//return nil, errors.New("option ,inline needs a struct value or map field")
-				return nil, errors.New("option ,inline needs a struct value field")
+				return nil, errors.New("option ,inline may only be used on a struct or map field")
 			}
 			continue
 		}

@@ -525,6 +525,27 @@ var unmarshalTests = []struct {
 		}{1, inlineB{2, inlineC{3}}},
 	},
 
+	// Struct inlining as a pointer.
+	{
+		"a: 1\nb: 2\nc: 3\n",
+		&struct {
+			A int
+			C *inlineB `yaml:",inline"`
+		}{1, &inlineB{2, inlineC{3}}},
+	}, {
+		"a: 1\n",
+		&struct {
+			A int
+			C *inlineB `yaml:",inline"`
+		}{1, nil},
+	}, {
+		"a: 1\nc: 3\nd: 4\n",
+		&struct {
+			A int
+			C *inlineD `yaml:",inline"`
+		}{1, &inlineD{&inlineC{3}, 4}},
+	},
+
 	// Map inlining
 	{
 		"a: 1\nb: 2\nc: 3\n",
@@ -743,6 +764,11 @@ type inlineB struct {
 
 type inlineC struct {
 	C int
+}
+
+type inlineD struct {
+	C *inlineC `yaml:",inline"`
+	D int
 }
 
 func (s *S) TestUnmarshal(c *C) {

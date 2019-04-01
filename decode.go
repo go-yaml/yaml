@@ -455,6 +455,26 @@ func (d *decoder) prepare(n *Node, out reflect.Value) (newout reflect.Value, unm
 	return out, false, false
 }
 
+func (d *decoder) fieldByIndex(n *Node, v reflect.Value, index []int) (field reflect.Value) {
+	if n.ShortTag() == nullTag {
+		return reflect.Value{}
+	}
+	for _, num := range index {
+		for {
+			if v.Kind() == reflect.Ptr {
+				if v.IsNil() {
+					v.Set(reflect.New(v.Type().Elem()))
+				}
+				v = v.Elem()
+				continue
+			}
+			break
+		}
+		v = v.Field(num)
+	}
+	return v
+}
+
 func (d *decoder) unmarshal(n *Node, out reflect.Value) (good bool) {
 	if out.Type() == nodeType {
 		out.Set(reflect.ValueOf(n).Elem())
@@ -835,7 +855,7 @@ func (d *decoder) mappingStruct(n *Node, out reflect.Value) (good bool) {
 	}
 
 	for _, index := range sinfo.InlineUnmarshalers {
-		field := out.FieldByIndex(index)
+		field := d.fieldByIndex(n, out, index)
 		d.prepare(n, field)
 	}
 
@@ -866,7 +886,7 @@ func (d *decoder) mappingStruct(n *Node, out reflect.Value) (good bool) {
 			if info.Inline == nil {
 				field = out.Field(info.Num)
 			} else {
-				field = out.FieldByIndex(info.Inline)
+				field = d.fieldByIndex(n, out, info.Inline)
 			}
 			d.unmarshal(n.Children[i+1], field)
 		} else if sinfo.InlineMap != -1 {

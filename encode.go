@@ -170,6 +170,23 @@ func (e *encoder) mapv(tag string, in reflect.Value) {
 	})
 }
 
+func (e *encoder) fieldByIndex(v reflect.Value, index []int) (field reflect.Value) {
+	for _, num := range index {
+		for {
+			if v.Kind() == reflect.Ptr {
+				if v.IsNil() {
+					return reflect.Value{}
+				}
+				v = v.Elem()
+				continue
+			}
+			break
+		}
+		v = v.Field(num)
+	}
+	return v
+}
+
 func (e *encoder) structv(tag string, in reflect.Value) {
 	sinfo, err := getStructInfo(in.Type())
 	if err != nil {
@@ -181,7 +198,10 @@ func (e *encoder) structv(tag string, in reflect.Value) {
 			if info.Inline == nil {
 				value = in.Field(info.Num)
 			} else {
-				value = in.FieldByIndex(info.Inline)
+				value = e.fieldByIndex(in, info.Inline)
+				if !value.IsValid() {
+					continue
+				}
 			}
 			if info.OmitEmpty && isZero(value) {
 				continue

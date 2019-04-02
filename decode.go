@@ -142,7 +142,7 @@ func (p *parser) parse() *Node {
 	}
 }
 
-func (p *parser) node(kind NodeKind, defaultTag, tag, value string) *Node {
+func (p *parser) node(kind Kind, defaultTag, tag, value string) *Node {
 	var style Style
 	if tag != "" && tag != "!" {
 		tag = shortTag(tag)

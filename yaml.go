@@ -282,11 +282,10 @@ func (e *TypeError) Error() string {
 	return fmt.Sprintf("yaml: unmarshal errors:\n  %s", strings.Join(e.Errors, "\n  "))
 }
 
-
-type NodeKind uint32
+type Kind uint32
 
 const (
-	DocumentNode NodeKind = 1 << iota
+	DocumentNode Kind = 1 << iota
 	SequenceNode
 	MappingNode
 	ScalarNode
@@ -311,28 +310,28 @@ const (
 // by itself, or composed together with other types. For example, it may be
 // used as the type of a single field of a structure being decoded.
 type Node struct {
-	Kind     NodeKind
-	Style    Style
+	Kind  Kind
+	Style Style
 
 	// Line and Column hold the node position in the yaml text.
-	Line     int
-	Column   int
+	Line   int
+	Column int
 
 	// Tag holds the yaml tag defining the data type for the value. On
 	// decoded values this field will always be set to the resolved tag,
 	// even when a tag wasn't explicitly provided in the yaml content.
 	// When encoding, if this field is unset the value type will be
 	// implied
-	Tag      string
+	Tag string
 
 	// Value holds the unescaped and unquoted represenation of the value.
-	Value    string
+	Value string
 
-	// Anchor holds the anchor name for this node, which allows aliases to point to it. 
-	Anchor   string
+	// Anchor holds the anchor name for this node, which allows aliases to point to it.
+	Anchor string
 
 	// Alias holds the node that this alias points to. Only valid when Kind is AliasNode.
-	Alias    *Node
+	Alias *Node
 
 	// Content holds contained nodes for documents, mappings, and sequences.
 	Content []*Node
@@ -390,7 +389,6 @@ func (n *Node) SetString(s string) {
 		n.Style = DoubleQuotedStyle
 	}
 }
-
 
 // --------------------------------------------------------------------------
 // Maintain a mapping of keys to structure field indexes

@@ -438,6 +438,7 @@ func yaml_parser_parse_node(parser *yaml_parser_t, event *yaml_event_t, block, i
 			end_mark:   token.end_mark,
 			anchor:     token.value,
 		}
+		yaml_parser_set_event_comments(parser, event)
 		skip_token(parser)
 		return true
 	}

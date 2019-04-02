@@ -1013,6 +1013,43 @@ var nodeTests = []struct {
 				}},
 			}},
 		},
+	}, {
+		"# DH1\n\n# DH2\n\n# HA1\n# HA2\n- &x la # IA\n# FA1\n# FA2\n\n# HB1\n# HB2\n- *x # IB\n# FB1\n# FB2\n\n# DF1\n\n# DF2\n",
+		yaml.Node{
+			Kind:   yaml.DocumentNode,
+			Line:   7,
+			Column: 1,
+			Header: "# DH1\n\n# DH2",
+			Footer: "# DF1\n\n# DF2",
+			Children: []*yaml.Node{{
+				Kind:   yaml.SequenceNode,
+				Tag:    "!!seq",
+				Line:   7,
+				Column: 1,
+				Children: []*yaml.Node{
+					saveNode("x", &yaml.Node{
+						Kind:   yaml.ScalarNode,
+						Tag:    "!!str",
+						Line:   7,
+						Column: 3,
+						Value:  "la",
+						Header: "# HA1\n# HA2",
+						Inline: "# IA",
+						Footer: "# FA1\n# FA2",
+						Anchor: "x",
+					}), {
+						Kind:   yaml.AliasNode,
+						Line:   13,
+						Column: 3,
+						Value:  "x",
+						Alias:  dropNode("x"),
+						Header: "# HB1\n# HB2",
+						Inline: "# IB",
+						Footer: "# FB1\n# FB2",
+					},
+				},
+			}},
+		},
 	},
 }
 

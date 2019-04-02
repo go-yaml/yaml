@@ -466,8 +466,10 @@ func (e *encoder) node(node *Node) {
 		e.emit()
 
 	case AliasNode:
-		// TODO This is lacking comment handling. Test and fix.
 		yaml_alias_event_initialize(&e.event, []byte(node.Value))
+		e.event.header_comment = []byte(node.Header)
+		e.event.inline_comment = []byte(node.Inline)
+		e.event.footer_comment = []byte(node.Footer)
 		e.emit()
 
 	case ScalarNode:

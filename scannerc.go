@@ -2151,7 +2151,6 @@ func yaml_parser_scan_block_scalar(parser *yaml_parser_t, token *yaml_token_t, l
 		}
 	}
 	if parser.buffer[parser.buffer_pos] == '#' {
-		// [Go] TODO This logic is untested and maybe broken.
 		if !yaml_parser_scan_inline_comment(parser, start_mark) {
 			return false
 		}

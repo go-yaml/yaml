@@ -282,6 +282,116 @@ func (e *TypeError) Error() string {
 	return fmt.Sprintf("yaml: unmarshal errors:\n  %s", strings.Join(e.Errors, "\n  "))
 }
 
+
+type NodeKind uint32
+
+const (
+	DocumentNode NodeKind = 1 << iota
+	SequenceNode
+	MappingNode
+	ScalarNode
+	AliasNode
+)
+
+type Style uint32
+
+const (
+	TaggedStyle Style = 1 << iota
+	DoubleQuotedStyle
+	SingleQuotedStyle
+	LiteralStyle
+	FoldedStyle
+	FlowStyle
+)
+
+// Node represents an element in the yaml document hierarchy. While documents
+// are typically encoded and decoded into higher level types, such as structs
+// and maps, Node is an intermediate representation that allows detailed
+// control over the content being decoded or encoded. It may be used entirely
+// by itself, or composed together with other types. For example, it may be
+// used as the type of a single field of a structure being decoded.
+type Node struct {
+	Kind     NodeKind
+	Style    Style
+
+	// Line and Column hold the node position in the yaml text.
+	Line     int
+	Column   int
+
+	// Tag holds the yaml tag defining the data type for the value. On
+	// decoded values this field will always be set to the resolved tag,
+	// even when a tag wasn't explicitly provided in the yaml content.
+	// When encoding, if this field is unset the value type will be
+	// implied
+	Tag      string
+
+	// Value holds the unescaped and unquoted represenation of the value.
+	Value    string
+
+	// Anchor holds the anchor name for this node, which allows aliases to point to it. 
+	Anchor   string
+
+	// Alias holds the node that this alias points to. Only valid when Kind is AliasNode.
+	Alias    *Node
+
+	// Children holds contained nodes for documents, mappings, and sequences.
+	Children []*Node
+
+	// HeadComment holds any comments in the lines preceding the node and
+	// not separated by an empty line.
+	HeadComment string
+
+	// LineComment holds any comments at the end of the line where the node is in.
+	LineComment string
+
+	// FootComment holds any comments following the node and before empty lines.
+	FootComment string
+}
+
+func (n *Node) LongTag() string {
+	return longTag(n.ShortTag())
+}
+
+func (n *Node) ShortTag() string {
+	if n.indicatedString() {
+		return strTag
+	}
+	if n.Tag == "" || n.Tag == "!" {
+		switch n.Kind {
+		case MappingNode:
+			return mapTag
+		case SequenceNode:
+			return seqTag
+		case AliasNode:
+			if n.Alias != nil {
+				return n.Alias.ShortTag()
+			}
+		case ScalarNode:
+			tag, _ := resolve("", n.Value)
+			return tag
+		}
+		return ""
+	}
+	return shortTag(n.Tag)
+}
+
+func (n *Node) indicatedString() bool {
+	return n.Kind == ScalarNode &&
+		(shortTag(n.Tag) == strTag ||
+			(n.Tag == "" || n.Tag == "!") && n.Style&(SingleQuotedStyle|DoubleQuotedStyle|LiteralStyle|FoldedStyle) != 0)
+}
+
+func (n *Node) SetString(s string) {
+	n.Kind = ScalarNode
+	n.Value = s
+	if strings.Contains(s, "\n") {
+		n.Style = LiteralStyle
+	} else if n.ShortTag() != strTag {
+		n.Style = DoubleQuotedStyle
+	}
+}
+
+
 // --------------------------------------------------------------------------
 // Maintain a mapping of keys to structure field indexes
 

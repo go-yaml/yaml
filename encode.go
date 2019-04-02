@@ -423,7 +423,7 @@ func (e *encoder) node(node *Node) {
 		yaml_document_start_event_initialize(&e.event, nil, nil, true)
 		e.event.head_comment = []byte(node.HeadComment)
 		e.emit()
-		for _, node := range node.Children {
+		for _, node := range node.Content {
 			e.node(node)
 		}
 		yaml_document_end_event_initialize(&e.event, true)
@@ -438,7 +438,7 @@ func (e *encoder) node(node *Node) {
 		e.must(yaml_sequence_start_event_initialize(&e.event, []byte(node.Anchor), []byte(tag), tag == "", style))
 		e.event.head_comment = []byte(node.HeadComment)
 		e.emit()
-		for _, node := range node.Children {
+		for _, node := range node.Content {
 			e.node(node)
 		}
 		e.must(yaml_sequence_end_event_initialize(&e.event))
@@ -455,9 +455,9 @@ func (e *encoder) node(node *Node) {
 		e.event.head_comment = []byte(node.HeadComment)
 		e.emit()
 
-		for i := 0; i+1 < len(node.Children); i += 2 {
-			e.node(node.Children[i])
-			e.node(node.Children[i+1])
+		for i := 0; i+1 < len(node.Content); i += 2 {
+			e.node(node.Content[i])
+			e.node(node.Content[i+1])
 		}
 
 		yaml_mapping_end_event_initialize(&e.event)

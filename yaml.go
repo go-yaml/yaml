@@ -334,8 +334,8 @@ type Node struct {
 	// Alias holds the node that this alias points to. Only valid when Kind is AliasNode.
 	Alias    *Node
 
-	// Children holds contained nodes for documents, mappings, and sequences.
-	Children []*Node
+	// Content holds contained nodes for documents, mappings, and sequences.
+	Content []*Node
 
 	// HeadComment holds any comments in the lines preceding the node and
 	// not separated by an empty line.

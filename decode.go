@@ -8,7 +8,6 @@ import (
 	"math"
 	"reflect"
 	"strconv"
-	"strings"
 	"time"
 )
 
@@ -168,7 +167,7 @@ func (p *parser) node(kind NodeKind, defaultTag, tag, value string) *Node {
 
 func (p *parser) parseChild(parent *Node) *Node {
 	child := p.parse()
-	parent.Children = append(parent.Children, child)
+	parent.Content = append(parent.Content, child)
 	return child
 }
 
@@ -425,9 +424,9 @@ func (d *decoder) unmarshal(n *Node, out reflect.Value) (good bool) {
 }
 
 func (d *decoder) document(n *Node, out reflect.Value) (good bool) {
-	if len(n.Children) == 1 {
+	if len(n.Content) == 1 {
 		d.doc = n
-		d.unmarshal(n.Children[0], out)
+		d.unmarshal(n.Content[0], out)
 		return true
 	}
 	return false
@@ -634,7 +633,7 @@ func settableValueOf(i interface{}) reflect.Value {
 }
 
 func (d *decoder) sequence(n *Node, out reflect.Value) (good bool) {
-	l := len(n.Children)
+	l := len(n.Content)
 
 	var iface reflect.Value
 	switch out.Kind() {
@@ -657,7 +656,7 @@ func (d *decoder) sequence(n *Node, out reflect.Value) (good bool) {
 	j := 0
 	for i := 0; i < l; i++ {
 		e := reflect.New(et).Elem()
-		if ok := d.unmarshal(n.Children[i], e); ok {
+		if ok := d.unmarshal(n.Content[i], e); ok {
 			out.Index(j).Set(e)
 			j++
 		}
@@ -672,13 +671,13 @@ func (d *decoder) sequence(n *Node, out reflect.Value) (good bool) {
 }
 
 func (d *decoder) mapping(n *Node, out reflect.Value) (good bool) {
-	l := len(n.Children)
+	l := len(n.Content)
 	if d.uniqueKeys {
 		nerrs := len(d.terrors)
 		for i := 0; i < l; i += 2 {
-			ni := n.Children[i]
+			ni := n.Content[i]
 			for j := i + 2; j < l; j += 2 {
-				nj := n.Children[j]
+				nj := n.Content[j]
 				if ni.Kind == nj.Kind && ni.Value == nj.Value {
 					d.terrors = append(d.terrors, fmt.Sprintf("line %d: mapping key %#v already defined at line %d", nj.Line, nj.Value, ni.Line))
 				}
@@ -724,12 +723,12 @@ func (d *decoder) mapping(n *Node, out reflect.Value) (good bool) {
 		out.Set(reflect.MakeMap(outt))
 	}
 	for i := 0; i < l; i += 2 {
-		if isMerge(n.Children[i]) {
-			d.merge(n.Children[i+1], out)
+		if isMerge(n.Content[i]) {
+			d.merge(n.Content[i+1], out)
 			continue
 		}
 		k := reflect.New(kt).Elem()
-		if d.unmarshal(n.Children[i], k) {
+		if d.unmarshal(n.Content[i], k) {
 			kkind := k.Kind()
 			if kkind == reflect.Interface {
 				kkind = k.Elem().Kind()
@@ -738,7 +737,7 @@ func (d *decoder) mapping(n *Node, out reflect.Value) (good bool) {
 				failf("invalid map key: %#v", k.Interface())
 			}
 			e := reflect.New(et).Elem()
-			if d.unmarshal(n.Children[i+1], e) {
+			if d.unmarshal(n.Content[i+1], e) {
 				out.SetMapIndex(k, e)
 			}
 		}
@@ -752,9 +751,9 @@ func isStringMap(n *Node) bool {
 	if n.Kind != MappingNode {
 		return false
 	}
-	l := len(n.Children)
+	l := len(n.Content)
 	for i := 0; i < l; i++ {
-		if n.Children[i].ShortTag() != strTag {
+		if n.Content[i].ShortTag() != strTag {
 			return false
 		}
 	}
@@ -785,11 +784,11 @@ func (d *decoder) mappingStruct(n *Node, out reflect.Value) (good bool) {
 		doneFields = make([]bool, len(sinfo.FieldsList))
 	}
 	name := settableValueOf("")
-	l := len(n.Children)
+	l := len(n.Content)
 	for i := 0; i < l; i += 2 {
-		ni := n.Children[i]
+		ni := n.Content[i]
 		if isMerge(ni) {
-			d.merge(n.Children[i+1], out)
+			d.merge(n.Content[i+1], out)
 			continue
 		}
 		if !d.unmarshal(ni, name) {
@@ -809,13 +808,13 @@ func (d *decoder) mappingStruct(n *Node, out reflect.Value) (good bool) {
 			} else {
 				field = d.fieldByIndex(n, out, info.Inline)
 			}
-			d.unmarshal(n.Children[i+1], field)
+			d.unmarshal(n.Content[i+1], field)
 		} else if sinfo.InlineMap != -1 {
 			if inlineMap.IsNil() {
 				inlineMap.Set(reflect.MakeMap(inlineMap.Type()))
 			}
 			value := reflect.New(elemType).Elem()
-			d.unmarshal(n.Children[i+1], value)
+			d.unmarshal(n.Content[i+1], value)
 			inlineMap.SetMapIndex(name, value)
 		} else if d.knownFields {
 			d.terrors = append(d.terrors, fmt.Sprintf("line %d: field %s not found in type %s", ni.Line, name.String(), out.Type()))
@@ -839,8 +838,8 @@ func (d *decoder) merge(n *Node, out reflect.Value) {
 		d.unmarshal(n, out)
 	case SequenceNode:
 		// Step backwards as earlier nodes take precedence.
-		for i := len(n.Children) - 1; i >= 0; i-- {
-			ni := n.Children[i]
+		for i := len(n.Content) - 1; i >= 0; i-- {
+			ni := n.Content[i]
 			if ni.Kind == AliasNode {
 				if ni.Alias != nil && ni.Alias.Kind != MappingNode {
 					failWantMap()

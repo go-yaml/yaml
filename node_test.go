@@ -19,7 +19,7 @@ var nodeTests = []struct {
 			Kind:   yaml.DocumentNode,
 			Line:   1,
 			Column: 1,
-			Children: []*yaml.Node{{
+			Content: []*yaml.Node{{
 				Kind:   yaml.ScalarNode,
 				Value:  "null",
 				Tag:    "!!null",
@@ -33,7 +33,7 @@ var nodeTests = []struct {
 			Kind:   yaml.DocumentNode,
 			Line:   1,
 			Column: 1,
-			Children: []*yaml.Node{{
+			Content: []*yaml.Node{{
 				Kind:   yaml.ScalarNode,
 				Value:  "foo",
 				Tag:    "!!str",
@@ -47,7 +47,7 @@ var nodeTests = []struct {
 			Kind:   yaml.DocumentNode,
 			Line:   1,
 			Column: 1,
-			Children: []*yaml.Node{{
+			Content: []*yaml.Node{{
 				Kind:   yaml.ScalarNode,
 				Style:  yaml.DoubleQuotedStyle,
 				Value:  "foo",
@@ -62,7 +62,7 @@ var nodeTests = []struct {
 			Kind:   yaml.DocumentNode,
 			Line:   1,
 			Column: 1,
-			Children: []*yaml.Node{{
+			Content: []*yaml.Node{{
 				Kind:   yaml.ScalarNode,
 				Style:  yaml.SingleQuotedStyle,
 				Value:  "foo",
@@ -77,7 +77,7 @@ var nodeTests = []struct {
 			Kind:   yaml.DocumentNode,
 			Line:   1,
 			Column: 1,
-			Children: []*yaml.Node{{
+			Content: []*yaml.Node{{
 				Kind:   yaml.ScalarNode,
 				Style:  yaml.TaggedStyle,
 				Value:  "123",
@@ -93,7 +93,7 @@ var nodeTests = []struct {
 			Kind:   yaml.DocumentNode,
 			Line:   1,
 			Column: 1,
-			Children: []*yaml.Node{{
+			Content: []*yaml.Node{{
 				Kind:   yaml.ScalarNode,
 				Value:  "gIGC",
 				Tag:    "!!binary",
@@ -108,7 +108,7 @@ var nodeTests = []struct {
 			Kind:   yaml.DocumentNode,
 			Line:   1,
 			Column: 1,
-			Children: []*yaml.Node{{
+			Content: []*yaml.Node{{
 				Kind:   yaml.ScalarNode,
 				Value:  "123",
 				Tag:    "!!str",
@@ -122,7 +122,7 @@ var nodeTests = []struct {
 			Kind:   yaml.DocumentNode,
 			Line:   1,
 			Column: 1,
-			Children: []*yaml.Node{{
+			Content: []*yaml.Node{{
 				Kind:   yaml.ScalarNode,
 				Style:  yaml.TaggedStyle,
 				Value:  "123",
@@ -137,7 +137,7 @@ var nodeTests = []struct {
 			Kind:   yaml.DocumentNode,
 			Line:   1,
 			Column: 1,
-			Children: []*yaml.Node{{
+			Content: []*yaml.Node{{
 				Kind:   yaml.ScalarNode,
 				Value:  "123",
 				Tag:    "!tag:something",
@@ -151,7 +151,7 @@ var nodeTests = []struct {
 			Kind:   yaml.DocumentNode,
 			Line:   1,
 			Column: 1,
-			Children: []*yaml.Node{{
+			Content: []*yaml.Node{{
 				Kind:   yaml.MappingNode,
 				Style:  yaml.TaggedStyle | yaml.FlowStyle,
 				Tag:    "!tag:something",
@@ -165,7 +165,7 @@ var nodeTests = []struct {
 			Kind:   yaml.DocumentNode,
 			Line:   1,
 			Column: 1,
-			Children: []*yaml.Node{{
+			Content: []*yaml.Node{{
 				Kind:   yaml.MappingNode,
 				Style:  yaml.FlowStyle,
 				Tag:    "!tag:something",
@@ -179,7 +179,7 @@ var nodeTests = []struct {
 			Kind:   yaml.DocumentNode,
 			Line:   1,
 			Column: 1,
-			Children: []*yaml.Node{{
+			Content: []*yaml.Node{{
 				Kind:   yaml.SequenceNode,
 				Style:  yaml.TaggedStyle | yaml.FlowStyle,
 				Tag:    "!tag:something",
@@ -193,7 +193,7 @@ var nodeTests = []struct {
 			Kind:   yaml.DocumentNode,
 			Line:   1,
 			Column: 1,
-			Children: []*yaml.Node{{
+			Content: []*yaml.Node{{
 				Kind:   yaml.SequenceNode,
 				Style:  yaml.FlowStyle,
 				Tag:    "!tag:something",
@@ -207,7 +207,7 @@ var nodeTests = []struct {
 			Kind:   yaml.DocumentNode,
 			Line:   1,
 			Column: 1,
-			Children: []*yaml.Node{{
+			Content: []*yaml.Node{{
 				Kind:   yaml.ScalarNode,
 				Style:  yaml.SingleQuotedStyle,
 				Value:  "",
@@ -222,7 +222,7 @@ var nodeTests = []struct {
 			Kind:   yaml.DocumentNode,
 			Line:   1,
 			Column: 1,
-			Children: []*yaml.Node{{
+			Content: []*yaml.Node{{
 				Kind:   yaml.ScalarNode,
 				Style:  yaml.LiteralStyle,
 				Value:  "foo\nbar\n",
@@ -237,7 +237,7 @@ var nodeTests = []struct {
 			Kind:   yaml.DocumentNode,
 			Line:   1,
 			Column: 1,
-			Children: []*yaml.Node{{
+			Content: []*yaml.Node{{
 				Kind:   yaml.ScalarNode,
 				Value:  "true",
 				Tag:    "!!bool",
@@ -251,7 +251,7 @@ var nodeTests = []struct {
 			Kind:   yaml.DocumentNode,
 			Line:   1,
 			Column: 1,
-			Children: []*yaml.Node{{
+			Content: []*yaml.Node{{
 				Kind:   yaml.ScalarNode,
 				Value:  "-10",
 				Tag:    "!!int",
@@ -265,7 +265,7 @@ var nodeTests = []struct {
 			Kind:   yaml.DocumentNode,
 			Line:   1,
 			Column: 1,
-			Children: []*yaml.Node{{
+			Content: []*yaml.Node{{
 				Kind:   yaml.ScalarNode,
 				Value:  "4294967296",
 				Tag:    "!!int",
@@ -279,7 +279,7 @@ var nodeTests = []struct {
 			Kind:   yaml.DocumentNode,
 			Line:   1,
 			Column: 1,
-			Children: []*yaml.Node{{
+			Content: []*yaml.Node{{
 				Kind:   yaml.ScalarNode,
 				Value:  "0.1000",
 				Tag:    "!!float",
@@ -293,7 +293,7 @@ var nodeTests = []struct {
 			Kind:   yaml.DocumentNode,
 			Line:   1,
 			Column: 1,
-			Children: []*yaml.Node{{
+			Content: []*yaml.Node{{
 				Kind:   yaml.ScalarNode,
 				Value:  "-.inf",
 				Tag:    "!!float",
@@ -307,7 +307,7 @@ var nodeTests = []struct {
 			Kind:   yaml.DocumentNode,
 			Line:   1,
 			Column: 1,
-			Children: []*yaml.Node{{
+			Content: []*yaml.Node{{
 				Kind:   yaml.ScalarNode,
 				Value:  ".nan",
 				Tag:    "!!float",
@@ -321,7 +321,7 @@ var nodeTests = []struct {
 			Kind:   yaml.DocumentNode,
 			Line:   1,
 			Column: 1,
-			Children: []*yaml.Node{{
+			Content: []*yaml.Node{{
 				Kind:   yaml.MappingNode,
 				Style:  yaml.FlowStyle,
 				Value:  "",
@@ -336,13 +336,13 @@ var nodeTests = []struct {
 			Kind:   yaml.DocumentNode,
 			Line:   1,
 			Column: 1,
-			Children: []*yaml.Node{{
+			Content: []*yaml.Node{{
 				Kind:   yaml.MappingNode,
 				Value:  "",
 				Tag:    "!!map",
 				Line:   1,
 				Column: 1,
-				Children: []*yaml.Node{{
+				Content: []*yaml.Node{{
 					Kind:   yaml.ScalarNode,
 					Value:  "a",
 					Tag:    "!!str",
@@ -363,12 +363,12 @@ var nodeTests = []struct {
 			Kind:   yaml.DocumentNode,
 			Line:   1,
 			Column: 1,
-			Children: []*yaml.Node{{
+			Content: []*yaml.Node{{
 				Kind:   yaml.MappingNode,
 				Tag:    "!!map",
 				Line:   1,
 				Column: 1,
-				Children: []*yaml.Node{{
+				Content: []*yaml.Node{{
 					Kind:   yaml.ScalarNode,
 					Value:  "a",
 					Tag:    "!!str",
@@ -379,7 +379,7 @@ var nodeTests = []struct {
 					Tag:    "!!map",
 					Line:   2,
 					Column: 3,
-					Children: []*yaml.Node{{
+					Content: []*yaml.Node{{
 						Kind:   yaml.ScalarNode,
 						Value:  "b",
 						Tag:    "!!str",
@@ -413,13 +413,13 @@ var nodeTests = []struct {
 			Kind:   yaml.DocumentNode,
 			Line:   1,
 			Column: 1,
-			Children: []*yaml.Node{{
+			Content: []*yaml.Node{{
 				Kind:   yaml.SequenceNode,
 				Value:  "",
 				Tag:    "!!seq",
 				Line:   1,
 				Column: 1,
-				Children: []*yaml.Node{{
+				Content: []*yaml.Node{{
 					Kind:   yaml.ScalarNode,
 					Value:  "a",
 					Tag:    "!!str",
@@ -440,12 +440,12 @@ var nodeTests = []struct {
 			Kind:   yaml.DocumentNode,
 			Line:   1,
 			Column: 1,
-			Children: []*yaml.Node{{
+			Content: []*yaml.Node{{
 				Kind:   yaml.SequenceNode,
 				Tag:    "!!seq",
 				Line:   1,
 				Column: 1,
-				Children: []*yaml.Node{{
+				Content: []*yaml.Node{{
 					Kind:   yaml.ScalarNode,
 					Value:  "a",
 					Tag:    "!!str",
@@ -456,7 +456,7 @@ var nodeTests = []struct {
 					Tag:    "!!seq",
 					Line:   2,
 					Column: 3,
-					Children: []*yaml.Node{{
+					Content: []*yaml.Node{{
 						Kind:   yaml.ScalarNode,
 						Value:  "b",
 						Tag:    "!!str",
@@ -478,14 +478,14 @@ var nodeTests = []struct {
 			Kind:   yaml.DocumentNode,
 			Line:   1,
 			Column: 1,
-			Children: []*yaml.Node{{
+			Content: []*yaml.Node{{
 				Kind:   yaml.SequenceNode,
 				Style:  yaml.FlowStyle,
 				Value:  "",
 				Tag:    "!!seq",
 				Line:   1,
 				Column: 1,
-				Children: []*yaml.Node{{
+				Content: []*yaml.Node{{
 					Kind:   yaml.ScalarNode,
 					Value:  "a",
 					Tag:    "!!str",
@@ -506,12 +506,12 @@ var nodeTests = []struct {
 			Kind:   yaml.DocumentNode,
 			Line:   1,
 			Column: 1,
-			Children: []*yaml.Node{{
+			Content: []*yaml.Node{{
 				Kind:   yaml.SequenceNode,
 				Tag:    "!!seq",
 				Line:   1,
 				Column: 1,
-				Children: []*yaml.Node{{
+				Content: []*yaml.Node{{
 					Kind:   yaml.ScalarNode,
 					Value:  "a",
 					Tag:    "!!str",
@@ -523,7 +523,7 @@ var nodeTests = []struct {
 					Style:  yaml.FlowStyle,
 					Line:   2,
 					Column: 3,
-					Children: []*yaml.Node{{
+					Content: []*yaml.Node{{
 						Kind:   yaml.ScalarNode,
 						Value:  "b",
 						Tag:    "!!str",
@@ -545,12 +545,12 @@ var nodeTests = []struct {
 			Kind:   yaml.DocumentNode,
 			Line:   1,
 			Column: 1,
-			Children: []*yaml.Node{{
+			Content: []*yaml.Node{{
 				Kind:   yaml.MappingNode,
 				Line:   1,
 				Column: 1,
 				Tag:    "!!map",
-				Children: []*yaml.Node{{
+				Content: []*yaml.Node{{
 					Kind:   yaml.ScalarNode,
 					Value:  "a",
 					Tag:    "!!str",
@@ -615,7 +615,7 @@ var nodeTests = []struct {
 			Kind:   yaml.DocumentNode,
 			Line:   3,
 			Column: 1,
-			Children: []*yaml.Node{{
+			Content: []*yaml.Node{{
 				Kind:        yaml.ScalarNode,
 				Value:       "true",
 				Tag:         "!!bool",
@@ -634,7 +634,7 @@ var nodeTests = []struct {
 			Column:      1,
 			HeadComment: "# DH1\n\n# DH2",
 			FootComment: "# DF1\n\n# DF2",
-			Children: []*yaml.Node{{
+			Content: []*yaml.Node{{
 				Kind:        yaml.ScalarNode,
 				Value:       "true",
 				Tag:         "!!bool",
@@ -653,12 +653,12 @@ var nodeTests = []struct {
 			Column:      1,
 			HeadComment: "# DH1\n\n# DH2",
 			FootComment: "# DF1\n\n# DF2",
-			Children: []*yaml.Node{{
+			Content: []*yaml.Node{{
 				Kind:   yaml.MappingNode,
 				Tag:    "!!map",
 				Line:   7,
 				Column: 1,
-				Children: []*yaml.Node{{
+				Content: []*yaml.Node{{
 					Kind:        yaml.ScalarNode,
 					Line:        7,
 					Column:      1,
@@ -699,12 +699,12 @@ var nodeTests = []struct {
 			Column:      1,
 			HeadComment: "# DH1\n\n# DH2",
 			FootComment: "# DF1\n\n# DF2",
-			Children: []*yaml.Node{{
+			Content: []*yaml.Node{{
 				Kind:   yaml.SequenceNode,
 				Tag:    "!!seq",
 				Line:   7,
 				Column: 1,
-				Children: []*yaml.Node{{
+				Content: []*yaml.Node{{
 					Kind:        yaml.ScalarNode,
 					Tag:         "!!str",
 					Line:        7,
@@ -732,12 +732,12 @@ var nodeTests = []struct {
 			Line:        3,
 			Column:      1,
 			HeadComment: "# DH1",
-			Children: []*yaml.Node{{
+			Content: []*yaml.Node{{
 				Kind:   yaml.SequenceNode,
 				Tag:    "!!seq",
 				Line:   3,
 				Column: 1,
-				Children: []*yaml.Node{{
+				Content: []*yaml.Node{{
 					Kind:        yaml.ScalarNode,
 					Tag:         "!!str",
 					Line:        3,
@@ -762,12 +762,12 @@ var nodeTests = []struct {
 			Column:      1,
 			HeadComment: "# DH1",
 			FootComment: "# DF1",
-			Children: []*yaml.Node{{
+			Content: []*yaml.Node{{
 				Kind:   yaml.MappingNode,
 				Tag:    "!!map",
 				Line:   4,
 				Column: 1,
-				Children: []*yaml.Node{{
+				Content: []*yaml.Node{{
 					Kind:        yaml.ScalarNode,
 					Tag:         "!!str",
 					Line:        4,
@@ -779,7 +779,7 @@ var nodeTests = []struct {
 					Tag:    "!!map",
 					Line:   6,
 					Column: 3,
-					Children: []*yaml.Node{{
+					Content: []*yaml.Node{{
 						Kind:        yaml.ScalarNode,
 						Tag:         "!!str",
 						Line:        6,
@@ -791,7 +791,7 @@ var nodeTests = []struct {
 						Line:   9,
 						Column: 3,
 						Tag:    "!!seq",
-						Children: []*yaml.Node{{
+						Content: []*yaml.Node{{
 							Kind:        yaml.ScalarNode,
 							Tag:         "!!str",
 							Line:        9,
@@ -821,7 +821,7 @@ var nodeTests = []struct {
 			Kind:   yaml.DocumentNode,
 			Line:   2,
 			Column: 1,
-			Children: []*yaml.Node{{
+			Content: []*yaml.Node{{
 				Kind:        yaml.SequenceNode,
 				Tag:         "!!seq",
 				Style:       yaml.FlowStyle,
@@ -830,7 +830,7 @@ var nodeTests = []struct {
 				HeadComment: "# H1",
 				LineComment: "# I",
 				FootComment: "# F1",
-				Children: []*yaml.Node{{
+				Content: []*yaml.Node{{
 					Kind:   yaml.ScalarNode,
 					Tag:    "!!str",
 					Line:   2,
@@ -853,7 +853,7 @@ var nodeTests = []struct {
 			Column:      1,
 			HeadComment: "# DH1",
 			FootComment: "# DF1",
-			Children: []*yaml.Node{{
+			Content: []*yaml.Node{{
 				Kind:        yaml.SequenceNode,
 				Tag:         "!!seq",
 				Style:       yaml.FlowStyle,
@@ -861,7 +861,7 @@ var nodeTests = []struct {
 				Column:      1,
 				HeadComment: "# SH1",
 				FootComment: "# SF1",
-				Children: []*yaml.Node{{
+				Content: []*yaml.Node{{
 					Kind:        yaml.ScalarNode,
 					Tag:         "!!str",
 					Line:        6,
@@ -890,7 +890,7 @@ var nodeTests = []struct {
 			Column:      1,
 			HeadComment: "# DH1",
 			FootComment: "# DF1",
-			Children: []*yaml.Node{{
+			Content: []*yaml.Node{{
 				Kind:        yaml.SequenceNode,
 				Tag:         "!!seq",
 				Style:       yaml.FlowStyle,
@@ -898,7 +898,7 @@ var nodeTests = []struct {
 				Column:      1,
 				HeadComment: "# SH1",
 				FootComment: "# SF1",
-				Children: []*yaml.Node{{
+				Content: []*yaml.Node{{
 					Kind:        yaml.ScalarNode,
 					Tag:         "!!str",
 					Line:        6,
@@ -925,7 +925,7 @@ var nodeTests = []struct {
 			Column:      1,
 			HeadComment: "# DH1",
 			FootComment: "# DF1",
-			Children: []*yaml.Node{{
+			Content: []*yaml.Node{{
 				Kind:        yaml.MappingNode,
 				Tag:         "!!map",
 				Style:       yaml.FlowStyle,
@@ -933,7 +933,7 @@ var nodeTests = []struct {
 				Column:      1,
 				HeadComment: "# MH1",
 				FootComment: "# MF1",
-				Children: []*yaml.Node{{
+				Content: []*yaml.Node{{
 					Kind:        yaml.ScalarNode,
 					Tag:         "!!str",
 					Line:        6,
@@ -974,7 +974,7 @@ var nodeTests = []struct {
 			Column:      1,
 			HeadComment: "# DH1",
 			FootComment: "# DF1",
-			Children: []*yaml.Node{{
+			Content: []*yaml.Node{{
 				Kind:        yaml.MappingNode,
 				Tag:         "!!map",
 				Style:       yaml.FlowStyle,
@@ -982,7 +982,7 @@ var nodeTests = []struct {
 				Column:      1,
 				HeadComment: "# MH1",
 				FootComment: "# MF1",
-				Children: []*yaml.Node{{
+				Content: []*yaml.Node{{
 					Kind:        yaml.ScalarNode,
 					Tag:         "!!str",
 					Line:        6,
@@ -1021,12 +1021,12 @@ var nodeTests = []struct {
 			Column:      1,
 			HeadComment: "# DH1\n\n# DH2",
 			FootComment: "# DF1\n\n# DF2",
-			Children: []*yaml.Node{{
+			Content: []*yaml.Node{{
 				Kind:   yaml.SequenceNode,
 				Tag:    "!!seq",
 				Line:   7,
 				Column: 1,
-				Children: []*yaml.Node{
+				Content: []*yaml.Node{
 					saveNode("x", &yaml.Node{
 						Kind:        yaml.ScalarNode,
 						Tag:         "!!str",

@@ -729,11 +729,11 @@ func yaml_parser_fetch_next_token(parser *yaml_parser_t) (ok bool) {
 		if !ok {
 			return
 		}
-		if !yaml_parser_scan_inline_comment(parser, comment_mark) {
+		if !yaml_parser_scan_line_comment(parser, comment_mark) {
 			ok = false
 			return
 		}
-		if !yaml_parser_scan_footer_comment(parser, comment_mark) {
+		if !yaml_parser_scan_foot_comment(parser, comment_mark) {
 			ok = false
 			return
 		}
@@ -1478,7 +1478,7 @@ func yaml_parser_scan_to_next_token(parser *yaml_parser_t) bool {
 
 		// Eat a comment until a line break.
 		if parser.buffer[parser.buffer_pos] == '#' {
-			if !yaml_parser_scan_header_comment(parser, parser.mark) {
+			if !yaml_parser_scan_head_comment(parser, parser.mark) {
 				return false
 			}
 		}
@@ -1578,7 +1578,7 @@ func yaml_parser_scan_directive(parser *yaml_parser_t, token *yaml_token_t) bool
 
 	if parser.buffer[parser.buffer_pos] == '#' {
 		// [Go] Discard this inline comment for the time being.
-		//if !yaml_parser_scan_inline_comment(parser, start_mark) {
+		//if !yaml_parser_scan_line_comment(parser, start_mark) {
 		//	return false
 		//}
 		for !is_breakz(parser.buffer, parser.buffer_pos) {
@@ -2151,7 +2151,7 @@ func yaml_parser_scan_block_scalar(parser *yaml_parser_t, token *yaml_token_t, l
 		}
 	}
 	if parser.buffer[parser.buffer_pos] == '#' {
-		if !yaml_parser_scan_inline_comment(parser, start_mark) {
+		if !yaml_parser_scan_line_comment(parser, start_mark) {
 			return false
 		}
 	}
@@ -2716,14 +2716,13 @@ func yaml_parser_scan_plain_scalar(parser *yaml_parser_t, token *yaml_token_t) b
 	return true
 }
 
-
-func yaml_parser_scan_inline_comment(parser *yaml_parser_t, after yaml_mark_t) bool {
+func yaml_parser_scan_line_comment(parser *yaml_parser_t, after yaml_mark_t) bool {
 	if parser.mark.column == 0 {
 		return true
 	}
 
 	parser.comments = append(parser.comments, yaml_comment_t{after: after})
-	comment := &parser.comments[len(parser.comments)-1].inline
+	comment := &parser.comments[len(parser.comments)-1].line
 
 	for peek := 0; peek < 512; peek++ {
 		if parser.unread < peek+1 && !yaml_parser_update_buffer(parser, peek+1) {
@@ -2763,9 +2762,9 @@ func yaml_parser_scan_inline_comment(parser *yaml_parser_t, after yaml_mark_t) b
 	return true
 }
 
-func yaml_parser_scan_header_comment(parser *yaml_parser_t, after yaml_mark_t) bool {
+func yaml_parser_scan_head_comment(parser *yaml_parser_t, after yaml_mark_t) bool {
 	parser.comments = append(parser.comments, yaml_comment_t{after: after})
-	comment := &parser.comments[len(parser.comments)-1].header
+	comment := &parser.comments[len(parser.comments)-1].head
 	breaks := false
 	for peek := 0; peek < 512; peek++ {
 		if parser.unread < peek+1 && !yaml_parser_update_buffer(parser, peek+1) {
@@ -2815,9 +2814,9 @@ func yaml_parser_scan_header_comment(parser *yaml_parser_t, after yaml_mark_t) b
 	return true
 }
 
-func yaml_parser_scan_footer_comment(parser *yaml_parser_t, after yaml_mark_t) bool {
+func yaml_parser_scan_foot_comment(parser *yaml_parser_t, after yaml_mark_t) bool {
 	parser.comments = append(parser.comments, yaml_comment_t{after: after})
-	comment := &parser.comments[len(parser.comments)-1].footer
+	comment := &parser.comments[len(parser.comments)-1].foot
 	original := *comment
 	breaks := false
 	peek := 0

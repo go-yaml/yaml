@@ -437,9 +437,9 @@ func getStructInfo(st reflect.Type) (*structInfo, error) {
 	}
 
 	sinfo = &structInfo{
-		FieldsMap:  fieldsMap,
-		FieldsList: fieldsList,
-		InlineMap:  inlineMap,
+		FieldsMap:          fieldsMap,
+		FieldsList:         fieldsList,
+		InlineMap:          inlineMap,
 		InlineUnmarshalers: inlineUnmarshalers,
 	}
 

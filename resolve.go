@@ -53,16 +53,16 @@ func init() {
 }
 
 const (
-	nullTag = "!!null"
-	boolTag = "!!bool"
-	strTag = "!!str"
-	intTag = "!!int"
-	floatTag = "!!float"
+	nullTag      = "!!null"
+	boolTag      = "!!bool"
+	strTag       = "!!str"
+	intTag       = "!!int"
+	floatTag     = "!!float"
 	timestampTag = "!!timestamp"
-	seqTag = "!!seq"
-	mapTag = "!!map"
-	binaryTag = "!!binary"
-	mergeTag = "!!merge"
+	seqTag       = "!!seq"
+	mapTag       = "!!map"
+	binaryTag    = "!!binary"
+	mergeTag     = "!!merge"
 )
 
 var longTags = make(map[string]string)
@@ -206,7 +206,7 @@ func resolve(tag string, in string) (rtag string, out interface{}) {
 					return intTag, uintv
 				}
 			} else if strings.HasPrefix(plain, "-0b") {
-				intv, err := strconv.ParseInt("-" + plain[3:], 2, 64)
+				intv, err := strconv.ParseInt("-"+plain[3:], 2, 64)
 				if err == nil {
 					if true || intv == int64(int(intv)) {
 						return intTag, int(intv)
@@ -233,7 +233,7 @@ func resolve(tag string, in string) (rtag string, out interface{}) {
 					return intTag, uintv
 				}
 			} else if strings.HasPrefix(plain, "-0o") {
-				intv, err := strconv.ParseInt("-" + plain[3:], 8, 64)
+				intv, err := strconv.ParseInt("-"+plain[3:], 8, 64)
 				if err == nil {
 					if true || intv == int64(int(intv)) {
 						return intTag, int(intv)

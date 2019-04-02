@@ -416,8 +416,8 @@ func yaml_emitter_emit_document_start(emitter *yaml_emitter_t, event *yaml_event
 			}
 		}
 
-		if len(emitter.header_comment) > 0 {
-			if !yaml_emitter_process_header_comment(emitter) {
+		if len(emitter.head_comment) > 0 {
+			if !yaml_emitter_process_head_comment(emitter) {
 				return false
 			}
 			if !put_break(emitter) {
@@ -452,16 +452,16 @@ func yaml_emitter_emit_document_start(emitter *yaml_emitter_t, event *yaml_event
 func yaml_emitter_emit_document_content(emitter *yaml_emitter_t, event *yaml_event_t) bool {
 	emitter.states = append(emitter.states, yaml_EMIT_DOCUMENT_END_STATE)
 
-	if !yaml_emitter_process_header_comment(emitter) {
+	if !yaml_emitter_process_head_comment(emitter) {
 		return false
 	}
 	if !yaml_emitter_emit_node(emitter, event, true, false, false, false) {
 		return false
 	}
-	if !yaml_emitter_process_inline_comment(emitter) {
+	if !yaml_emitter_process_line_comment(emitter) {
 		return false
 	}
-	if !yaml_emitter_process_footer_comment(emitter) {
+	if !yaml_emitter_process_foot_comment(emitter) {
 		return false
 	}
 	return true
@@ -475,11 +475,11 @@ func yaml_emitter_emit_document_end(emitter *yaml_emitter_t, event *yaml_event_t
 	if !yaml_emitter_write_indent(emitter) {
 		return false
 	}
-	if len(emitter.footer_comment) > 0 {
+	if len(emitter.foot_comment) > 0 {
 		if !put_break(emitter) {
 			return false
 		}
-		if !yaml_emitter_process_footer_comment(emitter) {
+		if !yaml_emitter_process_foot_comment(emitter) {
 			return false
 		}
 	}
@@ -527,10 +527,10 @@ func yaml_emitter_emit_flow_sequence_item(emitter *yaml_emitter_t, event *yaml_e
 		if !yaml_emitter_write_indicator(emitter, []byte{']'}, false, false, false) {
 			return false
 		}
-		if !yaml_emitter_process_inline_comment(emitter) {
+		if !yaml_emitter_process_line_comment(emitter) {
 			return false
 		}
-		if !yaml_emitter_process_footer_comment(emitter) {
+		if !yaml_emitter_process_foot_comment(emitter) {
 			return false
 		}
 		emitter.state = emitter.states[len(emitter.states)-1]
@@ -545,7 +545,7 @@ func yaml_emitter_emit_flow_sequence_item(emitter *yaml_emitter_t, event *yaml_e
 		}
 	}
 
-	if !yaml_emitter_process_header_comment(emitter) {
+	if !yaml_emitter_process_head_comment(emitter) {
 		return false
 	}
 	if emitter.column == 0 {
@@ -559,7 +559,7 @@ func yaml_emitter_emit_flow_sequence_item(emitter *yaml_emitter_t, event *yaml_e
 			return false
 		}
 	}
-	if len(emitter.inline_comment) > 0 || len(emitter.footer_comment) > 0 {
+	if len(emitter.line_comment) > 0 || len(emitter.foot_comment) > 0 {
 		emitter.states = append(emitter.states, yaml_EMIT_FLOW_SEQUENCE_TRAIL_ITEM_STATE)
 	} else {
 		emitter.states = append(emitter.states, yaml_EMIT_FLOW_SEQUENCE_ITEM_STATE)
@@ -567,15 +567,15 @@ func yaml_emitter_emit_flow_sequence_item(emitter *yaml_emitter_t, event *yaml_e
 	if !yaml_emitter_emit_node(emitter, event, false, true, false, false) {
 		return false
 	}
-	if len(emitter.inline_comment) > 0 || len(emitter.footer_comment) > 0 {
+	if len(emitter.line_comment) > 0 || len(emitter.foot_comment) > 0 {
 		if !yaml_emitter_write_indicator(emitter, []byte{','}, false, false, false) {
 			return false
 		}
 	}
-	if !yaml_emitter_process_inline_comment(emitter) {
+	if !yaml_emitter_process_line_comment(emitter) {
 		return false
 	}
-	if !yaml_emitter_process_footer_comment(emitter) {
+	if !yaml_emitter_process_foot_comment(emitter) {
 		return false
 	}
 	return true
@@ -608,10 +608,10 @@ func yaml_emitter_emit_flow_mapping_key(emitter *yaml_emitter_t, event *yaml_eve
 		if !yaml_emitter_write_indicator(emitter, []byte{'}'}, false, false, false) {
 			return false
 		}
-		if !yaml_emitter_process_inline_comment(emitter) {
+		if !yaml_emitter_process_line_comment(emitter) {
 			return false
 		}
-		if !yaml_emitter_process_footer_comment(emitter) {
+		if !yaml_emitter_process_foot_comment(emitter) {
 			return false
 		}
 		emitter.state = emitter.states[len(emitter.states)-1]
@@ -625,7 +625,7 @@ func yaml_emitter_emit_flow_mapping_key(emitter *yaml_emitter_t, event *yaml_eve
 		}
 	}
 
-	if !yaml_emitter_process_header_comment(emitter) {
+	if !yaml_emitter_process_head_comment(emitter) {
 		return false
 	}
 	if emitter.column == 0 {
@@ -667,7 +667,7 @@ func yaml_emitter_emit_flow_mapping_value(emitter *yaml_emitter_t, event *yaml_e
 			return false
 		}
 	}
-	if len(emitter.inline_comment) > 0 || len(emitter.footer_comment) > 0 {
+	if len(emitter.line_comment) > 0 || len(emitter.foot_comment) > 0 {
 		emitter.states = append(emitter.states, yaml_EMIT_FLOW_MAPPING_TRAIL_KEY_STATE)
 	} else {
 		emitter.states = append(emitter.states, yaml_EMIT_FLOW_MAPPING_KEY_STATE)
@@ -675,15 +675,15 @@ func yaml_emitter_emit_flow_mapping_value(emitter *yaml_emitter_t, event *yaml_e
 	if !yaml_emitter_emit_node(emitter, event, false, false, true, false) {
 		return false
 	}
-	if len(emitter.inline_comment) > 0 || len(emitter.footer_comment) > 0 {
+	if len(emitter.line_comment) > 0 || len(emitter.foot_comment) > 0 {
 		if !yaml_emitter_write_indicator(emitter, []byte{','}, false, false, false) {
 			return false
 		}
 	}
-	if !yaml_emitter_process_inline_comment(emitter) {
+	if !yaml_emitter_process_line_comment(emitter) {
 		return false
 	}
-	if !yaml_emitter_process_footer_comment(emitter) {
+	if !yaml_emitter_process_foot_comment(emitter) {
 		return false
 	}
 	return true
@@ -703,7 +703,7 @@ func yaml_emitter_emit_block_sequence_item(emitter *yaml_emitter_t, event *yaml_
 		emitter.states = emitter.states[:len(emitter.states)-1]
 		return true
 	}
-	if !yaml_emitter_process_header_comment(emitter) {
+	if !yaml_emitter_process_head_comment(emitter) {
 		return false
 	}
 	if !yaml_emitter_write_indent(emitter) {
@@ -716,10 +716,10 @@ func yaml_emitter_emit_block_sequence_item(emitter *yaml_emitter_t, event *yaml_
 	if !yaml_emitter_emit_node(emitter, event, false, true, false, false) {
 		return false
 	}
-	if !yaml_emitter_process_inline_comment(emitter) {
+	if !yaml_emitter_process_line_comment(emitter) {
 		return false
 	}
-	if !yaml_emitter_process_footer_comment(emitter) {
+	if !yaml_emitter_process_foot_comment(emitter) {
 		return false
 	}
 	return true
@@ -739,7 +739,7 @@ func yaml_emitter_emit_block_mapping_key(emitter *yaml_emitter_t, event *yaml_ev
 		emitter.states = emitter.states[:len(emitter.states)-1]
 		return true
 	}
-	if !yaml_emitter_process_header_comment(emitter) {
+	if !yaml_emitter_process_head_comment(emitter) {
 		return false
 	}
 	if emitter.states[len(emitter.states)-1] != yaml_EMIT_BLOCK_SEQUENCE_ITEM_STATE {
@@ -776,10 +776,10 @@ func yaml_emitter_emit_block_mapping_value(emitter *yaml_emitter_t, event *yaml_
 	if !yaml_emitter_emit_node(emitter, event, false, false, true, false) {
 		return false
 	}
-	if !yaml_emitter_process_inline_comment(emitter) {
+	if !yaml_emitter_process_line_comment(emitter) {
 		return false
 	}
-	if !yaml_emitter_process_footer_comment(emitter) {
+	if !yaml_emitter_process_foot_comment(emitter) {
 		return false
 	}
 	return true
@@ -1048,9 +1048,9 @@ func yaml_emitter_process_scalar(emitter *yaml_emitter_t) bool {
 	panic("unknown scalar style")
 }
 
-// Write a header comment.
-func yaml_emitter_process_header_comment(emitter *yaml_emitter_t) bool {
-	if len(emitter.header_comment) == 0 {
+// Write a head comment.
+func yaml_emitter_process_head_comment(emitter *yaml_emitter_t) bool {
+	if len(emitter.head_comment) == 0 {
 		return true
 	}
 	space_above := emitter.space_above
@@ -1071,16 +1071,16 @@ func yaml_emitter_process_header_comment(emitter *yaml_emitter_t) bool {
 	if !yaml_emitter_write_indent(emitter) {
 		return false
 	}
-	if !yaml_emitter_write_comment(emitter, emitter.header_comment) {
+	if !yaml_emitter_write_comment(emitter, emitter.head_comment) {
 		return false
 	}
-	emitter.header_comment = emitter.header_comment[:0]
+	emitter.head_comment = emitter.head_comment[:0]
 	return true
 }
 
-// Write an inline comment.
-func yaml_emitter_process_inline_comment(emitter *yaml_emitter_t) bool {
-	if len(emitter.inline_comment) == 0 {
+// Write an line comment.
+func yaml_emitter_process_line_comment(emitter *yaml_emitter_t) bool {
+	if len(emitter.line_comment) == 0 {
 		return true
 	}
 	if !emitter.whitespace {
@@ -1088,25 +1088,25 @@ func yaml_emitter_process_inline_comment(emitter *yaml_emitter_t) bool {
 			return false
 		}
 	}
-	if !yaml_emitter_write_comment(emitter, emitter.inline_comment) {
+	if !yaml_emitter_write_comment(emitter, emitter.line_comment) {
 		return false
 	}
-	emitter.inline_comment = emitter.inline_comment[:0]
+	emitter.line_comment = emitter.line_comment[:0]
 	return true
 }
 
-// Write a footer comment.
-func yaml_emitter_process_footer_comment(emitter *yaml_emitter_t) bool {
-	if len(emitter.footer_comment) == 0 {
+// Write a foot comment.
+func yaml_emitter_process_foot_comment(emitter *yaml_emitter_t) bool {
+	if len(emitter.foot_comment) == 0 {
 		return true
 	}
 	if !yaml_emitter_write_indent(emitter) {
 		return false
 	}
-	if !yaml_emitter_write_comment(emitter, emitter.footer_comment) {
+	if !yaml_emitter_write_comment(emitter, emitter.foot_comment) {
 		return false
 	}
-	emitter.footer_comment = emitter.footer_comment[:0]
+	emitter.foot_comment = emitter.foot_comment[:0]
 	return true
 }
 
@@ -1339,14 +1339,14 @@ func yaml_emitter_analyze_event(emitter *yaml_emitter_t, event *yaml_event_t) bo
 	emitter.tag_data.suffix = nil
 	emitter.scalar_data.value = nil
 
-	if len(event.header_comment) > 0 {
-		emitter.header_comment = event.header_comment
+	if len(event.head_comment) > 0 {
+		emitter.head_comment = event.head_comment
 	}
-	if len(event.inline_comment) > 0 {
-		emitter.inline_comment = event.inline_comment
+	if len(event.line_comment) > 0 {
+		emitter.line_comment = event.line_comment
 	}
-	if len(event.footer_comment) > 0 {
-		emitter.footer_comment = event.footer_comment
+	if len(event.foot_comment) > 0 {
+		emitter.foot_comment = event.foot_comment
 	}
 
 	switch event.typ {

@@ -291,7 +291,7 @@ func yaml_document_end_event_initialize(event *yaml_event_t, implicit bool) {
 // Create ALIAS.
 func yaml_alias_event_initialize(event *yaml_event_t, anchor []byte) bool {
 	*event = yaml_event_t{
-		typ: yaml_ALIAS_EVENT,
+		typ:    yaml_ALIAS_EVENT,
 		anchor: anchor,
 	}
 	return true

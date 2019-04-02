@@ -280,9 +280,9 @@ type yaml_event_t struct {
 	tag_directives []yaml_tag_directive_t
 
 	// The comments
-	header_comment []byte
-	inline_comment []byte
-	footer_comment []byte
+	head_comment []byte
+	line_comment []byte
+	foot_comment []byte
 
 	// The anchor (for yaml_SCALAR_EVENT, yaml_SEQUENCE_START_EVENT, yaml_MAPPING_START_EVENT, yaml_ALIAS_EVENT).
 	anchor []byte
@@ -569,9 +569,9 @@ type yaml_parser_t struct {
 
 	// Comments
 
-	header_comment []byte // The current header comments
-	inline_comment []byte // The current inline comments
-	footer_comment []byte // The current footer comments
+	head_comment []byte // The current head comments
+	line_comment []byte // The current line comments
+	foot_comment []byte // The current foot comments
 
 	comments      []yaml_comment_t // The folded comments for all parsed tokens
 	comments_head int
@@ -609,10 +609,10 @@ type yaml_parser_t struct {
 }
 
 type yaml_comment_t struct {
-	after  yaml_mark_t
-	header []byte
-	inline []byte
-	footer []byte
+	after yaml_mark_t
+	head  []byte
+	line  []byte
+	foot  []byte
 }
 
 // Emitter Definitions
@@ -746,9 +746,9 @@ type yaml_emitter_t struct {
 	}
 
 	// Comments
-	header_comment []byte
-	inline_comment []byte
-	footer_comment []byte
+	head_comment []byte
+	line_comment []byte
+	foot_comment []byte
 
 	// Dumper stuff
 

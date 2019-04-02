@@ -58,23 +58,23 @@ func peek_token(parser *yaml_parser_t) *yaml_token_t {
 func yaml_parser_unfold_comments(parser *yaml_parser_t, token *yaml_token_t) {
 	for parser.comments_head < len(parser.comments) && token.start_mark.index >= parser.comments[parser.comments_head].after.index {
 		comment := &parser.comments[parser.comments_head]
-		if len(comment.header) > 0 {
-			if len(parser.header_comment) > 0 {
-				parser.header_comment = append(parser.header_comment, '\n')
+		if len(comment.head) > 0 {
+			if len(parser.head_comment) > 0 {
+				parser.head_comment = append(parser.head_comment, '\n')
 			}
-			parser.header_comment = append(parser.header_comment, comment.header...)
+			parser.head_comment = append(parser.head_comment, comment.head...)
 		}
-		if len(comment.footer) > 0 {
-			if len(parser.footer_comment) > 0 {
-				parser.footer_comment = append(parser.footer_comment, '\n')
+		if len(comment.foot) > 0 {
+			if len(parser.foot_comment) > 0 {
+				parser.foot_comment = append(parser.foot_comment, '\n')
 			}
-			parser.footer_comment = append(parser.footer_comment, comment.footer...)
+			parser.foot_comment = append(parser.foot_comment, comment.foot...)
 		}
-		if len(comment.inline) > 0 {
-			if len(parser.inline_comment) > 0 {
-				parser.inline_comment = append(parser.inline_comment, '\n')
+		if len(comment.line) > 0 {
+			if len(parser.line_comment) > 0 {
+				parser.line_comment = append(parser.line_comment, '\n')
 			}
-			parser.inline_comment = append(parser.inline_comment, comment.inline...)
+			parser.line_comment = append(parser.line_comment, comment.line...)
 		}
 		*comment = yaml_comment_t{}
 		parser.comments_head++
@@ -255,20 +255,20 @@ func yaml_parser_parse_document_start(parser *yaml_parser_t, event *yaml_event_t
 		parser.states = append(parser.states, yaml_PARSE_DOCUMENT_END_STATE)
 		parser.state = yaml_PARSE_BLOCK_NODE_STATE
 
-		var header_comment []byte
-		if len(parser.header_comment) > 0 {
+		var head_comment []byte
+		if len(parser.head_comment) > 0 {
 			// [Go] Scan the header comment backwards, and if an empty line is found, break
 			//      the header so the part before the last empty line goes into the
 			//      document header, while the bottom of it goes into a follow up event.
-			for i := len(parser.header_comment)-1; i > 0; i-- {
-				if parser.header_comment[i] == '\n' {
-					if i == len(parser.header_comment)-1 {
-						header_comment = parser.header_comment[:i]
-						parser.header_comment = parser.header_comment[i+1:]
+			for i := len(parser.head_comment) - 1; i > 0; i-- {
+				if parser.head_comment[i] == '\n' {
+					if i == len(parser.head_comment)-1 {
+						head_comment = parser.head_comment[:i]
+						parser.head_comment = parser.head_comment[i+1:]
 						break
-					} else if parser.header_comment[i-1] == '\n' {
-						header_comment = parser.header_comment[:i-1]
-						parser.header_comment = parser.header_comment[i+1:]
+					} else if parser.head_comment[i-1] == '\n' {
+						head_comment = parser.head_comment[:i-1]
+						parser.head_comment = parser.head_comment[i+1:]
 						break
 					}
 				}
@@ -280,7 +280,7 @@ func yaml_parser_parse_document_start(parser *yaml_parser_t, event *yaml_event_t
 			start_mark: token.start_mark,
 			end_mark:   token.end_mark,
 
-			header_comment: header_comment,
+			head_comment: head_comment,
 		}
 
 	} else if token.typ != yaml_STREAM_END_TOKEN {
@@ -380,19 +380,19 @@ func yaml_parser_parse_document_end(parser *yaml_parser_t, event *yaml_event_t) 
 		end_mark:   end_mark,
 		implicit:   implicit,
 
-		footer_comment: parser.header_comment,
+		foot_comment: parser.head_comment,
 	}
-	parser.header_comment = nil
+	parser.head_comment = nil
 	return true
 }
 
 func yaml_parser_set_event_comments(parser *yaml_parser_t, event *yaml_event_t) {
-	event.header_comment = parser.header_comment
-	event.inline_comment = parser.inline_comment
-	event.footer_comment = parser.footer_comment
-	parser.header_comment = nil
-	parser.inline_comment = nil
-	parser.footer_comment = nil
+	event.head_comment = parser.head_comment
+	event.line_comment = parser.line_comment
+	event.foot_comment = parser.foot_comment
+	parser.head_comment = nil
+	parser.line_comment = nil
+	parser.foot_comment = nil
 }
 
 // Parse the productions:

@@ -43,9 +43,10 @@ type Node struct {
 	Anchor   string
 	Alias    *Node
 	Children []*Node
-	Header   string
-	Inline   string
-	Footer   string
+
+	HeadComment string
+	LineComment string
+	FootComment string
 }
 
 func (n *Node) LongTag() string {
@@ -233,15 +234,15 @@ func (p *parser) node(kind NodeKind, defaultTag, tag, value string) *Node {
 		tag, _ = resolve("", value)
 	}
 	return &Node{
-		Kind:   kind,
-		Tag:    tag,
-		Value:  value,
-		Style:  style,
-		Line:   p.event.start_mark.line + 1,
-		Column: p.event.start_mark.column + 1,
-		Header: string(p.event.header_comment),
-		Inline: string(p.event.inline_comment),
-		Footer: string(p.event.footer_comment),
+		Kind:        kind,
+		Tag:         tag,
+		Value:       value,
+		Style:       style,
+		Line:        p.event.start_mark.line + 1,
+		Column:      p.event.start_mark.column + 1,
+		HeadComment: string(p.event.head_comment),
+		LineComment: string(p.event.line_comment),
+		FootComment: string(p.event.foot_comment),
 	}
 }
 
@@ -257,7 +258,7 @@ func (p *parser) document() *Node {
 	p.expect(yaml_DOCUMENT_START_EVENT)
 	p.parseChild(n)
 	if p.peek() == yaml_DOCUMENT_END_EVENT {
-		n.Footer = string(p.event.footer_comment)
+		n.FootComment = string(p.event.foot_comment)
 	}
 	p.expect(yaml_DOCUMENT_END_EVENT)
 	return n
@@ -313,8 +314,8 @@ func (p *parser) sequence() *Node {
 	for p.peek() != yaml_SEQUENCE_END_EVENT {
 		p.parseChild(n)
 	}
-	n.Inline = string(p.event.inline_comment)
-	n.Footer = string(p.event.footer_comment)
+	n.LineComment = string(p.event.line_comment)
+	n.FootComment = string(p.event.foot_comment)
 	p.expect(yaml_SEQUENCE_END_EVENT)
 	return n
 }
@@ -329,13 +330,13 @@ func (p *parser) mapping() *Node {
 	for p.peek() != yaml_MAPPING_END_EVENT {
 		k := p.parseChild(n)
 		v := p.parseChild(n)
-		if v.Footer != "" {
-			k.Footer = v.Footer
-			v.Footer = ""
+		if v.FootComment != "" {
+			k.FootComment = v.FootComment
+			v.FootComment = ""
 		}
 	}
-	n.Inline = string(p.event.inline_comment)
-	n.Footer = string(p.event.footer_comment)
+	n.LineComment = string(p.event.line_comment)
+	n.FootComment = string(p.event.foot_comment)
 	p.expect(yaml_MAPPING_END_EVENT)
 	return n
 }
@@ -367,9 +368,9 @@ var (
 
 func newDecoder() *decoder {
 	d := &decoder{
-		stringMapType: stringMapType,
+		stringMapType:  stringMapType,
 		generalMapType: generalMapType,
-		uniqueKeys: true,
+		uniqueKeys:     true,
 	}
 	d.aliases = make(map[*Node]bool)
 	return d
@@ -756,7 +757,7 @@ func (d *decoder) mapping(n *Node, out reflect.Value) (good bool) {
 		nerrs := len(d.terrors)
 		for i := 0; i < l; i += 2 {
 			ni := n.Children[i]
-			for j := i+2; j < l; j += 2 {
+			for j := i + 2; j < l; j += 2 {
 				nj := n.Children[j]
 				if ni.Kind == nj.Kind && ni.Value == nj.Value {
 					d.terrors = append(d.terrors, fmt.Sprintf("line %d: mapping key %#v already defined at line %d", nj.Line, nj.Value, ni.Line))

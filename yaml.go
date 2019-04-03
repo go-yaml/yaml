@@ -134,6 +134,10 @@ func (dec *Decoder) Decode(v interface{}) (err error) {
 	return nil
 }
 
+// Decode decodes the node and stores its data into the value pointed to by v.
+//
+// See the documentation for Unmarshal for details about the
+// conversion of YAML into a Go value.
 func (n *Node) Decode(v interface{}) (err error) {
 	d := newDecoder()
 	defer handleErr(&err)
@@ -318,25 +322,33 @@ const (
 	FlowStyle
 )
 
-// Node represents an element in the yaml document hierarchy. While documents
+// Node represents an element in the YAML document hierarchy. While documents
 // are typically encoded and decoded into higher level types, such as structs
 // and maps, Node is an intermediate representation that allows detailed
 // control over the content being decoded or encoded. It may be used entirely
 // by itself, or composed together with other types. For example, it may be
 // used as the type of a single field of a structure being decoded.
 type Node struct {
+	// Kind defines whether the node is a document, a mapping, a sequence,
+	// a scalar value, or an alias to another node. The specific data type of
+	// scalar nodes may be obtained via the ShortTag and LongTag methods.
 	Kind  Kind
+
+	// Style allows customizing the apperance of the node in the tree.
 	Style Style
 
-	// Line and Column hold the node position in the yaml text.
+	// Line and Column hold the node position in the decoded YAML text.
+	// These fields are not respected when encoding the node.
 	Line   int
 	Column int
 
-	// Tag holds the yaml tag defining the data type for the value. On
-	// decoded values this field will always be set to the resolved tag,
-	// even when a tag wasn't explicitly provided in the yaml content.
+	// Tag holds the YAML tag defining the data type for the value.
+	// When decoding, this field will always be set to the resolved tag,
+	// even when it wasn't explicitly provided in the YAML content.
 	// When encoding, if this field is unset the value type will be
-	// implied
+	// implied from the node properties, and if it is set, it will only
+	// be serialized into the representation if TaggedStyle is used or
+	// the implicit tag diverges from the provided one.
 	Tag string
 
 	// Value holds the unescaped and unquoted represenation of the value.
@@ -362,10 +374,16 @@ type Node struct {
 	FootComment string
 }
 
+// LongTag returns the long form of the tag that indicates the data type for
+// the node. If the Tag field isn't explicitly defined, one will be computed
+// based on the node properties.
 func (n *Node) LongTag() string {
 	return longTag(n.ShortTag())
 }
 
+// ShortTag returns the short form of the YAML tag that indicates data type for
+// the node. If the Tag field isn't explicitly defined, one will be computed
+// based on the node properties.
 func (n *Node) ShortTag() string {
 	if n.indicatedString() {
 		return strTag
@@ -395,6 +413,8 @@ func (n *Node) indicatedString() bool {
 			(n.Tag == "" || n.Tag == "!") && n.Style&(SingleQuotedStyle|DoubleQuotedStyle|LiteralStyle|FoldedStyle) != 0)
 }
 
+// SetString is a convenience function that sets the node to a string value
+// and defines its style in a pleasant way depending on its content.
 func (n *Node) SetString(s string) {
 	n.Kind = ScalarNode
 	n.Value = s

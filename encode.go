@@ -137,7 +137,8 @@ func (e *encoder) marshal(tag string, in reflect.Value) {
 			e.nilv()
 			return
 		}
-		in = reflect.ValueOf(v)
+		e.marshal(tag, reflect.ValueOf(v))
+		return
 	case encoding.TextMarshaler:
 		text, err := value.MarshalText()
 		if err != nil {

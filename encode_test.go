@@ -396,6 +396,15 @@ var marshalTests = []struct {
 		map[string]string{"a": "你好 #comment"},
 		"a: '你好 #comment'\n",
 	},
+
+	// Ensure MarshalYAML also gets called on the result of MarshalYAML itself.
+	{
+		&marshalerType{marshalerType{true}},
+		"true\n",
+	}, {
+		&marshalerType{&marshalerType{true}},
+		"true\n",
+	},
 }
 
 func (s *S) TestMarshal(c *C) {

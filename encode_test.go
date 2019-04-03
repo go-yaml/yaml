@@ -6,14 +6,27 @@ import (
 	"math"
 	"strconv"
 	"strings"
+	"testing"
 	"time"
 
 	"net"
 	"os"
 
+	"github.com/devspace-cloud/yaml"
 	. "gopkg.in/check.v1"
-	"gopkg.in/yaml.v2"
 )
+
+func TestMapMarshal(t *testing.T) {
+	out, err := yaml.Marshal(map[interface{}]interface{}{
+		"zzz": "ddd",
+		"aaa": "eee",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	t.Fatal(string(out))
+}
 
 type jsonNumberT string
 

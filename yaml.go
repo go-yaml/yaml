@@ -337,11 +337,6 @@ type Node struct {
 	// Style allows customizing the apperance of the node in the tree.
 	Style Style
 
-	// Line and Column hold the node position in the decoded YAML text.
-	// These fields are not respected when encoding the node.
-	Line   int
-	Column int
-
 	// Tag holds the YAML tag defining the data type for the value.
 	// When decoding, this field will always be set to the resolved tag,
 	// even when it wasn't explicitly provided in the YAML content.
@@ -372,6 +367,11 @@ type Node struct {
 
 	// FootComment holds any comments following the node and before empty lines.
 	FootComment string
+
+	// Line and Column hold the node position in the decoded YAML text.
+	// These fields are not respected when encoding the node.
+	Line   int
+	Column int
 }
 
 // LongTag returns the long form of the tag that indicates the data type for

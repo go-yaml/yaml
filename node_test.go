@@ -627,6 +627,41 @@ var nodeTests = []struct {
 			}},
 		},
 	}, {
+		// Write out the pound character if missing from comments.
+		"[encode]# One\n# Two\ntrue # Three\n# Four\n# Five\n",
+		yaml.Node{
+			Kind:   yaml.DocumentNode,
+			Line:   3,
+			Column: 1,
+			Content: []*yaml.Node{{
+				Kind:        yaml.ScalarNode,
+				Value:       "true",
+				Tag:         "!!bool",
+				Line:        3,
+				Column:      1,
+				HeadComment: "One\nTwo\n",
+				LineComment: "Three\n",
+				FootComment: "Four\nFive\n",
+			}},
+		},
+	}, {
+		"[encode]#   One\n#   Two\ntrue #   Three\n#   Four\n#   Five\n",
+		yaml.Node{
+			Kind:   yaml.DocumentNode,
+			Line:   3,
+			Column: 1,
+			Content: []*yaml.Node{{
+				Kind:        yaml.ScalarNode,
+				Value:       "true",
+				Tag:         "!!bool",
+				Line:        3,
+				Column:      1,
+				HeadComment: "  One\n  Two",
+				LineComment: "  Three",
+				FootComment: "  Four\n  Five",
+			}},
+		},
+	}, {
 		"# DH1\n\n# DH2\n\n# H1\n# H2\ntrue # I\n# F1\n# F2\n\n# DF1\n\n# DF2\n",
 		yaml.Node{
 			Kind:        yaml.DocumentNode,

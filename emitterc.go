@@ -1900,20 +1900,24 @@ func yaml_emitter_write_folded_scalar(emitter *yaml_emitter_t, value []byte) boo
 func yaml_emitter_write_comment(emitter *yaml_emitter_t, comment []byte) bool {
 	// [Go] TODO Emit "# " when necessary.
 	breaks := false
+	pound := false
 	for i := 0; i < len(comment); {
-		if is_space(comment, i) {
-			if !write(emitter, comment, &i) {
-				return false
-			}
-		} else if is_break(comment, i) {
+		if is_break(comment, i) {
 			if !write_break(emitter, comment, &i) {
 				return false
 			}
 			//emitter.indention = true
 			breaks = true
+			pound = false
 		} else {
 			if breaks && !yaml_emitter_write_indent(emitter) {
 				return false
+			}
+			if !pound {
+				if comment[i] != '#' && (!put(emitter, '#') || !put(emitter, ' ')) {
+					return false
+				}
+				pound = true
 			}
 			if !write(emitter, comment, &i) {
 				return false

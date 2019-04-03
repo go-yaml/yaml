@@ -27,7 +27,7 @@ import (
 	"os"
 
 	. "gopkg.in/check.v1"
-	"gopkg.in/niemeyer/ynext.v3"
+	"gopkg.in/yaml.v3"
 )
 
 var marshalIntTest = 123

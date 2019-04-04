@@ -326,10 +326,13 @@ const (
 // Node represents an element in the YAML document hierarchy. While documents
 // are typically encoded and decoded into higher level types, such as structs
 // and maps, Node is an intermediate representation that allows detailed
-// control over the content being decoded or encoded. It encodes and decodes
-// just like any other type, using the Marshal and Unmarshal functions, or the
-// Encoder and Decoder types, and just like any other type it can be mixed
-// together in existing types (structs, maps, etc). For example:
+// control over the content being decoded or encoded.
+//
+// Values that make use of the Node type interact with the yaml package in the
+// same way any other type would do, by encoding and decoding yaml data
+// directly or indirectly into them.
+//
+// For example:
 //
 //     var person struct {
 //             Name    string

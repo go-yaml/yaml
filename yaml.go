@@ -326,9 +326,22 @@ const (
 // Node represents an element in the YAML document hierarchy. While documents
 // are typically encoded and decoded into higher level types, such as structs
 // and maps, Node is an intermediate representation that allows detailed
-// control over the content being decoded or encoded. It may be used entirely
-// by itself, or composed together with other types. For example, it may be
-// used as the type of a single field of a structure being decoded.
+// control over the content being decoded or encoded. It encodes and decodes
+// just like any other type, using the Marshal and Unmarshal functions, or the
+// Encoder and Decoder types, and just like any other type it can be mixed
+// together in existing types (structs, maps, etc). For example:
+//
+//     var person struct {
+//             Name    string
+//             Address yaml.Node
+//     }
+//     err := yaml.Unmarshal(data, &person)
+// 
+// Or by itself:
+//
+//     var person Node
+//     err := yaml.Unmarshal(data, &person)
+//
 type Node struct {
 	// Kind defines whether the node is a document, a mapping, a sequence,
 	// a scalar value, or an alias to another node. The specific data type of

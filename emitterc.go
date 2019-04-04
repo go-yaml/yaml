@@ -1920,7 +1920,6 @@ func yaml_emitter_write_folded_scalar(emitter *yaml_emitter_t, value []byte) boo
 }
 
 func yaml_emitter_write_comment(emitter *yaml_emitter_t, comment []byte) bool {
-	// [Go] TODO Emit "# " when necessary.
 	breaks := false
 	pound := false
 	for i := 0; i < len(comment); {

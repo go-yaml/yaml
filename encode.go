@@ -489,6 +489,20 @@ func (e *encoder) node(node *Node) {
 		e.emit()
 
 	case ScalarNode:
+		value := node.Value
+		if !utf8.ValidString(value) {
+			if tag == binaryTag {
+				failf("explicitly tagged !!binary data must be base64-encoded")
+			}
+			if tag != "" {
+				failf("cannot marshal invalid UTF-8 data as %s", shortTag(tag))
+			}
+			// It can't be encoded directly as YAML so use a binary tag
+			// and encode it as base64.
+			tag = binaryTag
+			value = encodeBase64(value)
+		}
+
 		style := yaml_PLAIN_SCALAR_STYLE
 		switch {
 		case node.Style&DoubleQuotedStyle != 0:
@@ -499,27 +513,12 @@ func (e *encoder) node(node *Node) {
 			style = yaml_LITERAL_SCALAR_STYLE
 		case node.Style&FoldedStyle != 0:
 			style = yaml_FOLDED_SCALAR_STYLE
-		case strings.Contains(node.Value, "\n"):
+		case strings.Contains(value, "\n"):
 			style = yaml_LITERAL_SCALAR_STYLE
 		case forceQuoting:
 			style = yaml_DOUBLE_QUOTED_SCALAR_STYLE
 		}
 
-		e.emitScalar(node.Value, node.Anchor, tag, style, []byte(node.HeadComment), []byte(node.LineComment), []byte(node.FootComment))
-
-		// TODO Check if binaries are being decoded into node.Value or not.
-		//switch {
-		//if !utf8.ValidString(s) {
-		//	if tag == binaryTag {
-		//		failf("explicitly tagged !!binary data must be base64-encoded")
-		//	}
-		//	if tag != "" {
-		//		failf("cannot marshal invalid UTF-8 data as %s", shortTag(tag))
-		//	}
-		//	// It can't be encoded directly as YAML so use a binary tag
-		//	// and encode it as base64.
-		//	tag = binaryTag
-		//	s = encodeBase64(s)
-		//}
+		e.emitScalar(value, node.Anchor, tag, style, []byte(node.HeadComment), []byte(node.LineComment), []byte(node.FootComment))
 	}
 }

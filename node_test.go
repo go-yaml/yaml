@@ -117,6 +117,20 @@ var nodeTests = []struct {
 			}},
 		},
 	}, {
+		// Item doesn't have a tag, but needs to be binary encoded due to its content.
+		"[encode]!!binary gIGC\n",
+		yaml.Node{
+			Kind:   yaml.DocumentNode,
+			Line:   1,
+			Column: 1,
+			Content: []*yaml.Node{{
+				Kind:   yaml.ScalarNode,
+				Value:  "\x80\x81\x82",
+				Line:   1,
+				Column: 1,
+			}},
+		},
+	}, {
 		// Same, but with strings we can just quote them.
 		"[encode]\"123\"\n",
 		yaml.Node{
@@ -1156,4 +1170,94 @@ func dropNode(name string) *yaml.Node {
 	node := savedNodes[name]
 	delete(savedNodes, name)
 	return node
+}
+
+var setStringTests = []struct {
+	str  string
+	yaml string
+	node yaml.Node
+}{
+	{
+		"something simple",
+		"something simple\n",
+		yaml.Node{
+			Kind:   yaml.ScalarNode,
+			Value:  "something simple",
+			Tag:    "!!str",
+		},
+	}, {
+		`"quoted value"`,
+		"'\"quoted value\"'\n",
+		yaml.Node{
+			Kind:   yaml.ScalarNode,
+			Value:  `"quoted value"`,
+			Tag:    "!!str",
+		},
+	}, {
+		"multi\nline",
+		"|-\n  multi\n  line\n",
+		yaml.Node{
+			Kind:   yaml.ScalarNode,
+			Value:  "multi\nline",
+			Tag:    "!!str",
+			Style:  yaml.LiteralStyle,
+		},
+	}, {
+		"123",
+		"\"123\"\n",
+		yaml.Node{
+			Kind:   yaml.ScalarNode,
+			Value:  "123",
+			Tag:    "!!str",
+		},
+	}, {
+		"multi\nline\n",
+		"|\n  multi\n  line\n",
+		yaml.Node{
+			Kind:   yaml.ScalarNode,
+			Value:  "multi\nline\n",
+			Tag:    "!!str",
+			Style:  yaml.LiteralStyle,
+		},
+	}, {
+		"\x80\x81\x82",
+		"!!binary gIGC\n",
+		yaml.Node{
+			Kind:   yaml.ScalarNode,
+			Value:  "gIGC",
+			Tag:    "!!binary",
+		},
+	},
+}
+
+func (s *S) TestSetString(c *C) {
+	defer os.Setenv("TZ", os.Getenv("TZ"))
+	os.Setenv("TZ", "UTC")
+	for i, item := range setStringTests {
+		c.Logf("test %d: %q", i, item.str)
+
+		var node yaml.Node
+
+		node.SetString(item.str)
+
+		c.Assert(node, DeepEquals, item.node)
+
+		buf := bytes.Buffer{}
+		enc := yaml.NewEncoder(&buf)
+		enc.SetIndent(2)
+		err := enc.Encode(&item.node)
+		c.Assert(err, IsNil)
+		err = enc.Close()
+		c.Assert(err, IsNil)
+		c.Assert(buf.String(), Equals, item.yaml)
+
+		var doc yaml.Node
+		err = yaml.Unmarshal([]byte(item.yaml), &doc)
+		c.Assert(err, IsNil)
+
+		var str string
+		err = node.Decode(&str)
+		c.Assert(err, IsNil)
+		c.Assert(str, Equals, item.str)
+	}
 }

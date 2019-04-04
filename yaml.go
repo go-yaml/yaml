@@ -28,6 +28,7 @@ import (
 	"reflect"
 	"strings"
 	"sync"
+	"unicode/utf8"
 )
 
 // The Unmarshaler interface may be implemented by types to customize their
@@ -417,11 +418,15 @@ func (n *Node) indicatedString() bool {
 // and defines its style in a pleasant way depending on its content.
 func (n *Node) SetString(s string) {
 	n.Kind = ScalarNode
-	n.Value = s
-	if strings.Contains(s, "\n") {
+	if utf8.ValidString(s) {
+		n.Value = s
+		n.Tag = strTag
+	} else {
+		n.Value = encodeBase64(s)
+		n.Tag = binaryTag
+	}
+	if strings.Contains(n.Value, "\n") {
 		n.Style = LiteralStyle
-	} else if n.ShortTag() != strTag {
-		n.Style = DoubleQuotedStyle
 	}
 }
 

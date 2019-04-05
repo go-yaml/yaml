@@ -483,12 +483,14 @@ func (d *decoder) scalar(n *Node, out reflect.Value) bool {
 		}
 	}
 	if resolved == nil {
-		if out.Kind() == reflect.Map && !out.CanAddr() {
-			resetMap(out)
-		} else {
-			out.Set(reflect.Zero(out.Type()))
+		if out.CanAddr() {
+			switch out.Kind() {
+			case reflect.Interface, reflect.Ptr, reflect.Map, reflect.Slice:
+				out.Set(reflect.Zero(out.Type()))
+				return true
+			}
 		}
-		return true
+		return false
 	}
 	if resolvedv := reflect.ValueOf(resolved); out.Type() == resolvedv.Type() {
 		// We've resolved to exactly the type we want, so use that.
@@ -522,16 +524,10 @@ func (d *decoder) scalar(n *Node, out reflect.Value) bool {
 			out.SetString(resolved.(string))
 			return true
 		}
-		if resolved != nil {
-			out.SetString(n.Value)
-			return true
-		}
+		out.SetString(n.Value)
+		return true
 	case reflect.Interface:
-		if resolved == nil {
-			out.Set(reflect.Zero(out.Type()))
-		} else {
-			out.Set(reflect.ValueOf(resolved))
-		}
+		out.Set(reflect.ValueOf(resolved))
 		return true
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		// This used to work in v2, but it's very unfriendly.
@@ -628,13 +624,7 @@ func (d *decoder) scalar(n *Node, out reflect.Value) bool {
 			return true
 		}
 	case reflect.Ptr:
-		if out.Type().Elem() == reflect.TypeOf(resolved) {
-			// TODO DOes this make sense? When is out a Ptr except when decoding a nil value?
-			elem := reflect.New(out.Type().Elem())
-			elem.Elem().Set(reflect.ValueOf(resolved))
-			out.Set(elem)
-			return true
-		}
+		panic("yaml internal error: please report the issue")
 	}
 	d.terror(n, tag, out)
 	return false

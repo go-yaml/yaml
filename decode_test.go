@@ -489,7 +489,7 @@ var unmarshalTests = []struct {
 		map[string]*string{"foo": nil},
 	}, {
 		"foo: null",
-		map[string]string{"foo": ""},
+		map[string]string{},
 	}, {
 		"foo: null",
 		map[string]interface{}{"foo": nil},
@@ -501,7 +501,7 @@ var unmarshalTests = []struct {
 		map[string]*string{"foo": nil},
 	}, {
 		"foo: ~",
-		map[string]string{"foo": ""},
+		map[string]string{},
 	}, {
 		"foo: ~",
 		map[string]interface{}{"foo": nil},
@@ -1279,16 +1279,38 @@ var unmarshalNullTests = []func() interface{}{
 
 func (s *S) TestUnmarshalNull(c *C) {
 	for _, test := range unmarshalNullTests {
-		item := test()
-		zero := reflect.Zero(reflect.TypeOf(item).Elem()).Interface()
-		err := yaml.Unmarshal([]byte("null"), item)
+		pristine := test()
+		decoded := test()
+		zero := reflect.Zero(reflect.TypeOf(decoded).Elem()).Interface()
+		err := yaml.Unmarshal([]byte("null"), decoded)
 		c.Assert(err, IsNil)
-		if reflect.TypeOf(item).Kind() == reflect.Map {
-			c.Assert(reflect.ValueOf(item).Interface(), DeepEquals, reflect.MakeMap(reflect.TypeOf(item)).Interface())
-		} else {
-			c.Assert(reflect.ValueOf(item).Elem().Interface(), DeepEquals, zero)
+		switch pristine.(type) {
+		case *interface{}, **string, **int, *map[string]int:
+			c.Assert(reflect.ValueOf(decoded).Elem().Interface(), DeepEquals, zero)
+		default:
+			c.Assert(reflect.ValueOf(decoded).Interface(), DeepEquals, pristine)
 		}
 	}
+}
+
+func (s *S) TestUnmarshalPreservesData(c *C) {
+	var v struct {
+		A, B int
+		C int `yaml:"-"`
+	}
+	v.A = 42
+	v.C = 88
+	err := yaml.Unmarshal([]byte("---"), &v)
+	c.Assert(err, IsNil)
+	c.Assert(v.A, Equals, 42)
+	c.Assert(v.B, Equals, 0)
+	c.Assert(v.C, Equals, 88)
+
+	err = yaml.Unmarshal([]byte("b: 21\nc: 99"), &v)
+	c.Assert(err, IsNil)
+	c.Assert(v.A, Equals, 42)
+	c.Assert(v.B, Equals, 21)
+	c.Assert(v.C, Equals, 88)
 }
 
 func (s *S) TestUnmarshalSliceOnPreset(c *C) {

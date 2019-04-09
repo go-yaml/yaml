@@ -437,6 +437,62 @@ var nodeTests = []struct {
 			}},
 		},
 	}, {
+		"a:\n- b: c\n  d: e\n",
+		yaml.Node{
+			Kind:   yaml.DocumentNode,
+			Line:   1,
+			Column: 1,
+			Content: []*yaml.Node{{
+				Kind:   yaml.MappingNode,
+				Tag:    "!!map",
+				Line:   1,
+				Column: 1,
+				Content: []*yaml.Node{{
+					Kind:   yaml.ScalarNode,
+					Value:  "a",
+					Tag:    "!!str",
+					Line:   1,
+					Column: 1,
+				}, {
+					Kind:   yaml.SequenceNode,
+					Tag:    "!!seq",
+					Line:   2,
+					Column: 1,
+					Content: []*yaml.Node{{
+						Kind:   yaml.MappingNode,
+						Tag:    "!!map",
+						Line:   2,
+						Column: 3,
+						Content: []*yaml.Node{{
+							Kind:   yaml.ScalarNode,
+							Value:  "b",
+							Tag:    "!!str",
+							Line:   2,
+							Column: 3,
+						}, {
+							Kind:   yaml.ScalarNode,
+							Value:  "c",
+							Tag:    "!!str",
+							Line:   2,
+							Column: 6,
+						}, {
+							Kind:   yaml.ScalarNode,
+							Value:  "d",
+							Tag:    "!!str",
+							Line:   3,
+							Column: 3,
+						}, {
+							Kind:   yaml.ScalarNode,
+							Value:  "e",
+							Tag:    "!!str",
+							Line:   3,
+							Column: 6,
+						}},
+					}},
+				}},
+			}},
+		},
+	}, {
 		"- a\n- b\n",
 		yaml.Node{
 			Kind:   yaml.DocumentNode,

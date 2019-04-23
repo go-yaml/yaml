@@ -405,6 +405,12 @@ var marshalTests = []struct {
 		&marshalerType{&marshalerType{true}},
 		"true\n",
 	},
+
+	// Ensure that strings wrap
+	{
+		map[string]string{"a": "abcdefghijklmnopqrstuvwxyz ABCDEFGHIJKLMNOPQRSTUVWXYZ 1234567890 abcdefghijklmnopqrstuvwxyz ABCDEFGHIJKLMNOPQRSTUVWXYZ 1234567890 "},
+		"a: 'abcdefghijklmnopqrstuvwxyz ABCDEFGHIJKLMNOPQRSTUVWXYZ 1234567890 abcdefghijklmnopqrstuvwxyz\n    ABCDEFGHIJKLMNOPQRSTUVWXYZ 1234567890 '\n",
+	},
 }
 
 func (s *S) TestMarshal(c *C) {
@@ -565,6 +571,28 @@ func (s *S) TestSetIndent(c *C) {
 	err = enc.Close()
 	c.Assert(err, Equals, nil)
 	c.Assert(buf.String(), Equals, "a:\n        b:\n                c: d\n")
+}
+
+func (s *S) TestSetSmallWrapLength(c *C) {
+	var buf bytes.Buffer
+	enc := yaml.NewEncoder(&buf)
+	enc.SetLineLength(10)
+	err := enc.Encode(map[string]interface{}{"a": "abcdefghijklmnopqrstuvwxyz ABCDEFGHIJKLMNOPQRSTUVWXYZ 1234567890 abcdefghijklmnopqrstuvwxyz ABCDEFGHIJKLMNOPQRSTUVWXYZ 1234567890 "})
+	c.Assert(err, Equals, nil)
+	err = enc.Close()
+	c.Assert(err, Equals, nil)
+	c.Assert(buf.String(), Equals, "a: 'abcdefghijklmnopqrstuvwxyz\n    ABCDEFGHIJKLMNOPQRSTUVWXYZ\n    1234567890\n    abcdefghijklmnopqrstuvwxyz\n    ABCDEFGHIJKLMNOPQRSTUVWXYZ\n    1234567890 '\n")
+}
+
+func (s *S) TestSetNegativeWrapLength(c *C) {
+	var buf bytes.Buffer
+	enc := yaml.NewEncoder(&buf)
+	enc.SetLineLength(-1)
+	err := enc.Encode(map[string]interface{}{"a": "abcdefghijklmnopqrstuvwxyz ABCDEFGHIJKLMNOPQRSTUVWXYZ 1234567890 abcdefghijklmnopqrstuvwxyz ABCDEFGHIJKLMNOPQRSTUVWXYZ 1234567890 "})
+	c.Assert(err, Equals, nil)
+	err = enc.Close()
+	c.Assert(err, Equals, nil)
+	c.Assert(buf.String(), Equals, "a: 'abcdefghijklmnopqrstuvwxyz ABCDEFGHIJKLMNOPQRSTUVWXYZ 1234567890 abcdefghijklmnopqrstuvwxyz ABCDEFGHIJKLMNOPQRSTUVWXYZ 1234567890 '\n")
 }
 
 func (s *S) TestSortedOutput(c *C) {

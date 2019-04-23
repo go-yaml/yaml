@@ -522,3 +522,7 @@ func (e *encoder) node(node *Node) {
 		e.emitScalar(value, node.Anchor, tag, style, []byte(node.HeadComment), []byte(node.LineComment), []byte(node.FootComment))
 	}
 }
+
+func (e *encoder) setWidth(width int) {
+	yaml_emitter_set_width(&e.emitter, width)
+}

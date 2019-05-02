@@ -113,13 +113,13 @@ var marshalTests = []struct {
 		"v: \"\"\n",
 	}, {
 		map[string][]string{"v": []string{"A", "B"}},
-		"v:\n- A\n- B\n",
+		"v:\n  - A\n  - B\n",
 	}, {
 		map[string][]string{"v": []string{"A", "B\nC"}},
-		"v:\n- A\n- |-\n    B\n    C\n",
+		"v:\n  - A\n  - |-\n    B\n    C\n",
 	}, {
 		map[string][]interface{}{"v": []interface{}{"A", 1, map[string][]int{"B": []int{2, 3}}}},
-		"v:\n- A\n- 1\n- B:\n    - 2\n    - 3\n",
+		"v:\n  - A\n  - 1\n  - B:\n      - 2\n      - 3\n",
 	}, {
 		map[string]interface{}{"a": map[interface{}]interface{}{"b": "c"}},
 		"a:\n    b: c\n",
@@ -164,10 +164,10 @@ var marshalTests = []struct {
 		"a: 1\n",
 	}, {
 		&struct{ A []int }{[]int{1, 2}},
-		"a:\n- 1\n- 2\n",
+		"a:\n  - 1\n  - 2\n",
 	}, {
 		&struct{ A [2]int }{[2]int{1, 2}},
-		"a:\n- 1\n- 2\n",
+		"a:\n  - 1\n  - 2\n",
 	}, {
 		&struct {
 			B int "a"
@@ -405,6 +405,11 @@ var marshalTests = []struct {
 		&marshalerType{&marshalerType{true}},
 		"true\n",
 	},
+	// Check indentation of maps inside sequences inside maps.
+	{
+		map[string]interface{}{"a": map[string]interface{}{"b": []map[string]int{{"c": 1, "d": 2}}}},
+		"a:\n    b:\n      - c: 1\n        d: 2\n",
+	},
 
 	// Ensure that strings wrap
 	{
@@ -511,7 +516,7 @@ var marshalerTests = []struct {
 	value interface{}
 }{
 	{"_:\n    hi: there\n", map[interface{}]interface{}{"hi": "there"}},
-	{"_:\n- 1\n- A\n", []interface{}{1, "A"}},
+	{"_:\n  - 1\n  - A\n", []interface{}{1, "A"}},
 	{"_: 10\n", 10},
 	{"_: null\n", nil},
 	{"_: BAR!\n", "BAR!"},

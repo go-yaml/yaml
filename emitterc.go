@@ -236,6 +236,10 @@ func yaml_emitter_increase_indent(emitter *yaml_emitter_t, flow, indentless bool
 		}
 	} else if !indentless {
 		emitter.indent += emitter.best_indent
+		// [Go] If inside a block sequence item, discount the space taken by the indicator.
+		if emitter.best_indent > 2 && emitter.states[len(emitter.states)-1] == yaml_EMIT_BLOCK_SEQUENCE_ITEM_STATE {
+			emitter.indent -= 2
+		}
 	}
 	return true
 }
@@ -714,8 +718,15 @@ func yaml_emitter_emit_flow_mapping_value(emitter *yaml_emitter_t, event *yaml_e
 // Expect a block item node.
 func yaml_emitter_emit_block_sequence_item(emitter *yaml_emitter_t, event *yaml_event_t, first bool) bool {
 	if first {
-		if !yaml_emitter_increase_indent(emitter, false, emitter.mapping_context && !emitter.indention) {
+		// [Go] The original logic here would not indent the sequence when inside a mapping.
+		// In Go we always indent it, but take the sequence indicator out of the indentation.
+		indentless := emitter.best_indent == 2 && emitter.mapping_context && !emitter.indention
+		original := emitter.indent
+		if !yaml_emitter_increase_indent(emitter, false, indentless) {
 			return false
+		}
+		if emitter.indent > original+2 {
+			emitter.indent -= 2
 		}
 	}
 	if event.typ == yaml_SEQUENCE_END_EVENT {
@@ -764,10 +775,8 @@ func yaml_emitter_emit_block_mapping_key(emitter *yaml_emitter_t, event *yaml_ev
 	if !yaml_emitter_process_head_comment(emitter) {
 		return false
 	}
-	if !first || emitter.states[len(emitter.states)-1] != yaml_EMIT_BLOCK_SEQUENCE_ITEM_STATE {
-		if !yaml_emitter_write_indent(emitter) {
-			return false
-		}
+	if !yaml_emitter_write_indent(emitter) {
+		return false
 	}
 	if yaml_emitter_check_simple_key(emitter) {
 		emitter.states = append(emitter.states, yaml_EMIT_BLOCK_MAPPING_SIMPLE_VALUE_STATE)

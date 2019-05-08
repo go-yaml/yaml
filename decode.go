@@ -174,10 +174,17 @@ func (p *parser) node(kind Kind, defaultTag, tag, value string) *Node {
 		Style:       style,
 		Line:        p.event.start_mark.line + 1,
 		Column:      p.event.start_mark.column + 1,
+		Index:       p.event.start_mark.index,
 		HeadComment: string(p.event.head_comment),
 		LineComment: string(p.event.line_comment),
 		FootComment: string(p.event.foot_comment),
 	}
+}
+
+func (n *Node) setEndMark(end yaml_mark_t) {
+	n.LineEnd = end.line + 1
+	n.ColumnEnd = end.column + 1
+	n.IndexEnd = end.index
 }
 
 func (p *parser) parseChild(parent *Node) *Node {
@@ -194,12 +201,14 @@ func (p *parser) document() *Node {
 	if p.peek() == yaml_DOCUMENT_END_EVENT {
 		n.FootComment = string(p.event.foot_comment)
 	}
+	n.setEndMark(p.event.end_mark)
 	p.expect(yaml_DOCUMENT_END_EVENT)
 	return n
 }
 
 func (p *parser) alias() *Node {
 	n := p.node(AliasNode, "", "", string(p.event.anchor))
+	n.setEndMark(p.event.end_mark)
 	n.Alias = p.anchors[n.Value]
 	if n.Alias == nil {
 		failf("unknown anchor '%s' referenced", n.Value)
@@ -232,6 +241,7 @@ func (p *parser) scalar() *Node {
 		defaultTag = strTag
 	}
 	n := p.node(ScalarNode, defaultTag, nodeTag, nodeValue)
+	n.setEndMark(p.event.end_mark)
 	n.Style |= nodeStyle
 	p.anchor(n, p.event.anchor)
 	p.expect(yaml_SCALAR_EVENT)
@@ -248,6 +258,7 @@ func (p *parser) sequence() *Node {
 	for p.peek() != yaml_SEQUENCE_END_EVENT {
 		p.parseChild(n)
 	}
+	n.setEndMark(p.event.end_mark)
 	n.LineComment = string(p.event.line_comment)
 	n.FootComment = string(p.event.foot_comment)
 	p.expect(yaml_SEQUENCE_END_EVENT)
@@ -269,6 +280,7 @@ func (p *parser) mapping() *Node {
 			v.FootComment = ""
 		}
 	}
+	n.setEndMark(p.event.end_mark)
 	n.LineComment = string(p.event.line_comment)
 	n.FootComment = string(p.event.foot_comment)
 	p.expect(yaml_MAPPING_END_EVENT)

@@ -389,6 +389,11 @@ type Node struct {
 	// These fields are not respected when encoding the node.
 	Line   int
 	Column int
+	Index  int
+
+	LineEnd   int
+	ColumnEnd int
+	IndexEnd  int
 }
 
 // LongTag returns the long form of the tag that indicates the data type for

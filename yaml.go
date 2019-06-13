@@ -307,7 +307,9 @@ type fieldInfo struct {
 var structMap = make(map[reflect.Type]*structInfo)
 var fieldMapMutex sync.RWMutex
 
-func getStructInfo(st reflect.Type) (*structInfo, error) {
+func getStructInfo(sv reflect.Value) (*structInfo, error) {
+	st := sv.Type()
+
 	fieldMapMutex.RLock()
 	sinfo, found := structMap[st]
 	fieldMapMutex.RUnlock()
@@ -354,6 +356,15 @@ func getStructInfo(st reflect.Type) (*structInfo, error) {
 		}
 
 		if inline {
+			fv := sv.Field(i)
+			if field.Type.Kind() == reflect.Interface {
+				fv = fv.Elem()
+				if fv.Kind() == reflect.Ptr {
+					fv = fv.Elem()
+				}
+				field.Type = fv.Type()
+			}
+
 			switch field.Type.Kind() {
 			case reflect.Map:
 				if inlineMap >= 0 {
@@ -364,7 +375,7 @@ func getStructInfo(st reflect.Type) (*structInfo, error) {
 				}
 				inlineMap = info.Num
 			case reflect.Struct:
-				sinfo, err := getStructInfo(field.Type)
+				sinfo, err := getStructInfo(fv)
 				if err != nil {
 					return nil, err
 				}

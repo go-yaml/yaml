@@ -736,6 +736,16 @@ type inlineC struct {
 	C int
 }
 
+type inlineInterface interface {
+	isInline()
+}
+
+type inlineD struct {
+	D int
+}
+
+func (_ *inlineD) isInline() {}
+
 func (s *S) TestUnmarshal(c *C) {
 	for i, item := range unmarshalTests {
 		c.Logf("test %d: %q", i, item.data)

@@ -289,9 +289,10 @@ var marshalTests = []struct {
 	{
 		&struct {
 			A int
-			C inlineB `yaml:",inline"`
-		}{1, inlineB{2, inlineC{3}}},
-		"a: 1\nb: 2\nc: 3\n",
+			C inlineB         `yaml:",inline"`
+			D inlineInterface `yaml:",inline"`
+		}{1, inlineB{2, inlineC{3}}, &inlineD{4}},
+		"a: 1\nb: 2\nc: 3\nd: 4\n",
 	},
 
 	// Map inlining

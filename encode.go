@@ -206,7 +206,7 @@ func (e *encoder) itemsv(tag string, in reflect.Value) {
 }
 
 func (e *encoder) structv(tag string, in reflect.Value) {
-	sinfo, err := getStructInfo(in.Type())
+	sinfo, err := getStructInfo(in)
 	if err != nil {
 		panic(err)
 	}
@@ -216,7 +216,7 @@ func (e *encoder) structv(tag string, in reflect.Value) {
 			if info.Inline == nil {
 				value = in.Field(info.Num)
 			} else {
-				value = in.FieldByIndex(info.Inline)
+				value = fieldByIndex(in, info.Inline)
 			}
 			if info.OmitEmpty && isZero(value) {
 				continue
@@ -242,6 +242,30 @@ func (e *encoder) structv(tag string, in reflect.Value) {
 			}
 		}
 	})
+}
+
+func fieldByIndex(v reflect.Value, index []int) reflect.Value {
+	if len(index) == 1 {
+		return v.Field(index[0])
+	}
+	if v.Kind() != reflect.Struct {
+		panic("must be struct")
+	}
+	for i, x := range index {
+		if v.Type().Kind() == reflect.Interface {
+			v = v.Elem()
+		}
+		if i > 0 {
+			if v.Kind() == reflect.Ptr && v.Type().Elem().Kind() == reflect.Struct {
+				if v.IsNil() {
+					panic("reflect: indirection through nil pointer to embedded struct")
+				}
+				v = v.Elem()
+			}
+		}
+		v = v.Field(x)
+	}
+	return v
 }
 
 func (e *encoder) mappingv(tag string, f func()) {

@@ -680,7 +680,7 @@ func (d *decoder) mappingSlice(n *node, out reflect.Value) (good bool) {
 }
 
 func (d *decoder) mappingStruct(n *node, out reflect.Value) (good bool) {
-	sinfo, err := getStructInfo(out.Type())
+	sinfo, err := getStructInfo(out)
 	if err != nil {
 		panic(err)
 	}

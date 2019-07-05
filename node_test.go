@@ -17,10 +17,12 @@ package yaml_test
 
 import (
 	"bytes"
+	"fmt"
 	"os"
 
 	. "gopkg.in/check.v1"
 	"gopkg.in/yaml.v3"
+	"io"
 	"strings"
 )
 
@@ -936,6 +938,553 @@ var nodeTests = []struct {
 			}},
 		},
 	}, {
+		"# DH1\n\n# HA1\nka:\n  # HB1\n  kb:\n  # HC1\n  # HC2\n  - lc # IC\n  # FC1\n  # FC2\n\n  # HD1\n  - ld # ID\n  # FD1\nke: ve\n\n# DF1\n",
+		yaml.Node{
+			Kind:        yaml.DocumentNode,
+			Line:        4,
+			Column:      1,
+			HeadComment: "# DH1",
+			FootComment: "# DF1",
+			Content: []*yaml.Node{{
+				Kind:   yaml.MappingNode,
+				Tag:    "!!map",
+				Line:   4,
+				Column: 1,
+				Content: []*yaml.Node{{
+					Kind:        yaml.ScalarNode,
+					Tag:         "!!str",
+					Line:        4,
+					Column:      1,
+					Value:       "ka",
+					HeadComment: "# HA1",
+				}, {
+					Kind:   yaml.MappingNode,
+					Tag:    "!!map",
+					Line:   6,
+					Column: 3,
+					Content: []*yaml.Node{{
+						Kind:        yaml.ScalarNode,
+						Tag:         "!!str",
+						Line:        6,
+						Column:      3,
+						Value:       "kb",
+						HeadComment: "# HB1",
+					}, {
+						Kind:   yaml.SequenceNode,
+						Line:   9,
+						Column: 3,
+						Tag:    "!!seq",
+						Content: []*yaml.Node{{
+							Kind:        yaml.ScalarNode,
+							Tag:         "!!str",
+							Line:        9,
+							Column:      5,
+							Value:       "lc",
+							HeadComment: "# HC1\n# HC2",
+							LineComment: "# IC",
+							FootComment: "# FC1\n# FC2",
+						}, {
+							Kind:        yaml.ScalarNode,
+							Tag:         "!!str",
+							Line:        14,
+							Column:      5,
+							Value:       "ld",
+							HeadComment: "# HD1",
+							LineComment: "# ID",
+							FootComment: "# FD1",
+						}},
+					}},
+				}, {
+					Kind:   yaml.ScalarNode,
+					Tag:    "!!str",
+					Line:   16,
+					Column: 1,
+					Value:  "ke",
+				}, {
+					Kind:   yaml.ScalarNode,
+					Tag:    "!!str",
+					Line:   16,
+					Column: 5,
+					Value:  "ve",
+				}},
+			}},
+		},
+	}, {
+		"# DH1\n\n# DH2\n\n# HA1\n# HA2\nka:\n  # HB1\n  # HB2\n  kb:\n" +
+			"    # HC1\n    # HC2\n    kc:\n      # HD1\n      # HD2\n      kd: vd\n      # FD1\n      # FD2\n" +
+			"    # FC1\n    # FC2\n  # FB1\n  # FB2\n# FA1\n# FA2\n\n# HE1\n# HE2\nke: ve\n# FE1\n# FE2\n\n# DF1\n\n# DF2\n",
+		yaml.Node{
+			Kind:        yaml.DocumentNode,
+			HeadComment: "# DH1\n\n# DH2",
+			FootComment: "# DF1\n\n# DF2",
+			Line:        7,
+			Column:      1,
+			Content: []*yaml.Node{{
+				Kind:   yaml.MappingNode,
+				Tag:    "!!map",
+				Line:   7,
+				Column: 1,
+				Content: []*yaml.Node{{
+					Kind:        yaml.ScalarNode,
+					Tag:         "!!str",
+					Value:       "ka",
+					HeadComment: "# HA1\n# HA2",
+					FootComment: "# FA1\n# FA2",
+					Line:        7,
+					Column:      1,
+				}, {
+					Kind:   yaml.MappingNode,
+					Tag:    "!!map",
+					Line:   10,
+					Column: 3,
+					Content: []*yaml.Node{{
+						Kind:        yaml.ScalarNode,
+						Tag:         "!!str",
+						Value:       "kb",
+						HeadComment: "# HB1\n# HB2",
+						FootComment: "# FB1\n# FB2",
+						Line:        10,
+						Column:      3,
+					}, {
+						Kind:   yaml.MappingNode,
+						Tag:    "!!map",
+						Line:   13,
+						Column: 5,
+						Content: []*yaml.Node{{
+							Kind:        yaml.ScalarNode,
+							Tag:         "!!str",
+							Value:       "kc",
+							HeadComment: "# HC1\n# HC2",
+							FootComment: "# FC1\n# FC2",
+							Line:        13,
+							Column:      5,
+						}, {
+							Kind:   yaml.MappingNode,
+							Tag:    "!!map",
+							Line:   16,
+							Column: 7,
+							Content: []*yaml.Node{{
+								Kind:        yaml.ScalarNode,
+								Tag:         "!!str",
+								Value:       "kd",
+								HeadComment: "# HD1\n# HD2",
+								FootComment: "# FD1\n# FD2",
+								Line:        16,
+								Column:      7,
+							}, {
+								Kind:   yaml.ScalarNode,
+								Tag:    "!!str",
+								Value:  "vd",
+								Line:   16,
+								Column: 11,
+							}},
+						}},
+					}},
+				}, {
+					Kind:        yaml.ScalarNode,
+					Tag:         "!!str",
+					Value:       "ke",
+					HeadComment: "# HE1\n# HE2",
+					FootComment: "# FE1\n# FE2",
+					Line:        28,
+					Column:      1,
+				}, {
+					Kind:   yaml.ScalarNode,
+					Tag:    "!!str",
+					Value:  "ve",
+					Line:   28,
+					Column: 5,
+				}},
+			}},
+		},
+	}, {
+		// Same as above but indenting ke in so it's also part of ka's value.
+		"# DH1\n\n# DH2\n\n# HA1\n# HA2\nka:\n  # HB1\n  # HB2\n  kb:\n" +
+			"    # HC1\n    # HC2\n    kc:\n      # HD1\n      # HD2\n      kd: vd\n      # FD1\n      # FD2\n" +
+			"    # FC1\n    # FC2\n  # FB1\n  # FB2\n\n  # HE1\n  # HE2\n  ke: ve\n  # FE1\n  # FE2\n# FA1\n# FA2\n\n# DF1\n\n# DF2\n",
+		yaml.Node{
+			Kind:        yaml.DocumentNode,
+			HeadComment: "# DH1\n\n# DH2",
+			FootComment: "# DF1\n\n# DF2",
+			Line:        7,
+			Column:      1,
+			Content: []*yaml.Node{{
+				Kind:   yaml.MappingNode,
+				Tag:    "!!map",
+				Line:   7,
+				Column: 1,
+				Content: []*yaml.Node{{
+					Kind:        yaml.ScalarNode,
+					Tag:         "!!str",
+					Value:       "ka",
+					HeadComment: "# HA1\n# HA2",
+					FootComment: "# FA1\n# FA2",
+					Line:        7,
+					Column:      1,
+				}, {
+					Kind:   yaml.MappingNode,
+					Tag:    "!!map",
+					Line:   10,
+					Column: 3,
+					Content: []*yaml.Node{{
+						Kind:        yaml.ScalarNode,
+						Tag:         "!!str",
+						Value:       "kb",
+						HeadComment: "# HB1\n# HB2",
+						FootComment: "# FB1\n# FB2",
+						Line:        10,
+						Column:      3,
+					}, {
+						Kind:   yaml.MappingNode,
+						Tag:    "!!map",
+						Line:   13,
+						Column: 5,
+						Content: []*yaml.Node{{
+							Kind:        yaml.ScalarNode,
+							Tag:         "!!str",
+							Value:       "kc",
+							HeadComment: "# HC1\n# HC2",
+							FootComment: "# FC1\n# FC2",
+							Line:        13,
+							Column:      5,
+						}, {
+							Kind:   yaml.MappingNode,
+							Tag:    "!!map",
+							Line:   16,
+							Column: 7,
+							Content: []*yaml.Node{{
+								Kind:        yaml.ScalarNode,
+								Tag:         "!!str",
+								Value:       "kd",
+								HeadComment: "# HD1\n# HD2",
+								FootComment: "# FD1\n# FD2",
+								Line:        16,
+								Column:      7,
+							}, {
+								Kind:   yaml.ScalarNode,
+								Tag:    "!!str",
+								Value:  "vd",
+								Line:   16,
+								Column: 11,
+							}},
+						}},
+					}, {
+						Kind:        yaml.ScalarNode,
+						Tag:         "!!str",
+						Value:       "ke",
+						HeadComment: "# HE1\n# HE2",
+						FootComment: "# FE1\n# FE2",
+						Line:        26,
+						Column:      3,
+					}, {
+						Kind:   yaml.ScalarNode,
+						Tag:    "!!str",
+						Value:  "ve",
+						Line:   26,
+						Column: 7,
+					}},
+				}},
+			}},
+		},
+	}, {
+		// Decode only due to lack of newline at the end.
+		"[decode]# HA1\nka:\n  # HB1\n  kb: vb\n  # FB1\n# FA1",
+		yaml.Node{
+			Kind:   yaml.DocumentNode,
+			Line:   2,
+			Column: 1,
+			Content: []*yaml.Node{{
+				Kind:   yaml.MappingNode,
+				Tag:    "!!map",
+				Line:   2,
+				Column: 1,
+				Content: []*yaml.Node{{
+					Kind:        yaml.ScalarNode,
+					Tag:         "!!str",
+					Value:       "ka",
+					HeadComment: "# HA1",
+					FootComment: "# FA1",
+					Line:        2,
+					Column:      1,
+				}, {
+					Kind:   yaml.MappingNode,
+					Tag:    "!!map",
+					Line:   4,
+					Column: 3,
+					Content: []*yaml.Node{{
+						Kind:        yaml.ScalarNode,
+						Tag:         "!!str",
+						Value:       "kb",
+						HeadComment: "# HB1",
+						FootComment: "# FB1",
+						Line:        4,
+						Column:      3,
+					}, {
+						Kind:   yaml.ScalarNode,
+						Tag:    "!!str",
+						Value:  "vb",
+						Line:   4,
+						Column: 7,
+					}},
+				}},
+			},
+			},
+		},
+	}, {
+		// Same as above, but with newline at the end.
+		"# HA1\nka:\n  # HB1\n  kb: vb\n  # FB1\n# FA1\n",
+		yaml.Node{
+			Kind:   yaml.DocumentNode,
+			Line:   2,
+			Column: 1,
+			Content: []*yaml.Node{{
+				Kind:   yaml.MappingNode,
+				Tag:    "!!map",
+				Line:   2,
+				Column: 1,
+				Content: []*yaml.Node{{
+					Kind:        yaml.ScalarNode,
+					Tag:         "!!str",
+					Value:       "ka",
+					HeadComment: "# HA1",
+					FootComment: "# FA1",
+					Line:        2,
+					Column:      1,
+				}, {
+					Kind:   yaml.MappingNode,
+					Tag:    "!!map",
+					Line:   4,
+					Column: 3,
+					Content: []*yaml.Node{{
+						Kind:        yaml.ScalarNode,
+						Tag:         "!!str",
+						Value:       "kb",
+						HeadComment: "# HB1",
+						FootComment: "# FB1",
+						Line:        4,
+						Column:      3,
+					}, {
+						Kind:   yaml.ScalarNode,
+						Tag:    "!!str",
+						Value:  "vb",
+						Line:   4,
+						Column: 7,
+					}},
+				}},
+			},
+			},
+		},
+	}, {
+		// Same as above, but with two newlines at the end. Decode-only for that.
+		"[decode]# HA1\nka:\n  # HB1\n  kb: vb\n  # FB1\n# FA1\n\n",
+		yaml.Node{
+			Kind:   yaml.DocumentNode,
+			Line:   2,
+			Column: 1,
+			Content: []*yaml.Node{{
+				Kind:   yaml.MappingNode,
+				Tag:    "!!map",
+				Line:   2,
+				Column: 1,
+				Content: []*yaml.Node{{
+					Kind:        yaml.ScalarNode,
+					Tag:         "!!str",
+					Value:       "ka",
+					HeadComment: "# HA1",
+					FootComment: "# FA1",
+					Line:        2,
+					Column:      1,
+				}, {
+					Kind:   yaml.MappingNode,
+					Tag:    "!!map",
+					Line:   4,
+					Column: 3,
+					Content: []*yaml.Node{{
+						Kind:        yaml.ScalarNode,
+						Tag:         "!!str",
+						Value:       "kb",
+						HeadComment: "# HB1",
+						FootComment: "# FB1",
+						Line:        4,
+						Column:      3,
+					}, {
+						Kind:   yaml.ScalarNode,
+						Tag:    "!!str",
+						Value:  "vb",
+						Line:   4,
+						Column: 7,
+					}},
+				}},
+			},
+			},
+		},
+	}, {
+		"# HA1\nka:\n  # HB1\n  kb: vb\n  # FB1\nkc: vc\n# FC1\n",
+		yaml.Node{
+			Kind:   yaml.DocumentNode,
+			Line:   2,
+			Column: 1,
+			Content: []*yaml.Node{{
+				Kind:   yaml.MappingNode,
+				Tag:    "!!map",
+				Line:   2,
+				Column: 1,
+				Content: []*yaml.Node{{
+					Kind:        yaml.ScalarNode,
+					Tag:         "!!str",
+					Value:       "ka",
+					HeadComment: "# HA1",
+					Line:        2,
+					Column:      1,
+				}, {
+					Kind:   yaml.MappingNode,
+					Tag:    "!!map",
+					Line:   4,
+					Column: 3,
+					Content: []*yaml.Node{{
+						Kind:        yaml.ScalarNode,
+						Tag:         "!!str",
+						Value:       "kb",
+						HeadComment: "# HB1",
+						FootComment: "# FB1",
+						Line:        4,
+						Column:      3,
+					}, {
+						Kind:   yaml.ScalarNode,
+						Tag:    "!!str",
+						Value:  "vb",
+						Line:   4,
+						Column: 7,
+					}},
+				}, {
+					Kind:        yaml.ScalarNode,
+					Tag:         "!!str",
+					Value:       "kc",
+					FootComment: "# FC1",
+					Line:        6,
+					Column:      1,
+				}, {
+					Kind:   yaml.ScalarNode,
+					Tag:    "!!str",
+					Value:  "vc",
+					Line:   6,
+					Column: 5,
+				}},
+			}},
+		},
+	}, {
+		// Decode only as encoding adds an empty line between ka's value and kc's headers.
+		"[decode]# HA1\nka:\n  # HB1\n  kb: vb\n  # FB1\n# HC1\n# HC2\nkc: vc\n# FC1\n# FC2\n",
+		yaml.Node{
+			Kind:   yaml.DocumentNode,
+			Line:   2,
+			Column: 1,
+			Content: []*yaml.Node{{
+				Kind:   yaml.MappingNode,
+				Tag:    "!!map",
+				Line:   2,
+				Column: 1,
+				Content: []*yaml.Node{{
+					Kind:        yaml.ScalarNode,
+					Tag:         "!!str",
+					Value:       "ka",
+					HeadComment: "# HA1",
+					Line:        2,
+					Column:      1,
+				}, {
+					Kind:   yaml.MappingNode,
+					Tag:    "!!map",
+					Line:   4,
+					Column: 3,
+					Content: []*yaml.Node{{
+						Kind:        yaml.ScalarNode,
+						Tag:         "!!str",
+						Value:       "kb",
+						HeadComment: "# HB1",
+						FootComment: "# FB1",
+						Line:        4,
+						Column:      3,
+					}, {
+						Kind:   yaml.ScalarNode,
+						Tag:    "!!str",
+						Value:  "vb",
+						Line:   4,
+						Column: 7,
+					}},
+				}, {
+					Kind:        yaml.ScalarNode,
+					Tag:         "!!str",
+					Value:       "kc",
+					HeadComment: "# HC1\n# HC2",
+					FootComment: "# FC1\n# FC2",
+					Line:        8,
+					Column:      1,
+				}, {
+					Kind:   yaml.ScalarNode,
+					Tag:    "!!str",
+					Value:  "vc",
+					Line:   8,
+					Column: 5,
+				}},
+			}},
+		},
+	}, {
+		// Same as above, but with the empty line between ka's value and kc's headers.
+		"# HA1\nka:\n  # HB1\n  kb: vb\n  # FB1\n\n# HC1\n# HC2\nkc: vc\n# FC1\n# FC2\n",
+		yaml.Node{
+			Kind:   yaml.DocumentNode,
+			Line:   2,
+			Column: 1,
+			Content: []*yaml.Node{{
+				Kind:   yaml.MappingNode,
+				Tag:    "!!map",
+				Line:   2,
+				Column: 1,
+				Content: []*yaml.Node{{
+					Kind:        yaml.ScalarNode,
+					Tag:         "!!str",
+					Value:       "ka",
+					HeadComment: "# HA1",
+					Line:        2,
+					Column:      1,
+				}, {
+					Kind:   yaml.MappingNode,
+					Tag:    "!!map",
+					Line:   4,
+					Column: 3,
+					Content: []*yaml.Node{{
+						Kind:        yaml.ScalarNode,
+						Tag:         "!!str",
+						Value:       "kb",
+						HeadComment: "# HB1",
+						FootComment: "# FB1",
+						Line:        4,
+						Column:      3,
+					}, {
+						Kind:   yaml.ScalarNode,
+						Tag:    "!!str",
+						Value:  "vb",
+						Line:   4,
+						Column: 7,
+					}},
+				}, {
+					Kind:        yaml.ScalarNode,
+					Tag:         "!!str",
+					Value:       "kc",
+					HeadComment: "# HC1\n# HC2",
+					FootComment: "# FC1\n# FC2",
+					Line:        9,
+					Column:      1,
+				}, {
+					Kind:   yaml.ScalarNode,
+					Tag:    "!!str",
+					Value:  "vc",
+					Line:   9,
+					Column: 5,
+				}},
+			}},
+		},
+	}, {
 		"# H1\n[la, lb] # I\n# F1\n",
 		yaml.Node{
 			Kind:   yaml.DocumentNode,
@@ -1034,6 +1583,61 @@ var nodeTests = []struct {
 					Value:       "lb",
 					HeadComment: "# HB1",
 					FootComment: "# FB1",
+				}},
+			}},
+		},
+	}, {
+		"ka:\n  kb: [\n    # HA1\n    la,\n    # FA1\n\n    # HB1\n    lb,\n    # FB1\n  ]\n",
+		yaml.Node{
+			Kind:   yaml.DocumentNode,
+			Line:   1,
+			Column: 1,
+			Content: []*yaml.Node{{
+				Kind:   yaml.MappingNode,
+				Tag:    "!!map",
+				Line:   1,
+				Column: 1,
+				Content: []*yaml.Node{{
+					Kind:   yaml.ScalarNode,
+					Tag:    "!!str",
+					Value:  "ka",
+					Line:   1,
+					Column: 1,
+				}, {
+					Kind:   0x4,
+					Tag:    "!!map",
+					Line:   2,
+					Column: 3,
+					Content: []*yaml.Node{{
+						Kind:   yaml.ScalarNode,
+						Tag:    "!!str",
+						Value:  "kb",
+						Line:   2,
+						Column: 3,
+					}, {
+						Kind:   yaml.SequenceNode,
+						Style:  0x20,
+						Tag:    "!!seq",
+						Line:   2,
+						Column: 7,
+						Content: []*yaml.Node{{
+							Kind:        yaml.ScalarNode,
+							Tag:         "!!str",
+							Value:       "la",
+							HeadComment: "# HA1",
+							FootComment: "# FA1",
+							Line:        4,
+							Column:      5,
+						}, {
+							Kind:        yaml.ScalarNode,
+							Tag:         "!!str",
+							Value:       "lb",
+							HeadComment: "# HB1",
+							FootComment: "# FB1",
+							Line:        8,
+							Column:      5,
+						}},
+					}},
 				}},
 			}},
 		},
@@ -1179,6 +1783,12 @@ func (s *S) TestNodeRoundtrip(c *C) {
 	for i, item := range nodeTests {
 		c.Logf("test %d: %q", i, item.yaml)
 
+		if strings.Contains(item.yaml, "#") {
+			var buf bytes.Buffer
+			fprintComments(&buf, &item.node, "    ")
+			c.Logf("  comments:\n%s", buf.Bytes())
+		}
+
 		decode := true
 		encode := true
 
@@ -1237,51 +1847,51 @@ var setStringTests = []struct {
 		"something simple",
 		"something simple\n",
 		yaml.Node{
-			Kind:   yaml.ScalarNode,
-			Value:  "something simple",
-			Tag:    "!!str",
+			Kind:  yaml.ScalarNode,
+			Value: "something simple",
+			Tag:   "!!str",
 		},
 	}, {
 		`"quoted value"`,
 		"'\"quoted value\"'\n",
 		yaml.Node{
-			Kind:   yaml.ScalarNode,
-			Value:  `"quoted value"`,
-			Tag:    "!!str",
+			Kind:  yaml.ScalarNode,
+			Value: `"quoted value"`,
+			Tag:   "!!str",
 		},
 	}, {
 		"multi\nline",
 		"|-\n  multi\n  line\n",
 		yaml.Node{
-			Kind:   yaml.ScalarNode,
-			Value:  "multi\nline",
-			Tag:    "!!str",
-			Style:  yaml.LiteralStyle,
+			Kind:  yaml.ScalarNode,
+			Value: "multi\nline",
+			Tag:   "!!str",
+			Style: yaml.LiteralStyle,
 		},
 	}, {
 		"123",
 		"\"123\"\n",
 		yaml.Node{
-			Kind:   yaml.ScalarNode,
-			Value:  "123",
-			Tag:    "!!str",
+			Kind:  yaml.ScalarNode,
+			Value: "123",
+			Tag:   "!!str",
 		},
 	}, {
 		"multi\nline\n",
 		"|\n  multi\n  line\n",
 		yaml.Node{
-			Kind:   yaml.ScalarNode,
-			Value:  "multi\nline\n",
-			Tag:    "!!str",
-			Style:  yaml.LiteralStyle,
+			Kind:  yaml.ScalarNode,
+			Value: "multi\nline\n",
+			Tag:   "!!str",
+			Style: yaml.LiteralStyle,
 		},
 	}, {
 		"\x80\x81\x82",
 		"!!binary gIGC\n",
 		yaml.Node{
-			Kind:   yaml.ScalarNode,
-			Value:  "gIGC",
-			Tag:    "!!binary",
+			Kind:  yaml.ScalarNode,
+			Value: "gIGC",
+			Tag:   "!!binary",
 		},
 	},
 }
@@ -1315,5 +1925,42 @@ func (s *S) TestSetString(c *C) {
 		err = node.Decode(&str)
 		c.Assert(err, IsNil)
 		c.Assert(str, Equals, item.str)
+	}
+}
+
+func fprintComments(out io.Writer, node *yaml.Node, indent string) {
+	switch node.Kind {
+	case yaml.ScalarNode:
+		fmt.Fprintf(out, "%s<%s> ", indent, node.Value)
+		fprintCommentSet(out, node)
+		fmt.Fprintf(out, "\n")
+	case yaml.DocumentNode:
+		fmt.Fprintf(out, "%s<DOC> ", indent)
+		fprintCommentSet(out, node)
+		fmt.Fprintf(out, "\n")
+		for i := 0; i < len(node.Content); i++ {
+			fprintComments(out, node.Content[i], indent+"  ")
+		}
+	case yaml.MappingNode:
+		fmt.Fprintf(out, "%s<MAP> ", indent)
+		fprintCommentSet(out, node)
+		fmt.Fprintf(out, "\n")
+		for i := 0; i < len(node.Content); i += 2 {
+			fprintComments(out, node.Content[i], indent+"  ")
+			fprintComments(out, node.Content[i+1], indent+"  ")
+		}
+	case yaml.SequenceNode:
+		fmt.Fprintf(out, "%s<SEQ> ", indent)
+		fprintCommentSet(out, node)
+		fmt.Fprintf(out, "\n")
+		for i := 0; i < len(node.Content); i++ {
+			fprintComments(out, node.Content[i], indent+"  ")
+		}
+	}
+}
+
+func fprintCommentSet(out io.Writer, node *yaml.Node) {
+	if len(node.HeadComment)+len(node.LineComment)+len(node.FootComment) > 0 {
+		fmt.Fprintf(out, "%q / %q / %q", node.HeadComment, node.LineComment, node.FootComment)
 	}
 }

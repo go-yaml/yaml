@@ -1,17 +1,17 @@
-// 
+//
 // Copyright (c) 2011-2019 Canonical Ltd
 // Copyright (c) 2006-2010 Kirill Simonov
-// 
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy of
 // this software and associated documentation files (the "Software"), to deal in
 // the Software without restriction, including without limitation the rights to
 // use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
 // of the Software, and to permit persons to whom the Software is furnished to do
 // so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -78,9 +78,13 @@ func peek_token(parser *yaml_parser_t) *yaml_token_t {
 // comments behind the position of the provided token into the respective
 // top-level comment slices in the parser.
 func yaml_parser_unfold_comments(parser *yaml_parser_t, token *yaml_token_t) {
-	for parser.comments_head < len(parser.comments) && token.start_mark.index >= parser.comments[parser.comments_head].after.index {
+	for parser.comments_head < len(parser.comments) && token.start_mark.index >= parser.comments[parser.comments_head].token_mark.index {
 		comment := &parser.comments[parser.comments_head]
 		if len(comment.head) > 0 {
+			if token.typ == yaml_BLOCK_END_TOKEN {
+				// No heads on ends, so keep comment.head for a follow up token.
+				break
+			}
 			if len(parser.head_comment) > 0 {
 				parser.head_comment = append(parser.head_comment, '\n')
 			}
@@ -359,6 +363,7 @@ func yaml_parser_parse_document_content(parser *yaml_parser_t, event *yaml_event
 	if token == nil {
 		return false
 	}
+
 	if token.typ == yaml_VERSION_DIRECTIVE_TOKEN ||
 		token.typ == yaml_TAG_DIRECTIVE_TOKEN ||
 		token.typ == yaml_DOCUMENT_START_TOKEN ||
@@ -401,10 +406,12 @@ func yaml_parser_parse_document_end(parser *yaml_parser_t, event *yaml_event_t) 
 		start_mark: start_mark,
 		end_mark:   end_mark,
 		implicit:   implicit,
-
-		foot_comment: parser.head_comment,
 	}
-	parser.head_comment = nil
+	yaml_parser_set_event_comments(parser, event)
+	if len(event.head_comment) > 0 && len(event.foot_comment) == 0 {
+		event.foot_comment = event.head_comment
+		event.head_comment = nil
+	}
 	return true
 }
 
@@ -415,6 +422,7 @@ func yaml_parser_set_event_comments(parser *yaml_parser_t, event *yaml_event_t) 
 	parser.head_comment = nil
 	parser.line_comment = nil
 	parser.foot_comment = nil
+	parser.tail_comment = nil
 }
 
 // Parse the productions:
@@ -775,6 +783,19 @@ func yaml_parser_parse_block_mapping_key(parser *yaml_parser_t, event *yaml_even
 		return false
 	}
 
+	// [Go] A tail comment was left from the prior mapping value processed. Emit an event
+	//      as it needs to be processed with that value and not the following key.
+	if len(parser.tail_comment) > 0 {
+		*event = yaml_event_t{
+			typ:          yaml_TAIL_COMMENT_EVENT,
+			start_mark:   token.start_mark,
+			end_mark:     token.end_mark,
+			foot_comment: parser.tail_comment,
+		}
+		parser.tail_comment = nil
+		return true
+	}
+
 	if token.typ == yaml_KEY_TOKEN {
 		mark := token.end_mark
 		skip_token(parser)
@@ -800,6 +821,7 @@ func yaml_parser_parse_block_mapping_key(parser *yaml_parser_t, event *yaml_even
 			start_mark: token.start_mark,
 			end_mark:   token.end_mark,
 		}
+		yaml_parser_set_event_comments(parser, event)
 		skip_token(parser)
 		return true
 	}

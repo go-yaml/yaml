@@ -152,8 +152,10 @@ func (p *parser) parse() *Node {
 	case yaml_STREAM_END_EVENT:
 		// Happens when attempting to decode an empty buffer.
 		return nil
+	case yaml_TAIL_COMMENT_EVENT:
+		panic("internal error: unexpected tail comment event (please report)")
 	default:
-		panic("attempted to parse unknown event: " + p.event.typ.String())
+		panic("internal error: attempted to parse unknown event (please report): " + p.event.typ.String())
 	}
 }
 
@@ -256,21 +258,40 @@ func (p *parser) sequence() *Node {
 
 func (p *parser) mapping() *Node {
 	n := p.node(MappingNode, mapTag, string(p.event.tag), "")
+	block := true
 	if p.event.mapping_style()&yaml_FLOW_MAPPING_STYLE != 0 {
+		block = false
 		n.Style |= FlowStyle
 	}
 	p.anchor(n, p.event.anchor)
 	p.expect(yaml_MAPPING_START_EVENT)
 	for p.peek() != yaml_MAPPING_END_EVENT {
 		k := p.parseChild(n)
+		if block && k.FootComment != "" {
+			// Must be a foot comment for the prior value when being dedented.
+			if len(n.Content) > 2 {
+				n.Content[len(n.Content)-3].FootComment = k.FootComment
+				k.FootComment = ""
+			}
+		}
 		v := p.parseChild(n)
-		if v.FootComment != "" {
+		if k.FootComment == "" && v.FootComment != "" {
 			k.FootComment = v.FootComment
 			v.FootComment = ""
+		}
+		if p.peek() == yaml_TAIL_COMMENT_EVENT {
+			if k.FootComment == "" {
+				k.FootComment = string(p.event.foot_comment)
+			}
+			p.expect(yaml_TAIL_COMMENT_EVENT)
 		}
 	}
 	n.LineComment = string(p.event.line_comment)
 	n.FootComment = string(p.event.foot_comment)
+	if n.Style&FlowStyle == 0 && n.FootComment != "" && len(n.Content) > 1 {
+		n.Content[len(n.Content)-2].FootComment = n.FootComment
+		n.FootComment = ""
+	}
 	p.expect(yaml_MAPPING_END_EVENT)
 	return n
 }

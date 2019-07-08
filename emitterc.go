@@ -1,17 +1,17 @@
-// 
+//
 // Copyright (c) 2011-2019 Canonical Ltd
 // Copyright (c) 2006-2010 Kirill Simonov
-// 
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy of
 // this software and associated documentation files (the "Software"), to deal in
 // the Software without restriction, including without limitation the rights to
 // use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
 // of the Software, and to permit persons to whom the Software is furnished to do
 // so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -1239,6 +1239,7 @@ func yaml_emitter_analyze_scalar(emitter *yaml_emitter_t, value []byte) bool {
 		flow_indicators    = false
 		line_breaks        = false
 		special_characters = false
+		tab_characters     = false
 
 		leading_space  = false
 		leading_break  = false
@@ -1307,7 +1308,9 @@ func yaml_emitter_analyze_scalar(emitter *yaml_emitter_t, value []byte) bool {
 			}
 		}
 
-		if !is_printable(value, i) || !is_ascii(value, i) && !emitter.unicode {
+		if value[i] == '\t' {
+			tab_characters = true
+		} else if !is_printable(value, i) || !is_ascii(value, i) && !emitter.unicode {
 			special_characters = true
 		}
 		if is_space(value, i) {
@@ -1362,10 +1365,12 @@ func yaml_emitter_analyze_scalar(emitter *yaml_emitter_t, value []byte) bool {
 		emitter.scalar_data.block_plain_allowed = false
 		emitter.scalar_data.single_quoted_allowed = false
 	}
-	if space_break || special_characters {
+	if space_break || tab_characters || special_characters {
 		emitter.scalar_data.flow_plain_allowed = false
 		emitter.scalar_data.block_plain_allowed = false
 		emitter.scalar_data.single_quoted_allowed = false
+	}
+	if space_break || special_characters {
 		emitter.scalar_data.block_allowed = false
 	}
 	if line_breaks {

@@ -2800,23 +2800,25 @@ func yaml_parser_scan_line_comment(parser *yaml_parser_t, token_mark yaml_mark_t
 			if len(*comment) > 0 {
 				*comment = append(*comment, '\n')
 			}
-			for !is_breakz(parser.buffer, parser.buffer_pos+peek) {
-				*comment = append(*comment, parser.buffer[parser.buffer_pos+peek])
-				peek++
-				if parser.unread < peek+1 && !yaml_parser_update_buffer(parser, peek+1) {
+
+			// Consume until after the consumed comment line.
+			seen := parser.mark.index+peek
+			for {
+				if parser.unread < 1 && !yaml_parser_update_buffer(parser, 1) {
 					return false
 				}
-			}
-
-			// Skip until after the consumed comment line.
-			until := parser.buffer_pos + peek
-			for parser.buffer_pos < until {
-				if is_break(parser.buffer, parser.buffer_pos) {
-					// The break should stay in the buffer so calling this function twice or just
-					// before parsing foot comments works correctly. But this should never happen
-					// anyway given the logic above that stops at the break.
-					panic("internal error: the impossible has just happened!")
+				if is_breakz(parser.buffer, parser.buffer_pos) {
+					if parser.mark.index >= seen {
+						break
+					}
+					if parser.unread < 2 && !yaml_parser_update_buffer(parser, 2) {
+						return false
+					}
+					skip_line(parser)
 				} else {
+					if parser.mark.index >= seen {
+						*comment = append(*comment, parser.buffer[parser.buffer_pos])
+					}
 					skip(parser)
 				}
 			}
@@ -2923,25 +2925,26 @@ func yaml_parser_scan_comments(parser *yaml_parser_t, scan_mark yaml_mark_t) boo
 			text = append(text, '\n')
 		}
 
-		// Find the end of the comment line.
 		recent_empty = false
-		for !is_breakz(parser.buffer, parser.buffer_pos+peek) {
-			text = append(text, parser.buffer[parser.buffer_pos+peek])
-			peek++
-			if parser.unread < peek+1 && !yaml_parser_update_buffer(parser, peek+1) {
+
+		// Consume until after the consumed comment line.
+		seen := parser.mark.index+peek
+		for {
+			if parser.unread < 1 && !yaml_parser_update_buffer(parser, 1) {
 				return false
 			}
-		}
-
-		// Skip until after the consumed comment line.
-		until := parser.buffer_pos + peek
-		for parser.buffer_pos < until {
-			if is_break(parser.buffer, parser.buffer_pos) {
+			if is_breakz(parser.buffer, parser.buffer_pos) {
+				if parser.mark.index >= seen {
+					break
+				}
 				if parser.unread < 2 && !yaml_parser_update_buffer(parser, 2) {
 					return false
 				}
 				skip_line(parser)
 			} else {
+				if parser.mark.index >= seen {
+					text = append(text, parser.buffer[parser.buffer_pos])
+				}
 				skip(parser)
 			}
 		}

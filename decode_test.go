@@ -768,6 +768,16 @@ var unmarshalTests = []struct {
 		"---\nhello\n...\n}not yaml",
 		"hello",
 	},
+
+	// Comment scan exhausting the input buffer (issue #469).
+	{
+		"true\n#" + strings.Repeat(" ", 512*3),
+		"true",
+	},
+	{
+		"true #" + strings.Repeat(" ", 512*3),
+		"true",
+	},
 }
 
 type M map[string]interface{}

@@ -309,6 +309,9 @@ type decoder struct {
 
 	knownFields bool
 	uniqueKeys  bool
+	decodeCount int
+	aliasCount  int
+	aliasDepth  int
 }
 
 var (
@@ -432,6 +435,13 @@ func (d *decoder) fieldByIndex(n *Node, v reflect.Value, index []int) (field ref
 }
 
 func (d *decoder) unmarshal(n *Node, out reflect.Value) (good bool) {
+	d.decodeCount++
+	if d.aliasDepth > 0 {
+		d.aliasCount++
+	}
+	if d.aliasCount > 100 && d.decodeCount > 1000 && float64(d.aliasCount)/float64(d.decodeCount) > 0.99 {
+		failf("document contains excessive aliasing")
+	}
 	if out.Type() == nodeType {
 		out.Set(reflect.ValueOf(n).Elem())
 		return true
@@ -474,7 +484,9 @@ func (d *decoder) alias(n *Node, out reflect.Value) (good bool) {
 		failf("anchor '%s' value contains itself", n.Value)
 	}
 	d.aliases[n] = true
+	d.aliasDepth++
 	good = d.unmarshal(n.Alias, out)
+	d.aliasDepth--
 	delete(d.aliases, n)
 	return good
 }

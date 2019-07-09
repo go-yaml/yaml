@@ -1,17 +1,17 @@
-// 
+//
 // Copyright (c) 2011-2019 Canonical Ltd
 // Copyright (c) 2006-2010 Kirill Simonov
-// 
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy of
 // this software and associated documentation files (the "Software"), to deal in
 // the Software without restriction, including without limitation the rights to
 // use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
 // of the Software, and to permit persons to whom the Software is furnished to do
 // so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -511,6 +511,9 @@ func cache(parser *yaml_parser_t, length int) bool {
 
 // Advance the buffer pointer.
 func skip(parser *yaml_parser_t) {
+	if !is_blank(parser.buffer, parser.buffer_pos) {
+		parser.newlines = 0
+	}
 	parser.mark.index++
 	parser.mark.column++
 	parser.unread--
@@ -524,17 +527,22 @@ func skip_line(parser *yaml_parser_t) {
 		parser.mark.line++
 		parser.unread -= 2
 		parser.buffer_pos += 2
+		parser.newlines++
 	} else if is_break(parser.buffer, parser.buffer_pos) {
 		parser.mark.index++
 		parser.mark.column = 0
 		parser.mark.line++
 		parser.unread--
 		parser.buffer_pos += width(parser.buffer[parser.buffer_pos])
+		parser.newlines++
 	}
 }
 
 // Copy a character to a string buffer and advance pointers.
 func read(parser *yaml_parser_t, s []byte) []byte {
+	if !is_blank(parser.buffer, parser.buffer_pos) {
+		parser.newlines = 0
+	}
 	w := width(parser.buffer[parser.buffer_pos])
 	if w == 0 {
 		panic("invalid character sequence")
@@ -586,6 +594,7 @@ func read_line(parser *yaml_parser_t, s []byte) []byte {
 	parser.mark.column = 0
 	parser.mark.line++
 	parser.unread--
+	parser.newlines++
 	return s
 }
 
@@ -651,11 +660,11 @@ func yaml_parser_fetch_more_tokens(parser *yaml_parser_t) bool {
 		// Check if we really need to fetch more tokens.
 		need_more_tokens := false
 
-		// [Go] When parsing flow items, force the queue to have at least
-		// two items so that comments after commas may be associated
-		// with the value being parsed before them.
-		if parser.tokens_head == len(parser.tokens) || parser.flow_level > 0 && parser.tokens_head >= len(parser.tokens)-1 {
-			// Queue is empty or has just one element inside a flow context.
+		// [Go] The comment parsing logic requires a lookahead of one token
+		// in block style or two tokens in flow style so that the foot
+		// comments may be parsed in time of associating them with the tokens
+		// that are parsed before them.
+		if parser.tokens_head >= len(parser.tokens)-1 || parser.flow_level > 0 && parser.tokens_head >= len(parser.tokens)-2 {
 			need_more_tokens = true
 		} else {
 			// Check if any potential simple key may occupy the head position.
@@ -698,6 +707,8 @@ func yaml_parser_fetch_next_token(parser *yaml_parser_t) (ok bool) {
 		return yaml_parser_fetch_stream_start(parser)
 	}
 
+	scan_mark := parser.mark
+
 	// Eat whitespaces and comments until we reach the next token.
 	if !yaml_parser_scan_to_next_token(parser) {
 		return false
@@ -708,8 +719,12 @@ func yaml_parser_fetch_next_token(parser *yaml_parser_t) (ok bool) {
 		return false
 	}
 
+	// [Go] While unrolling indents, transform the head comments of prior
+	// indentation levels observed after scan_start into foot comments at
+	// the respective indexes.
+
 	// Check the indentation level against the current column.
-	if !yaml_parser_unroll_indent(parser, parser.mark.column) {
+	if !yaml_parser_unroll_indent(parser, parser.mark.column, scan_mark) {
 		return false
 	}
 
@@ -752,10 +767,6 @@ func yaml_parser_fetch_next_token(parser *yaml_parser_t) (ok bool) {
 			return
 		}
 		if !yaml_parser_scan_line_comment(parser, comment_mark) {
-			ok = false
-			return
-		}
-		if !yaml_parser_scan_foot_comment(parser, comment_mark) {
 			ok = false
 			return
 		}
@@ -1001,19 +1012,49 @@ func yaml_parser_roll_indent(parser *yaml_parser_t, column, number int, typ yaml
 // Pop indentation levels from the indents stack until the current level
 // becomes less or equal to the column.  For each indentation level, append
 // the BLOCK-END token.
-func yaml_parser_unroll_indent(parser *yaml_parser_t, column int) bool {
+func yaml_parser_unroll_indent(parser *yaml_parser_t, column int, scan_mark yaml_mark_t) bool {
 	// In the flow context, do nothing.
 	if parser.flow_level > 0 {
 		return true
 	}
 
+	block_mark := scan_mark
+	block_mark.index--
+
 	// Loop through the indentation levels in the stack.
 	for parser.indent > column {
+
+		// [Go] Reposition the end token before potential following
+		//      foot comments of parent blocks. For that, search
+		//      backwards for recent comments that were at the same
+		//      indent as the block that is ending now.
+		stop_index := block_mark.index
+		for i := len(parser.comments) - 1; i >= 0; i-- {
+			comment := &parser.comments[i]
+
+			if comment.end_mark.index < stop_index {
+				// Don't go back beyond the start of the comment/whitespace scan, unless column < 0.
+				// If requested indent column is < 0, then the document is over and everything else
+				// is a foot anyway.
+				break
+			}
+			if comment.start_mark.column == parser.indent+1 {
+				// This is a good match. But maybe there's a former comment
+				// at that same indent level, so keep searching.
+				block_mark = comment.start_mark
+			}
+
+			// While the end of the former comment matches with
+			// the start of the following one, we know there's
+			// nothing in between and scanning is still safe.
+			stop_index = comment.scan_mark.index
+		}
+
 		// Create a token and append it to the queue.
 		token := yaml_token_t{
 			typ:        yaml_BLOCK_END_TOKEN,
-			start_mark: parser.mark,
-			end_mark:   parser.mark,
+			start_mark: block_mark,
+			end_mark:   block_mark,
 		}
 		yaml_insert_token(parser, -1, &token)
 
@@ -1060,7 +1101,7 @@ func yaml_parser_fetch_stream_end(parser *yaml_parser_t) bool {
 	}
 
 	// Reset the indentation level.
-	if !yaml_parser_unroll_indent(parser, -1) {
+	if !yaml_parser_unroll_indent(parser, -1, parser.mark) {
 		return false
 	}
 
@@ -1084,7 +1125,7 @@ func yaml_parser_fetch_stream_end(parser *yaml_parser_t) bool {
 // Produce a VERSION-DIRECTIVE or TAG-DIRECTIVE token.
 func yaml_parser_fetch_directive(parser *yaml_parser_t) bool {
 	// Reset the indentation level.
-	if !yaml_parser_unroll_indent(parser, -1) {
+	if !yaml_parser_unroll_indent(parser, -1, parser.mark) {
 		return false
 	}
 
@@ -1108,7 +1149,7 @@ func yaml_parser_fetch_directive(parser *yaml_parser_t) bool {
 // Produce the DOCUMENT-START or DOCUMENT-END token.
 func yaml_parser_fetch_document_indicator(parser *yaml_parser_t, typ yaml_token_type_t) bool {
 	// Reset the indentation level.
-	if !yaml_parser_unroll_indent(parser, -1) {
+	if !yaml_parser_unroll_indent(parser, -1, parser.mark) {
 		return false
 	}
 
@@ -1472,6 +1513,8 @@ func yaml_parser_fetch_plain_scalar(parser *yaml_parser_t) bool {
 // Eat whitespaces and comments until the next token is found.
 func yaml_parser_scan_to_next_token(parser *yaml_parser_t) bool {
 
+	scan_mark := parser.mark
+
 	// Until the next token is not found.
 	for {
 		// Allow the BOM mark to start a line.
@@ -1500,7 +1543,7 @@ func yaml_parser_scan_to_next_token(parser *yaml_parser_t) bool {
 
 		// Eat a comment until a line break.
 		if parser.buffer[parser.buffer_pos] == '#' {
-			if !yaml_parser_scan_head_comment(parser, parser.mark) {
+			if !yaml_parser_scan_comments(parser, scan_mark) {
 				return false
 			}
 		}
@@ -2738,12 +2781,12 @@ func yaml_parser_scan_plain_scalar(parser *yaml_parser_t, token *yaml_token_t) b
 	return true
 }
 
-func yaml_parser_scan_line_comment(parser *yaml_parser_t, after yaml_mark_t) bool {
-	if parser.mark.column == 0 {
+func yaml_parser_scan_line_comment(parser *yaml_parser_t, token_mark yaml_mark_t) bool {
+	if parser.newlines > 0 {
 		return true
 	}
 
-	parser.comments = append(parser.comments, yaml_comment_t{after: after})
+	parser.comments = append(parser.comments, yaml_comment_t{token_mark: token_mark})
 	comment := &parser.comments[len(parser.comments)-1].line
 
 	for peek := 0; peek < 512; peek++ {
@@ -2757,24 +2800,25 @@ func yaml_parser_scan_line_comment(parser *yaml_parser_t, after yaml_mark_t) boo
 			if len(*comment) > 0 {
 				*comment = append(*comment, '\n')
 			}
-			for !is_breakz(parser.buffer, parser.buffer_pos+peek) {
-				*comment = append(*comment, parser.buffer[parser.buffer_pos+peek])
-				peek++
-				if parser.unread < peek+1 && !yaml_parser_update_buffer(parser, peek+1) {
+
+			// Consume until after the consumed comment line.
+			seen := parser.mark.index+peek
+			for {
+				if parser.unread < 1 && !yaml_parser_update_buffer(parser, 1) {
 					return false
 				}
-			}
-
-			// Skip until after the consumed comment line.
-			until := parser.buffer_pos + peek
-			for parser.buffer_pos < until {
-				if is_break(parser.buffer, parser.buffer_pos) {
-					//break // Leave the break in the buffer so calling this function twice is safe.
+				if is_breakz(parser.buffer, parser.buffer_pos) {
+					if parser.mark.index >= seen {
+						break
+					}
 					if parser.unread < 2 && !yaml_parser_update_buffer(parser, 2) {
 						return false
 					}
 					skip_line(parser)
 				} else {
+					if parser.mark.index >= seen {
+						*comment = append(*comment, parser.buffer[parser.buffer_pos])
+					}
 					skip(parser)
 				}
 			}
@@ -2784,112 +2828,140 @@ func yaml_parser_scan_line_comment(parser *yaml_parser_t, after yaml_mark_t) boo
 	return true
 }
 
-func yaml_parser_scan_head_comment(parser *yaml_parser_t, after yaml_mark_t) bool {
-	parser.comments = append(parser.comments, yaml_comment_t{after: after})
-	comment := &parser.comments[len(parser.comments)-1].head
-	breaks := false
-	for peek := 0; peek < 512; peek++ {
+func yaml_parser_scan_comments(parser *yaml_parser_t, scan_mark yaml_mark_t) bool {
+	token := parser.tokens[len(parser.tokens)-1]
+
+	if token.typ == yaml_FLOW_ENTRY_TOKEN && len(parser.tokens) > 1 {
+		token = parser.tokens[len(parser.tokens)-2]
+	}
+
+	var token_mark = token.start_mark
+	var start_mark yaml_mark_t
+
+	var recent_empty = false
+	var first_empty = true
+
+	var line = parser.mark.line
+	var column = parser.mark.column
+
+	var text []byte
+
+	// The foot line is the place where a comment must start to
+	// still be considered as a foot of the prior content.
+	// If there's some content in the currently parsed line, then the foot
+	// is the line below it.
+	var foot_line = parser.mark.line-parser.newlines+1
+	if parser.newlines == 0 && parser.mark.column > 1 {
+		foot_line++
+	}
+
+	var peek = 0
+	for ; peek < 512; peek++ {
 		if parser.unread < peek+1 && !yaml_parser_update_buffer(parser, peek+1) {
 			break
 		}
-		if parser.buffer[parser.buffer_pos+peek] == 0 {
-			break
-		}
+		column++
 		if is_blank(parser.buffer, parser.buffer_pos+peek) {
 			continue
-		}
-		if is_break(parser.buffer, parser.buffer_pos+peek) {
-			if !breaks {
-				*comment = append(*comment, '\n')
-			}
-			breaks = true
-		} else if parser.buffer[parser.buffer_pos+peek] == '#' {
-			if len(*comment) > 0 {
-				*comment = append(*comment, '\n')
-			}
-			breaks = false
-			for !is_breakz(parser.buffer, parser.buffer_pos+peek) {
-				*comment = append(*comment, parser.buffer[parser.buffer_pos+peek])
-				peek++
-				if parser.unread < peek+1 && !yaml_parser_update_buffer(parser, peek+1) {
-					return false
-				}
-			}
-
-			// Skip until after the consumed comment line.
-			until := parser.buffer_pos + peek
-			for parser.buffer_pos < until {
-				if is_break(parser.buffer, parser.buffer_pos) {
-					if parser.unread < 2 && !yaml_parser_update_buffer(parser, 2) {
-						return false
-					}
-					skip_line(parser)
-				} else {
-					skip(parser)
-				}
-			}
-			peek = 0
-		} else {
-			break
-		}
-	}
-	return true
-}
-
-func yaml_parser_scan_foot_comment(parser *yaml_parser_t, after yaml_mark_t) bool {
-	parser.comments = append(parser.comments, yaml_comment_t{after: after})
-	comment := &parser.comments[len(parser.comments)-1].foot
-	original := *comment
-	breaks := false
-	peek := 0
-	for ; peek < 32768; peek++ {
-		if parser.unread < peek+1 && !yaml_parser_update_buffer(parser, peek+1) {
-			break
 		}
 		c := parser.buffer[parser.buffer_pos+peek]
-		if c == 0 {
-			break
-		}
-		if is_blank(parser.buffer, parser.buffer_pos+peek) {
-			continue
-		}
-		if is_break(parser.buffer, parser.buffer_pos+peek) {
-			if breaks {
-				break
-			}
-			breaks = true
-		} else if c == '#' {
-			if len(*comment) > 0 {
-				*comment = append(*comment, '\n')
-			}
-			for !is_breakz(parser.buffer, parser.buffer_pos+peek) {
-				*comment = append(*comment, parser.buffer[parser.buffer_pos+peek])
-				peek++
-				if parser.unread < peek+1 && !yaml_parser_update_buffer(parser, peek+1) {
-					return false
+		if is_breakz(parser.buffer, parser.buffer_pos+peek) || parser.flow_level > 0 && (c == ']' || c == '}') {
+			// Got line break or terminator.
+			if !recent_empty {
+				if first_empty && (start_mark.line > 0 && start_mark.line == foot_line || start_mark.column-1 < parser.indent) {
+					// This is the first empty line and there were no empty lines before,
+					// so this initial part of the comment is a foot of the prior token
+					// instead of being a head for the following one. Split it up.
+					if len(text) > 0 {
+						parser.comments = append(parser.comments, yaml_comment_t{
+							scan_mark:  scan_mark,
+							token_mark: token_mark,
+							start_mark: start_mark,
+							end_mark:   yaml_mark_t{parser.mark.index + peek, line, column},
+							foot:       text,
+						})
+						scan_mark = yaml_mark_t{parser.mark.index + peek, line, column}
+						token_mark = scan_mark
+						text = nil
+					}
+				} else {
+					if len(text) > 0 && parser.buffer[parser.buffer_pos+peek] != 0 {
+						text = append(text, '\n')
+					}
 				}
 			}
-			breaks = true
-		} else if c == ']' || c == '}' {
-			break
-		} else {
-			// Abort and allow that next line to have the comment as its header.
-			*comment = original
-			return true
+			if !is_break(parser.buffer, parser.buffer_pos+peek) {
+				break
+			}
+			first_empty = false
+			recent_empty = true
+			column = 0
+			line++
+			continue
 		}
-	}
 
-	// Skip until after the consumed comment lines.
-	until := parser.buffer_pos + peek
-	for parser.buffer_pos < until {
-		if is_break(parser.buffer, parser.buffer_pos) {
-			if parser.unread < 2 && !yaml_parser_update_buffer(parser, 2) {
+		if len(text) > 0 && column < parser.indent+1 && column != start_mark.column {
+			// The comment at the different indentation is a foot of the
+			// preceding data rather than a head of the upcoming one.
+			parser.comments = append(parser.comments, yaml_comment_t{
+				scan_mark:  scan_mark,
+				token_mark: token_mark,
+				start_mark: start_mark,
+				end_mark:   yaml_mark_t{parser.mark.index + peek, line, column},
+				foot:       text,
+			})
+			scan_mark = yaml_mark_t{parser.mark.index + peek, line, column}
+			token_mark = scan_mark
+			text = nil
+		}
+
+		if parser.buffer[parser.buffer_pos+peek] != '#' {
+			break
+		}
+
+		if len(text) == 0 {
+			start_mark = yaml_mark_t{parser.mark.index + peek, line, column}
+		} else {
+			text = append(text, '\n')
+		}
+
+		recent_empty = false
+
+		// Consume until after the consumed comment line.
+		seen := parser.mark.index+peek
+		for {
+			if parser.unread < 1 && !yaml_parser_update_buffer(parser, 1) {
 				return false
 			}
-			skip_line(parser)
-		} else {
-			skip(parser)
+			if is_breakz(parser.buffer, parser.buffer_pos) {
+				if parser.mark.index >= seen {
+					break
+				}
+				if parser.unread < 2 && !yaml_parser_update_buffer(parser, 2) {
+					return false
+				}
+				skip_line(parser)
+			} else {
+				if parser.mark.index >= seen {
+					text = append(text, parser.buffer[parser.buffer_pos])
+				}
+				skip(parser)
+			}
 		}
+
+		peek = 0
+		column = 0
+		line = parser.mark.line
+	}
+
+	if len(text) > 0 {
+		parser.comments = append(parser.comments, yaml_comment_t{
+			scan_mark:  scan_mark,
+			token_mark: start_mark,
+			start_mark: start_mark,
+			end_mark:   yaml_mark_t{parser.mark.index + peek - 1, line, column},
+			head:       text,
+		})
 	}
 	return true
 }

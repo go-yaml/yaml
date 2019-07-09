@@ -261,6 +261,11 @@ var marshalTests = []struct {
 			} "a,flow"
 		}{struct{ B, D string }{"c", "e"}},
 		"a: {b: c, d: e}\n",
+	}, {
+		&struct {
+			A string "a,flow"
+		}{"b\nc"},
+		"a: \"b\\nc\"\n",
 	},
 
 	// Unexported field
@@ -410,7 +415,11 @@ var marshalTests = []struct {
 		map[string]interface{}{"a": map[string]interface{}{"b": []map[string]int{{"c": 1, "d": 2}}}},
 		"a:\n    b:\n      - c: 1\n        d: 2\n",
 	},
-
+	// Strings with tabs were disallowed as literals (issue #471).
+	{
+		map[string]string{"a": "\tB\n\tC\n"},
+		"a: |\n    \tB\n    \tC\n",
+	},
 	// Ensure that strings wrap
 	{
 		map[string]string{"a": "abcdefghijklmnopqrstuvwxyz ABCDEFGHIJKLMNOPQRSTUVWXYZ 1234567890 abcdefghijklmnopqrstuvwxyz ABCDEFGHIJKLMNOPQRSTUVWXYZ 1234567890 "},

@@ -326,13 +326,17 @@ func (e *encoder) stringv(tag string, in reflect.Value) {
 	// text that's incompatible with that tag.
 	switch {
 	case strings.Contains(s, "\n"):
-		style = yaml_LITERAL_SCALAR_STYLE
+		if e.flow {
+			style = yaml_DOUBLE_QUOTED_SCALAR_STYLE
+		} else {
+			style = yaml_LITERAL_SCALAR_STYLE
+		}
 	case canUsePlain:
 		style = yaml_PLAIN_SCALAR_STYLE
 	default:
 		style = yaml_DOUBLE_QUOTED_SCALAR_STYLE
 	}
-	e.emitScalar(s, "", tag, style, nil, nil, nil)
+	e.emitScalar(s, "", tag, style, nil, nil, nil, nil)
 }
 
 func (e *encoder) boolv(tag string, in reflect.Value) {
@@ -342,23 +346,23 @@ func (e *encoder) boolv(tag string, in reflect.Value) {
 	} else {
 		s = "false"
 	}
-	e.emitScalar(s, "", tag, yaml_PLAIN_SCALAR_STYLE, nil, nil, nil)
+	e.emitScalar(s, "", tag, yaml_PLAIN_SCALAR_STYLE, nil, nil, nil, nil)
 }
 
 func (e *encoder) intv(tag string, in reflect.Value) {
 	s := strconv.FormatInt(in.Int(), 10)
-	e.emitScalar(s, "", tag, yaml_PLAIN_SCALAR_STYLE, nil, nil, nil)
+	e.emitScalar(s, "", tag, yaml_PLAIN_SCALAR_STYLE, nil, nil, nil, nil)
 }
 
 func (e *encoder) uintv(tag string, in reflect.Value) {
 	s := strconv.FormatUint(in.Uint(), 10)
-	e.emitScalar(s, "", tag, yaml_PLAIN_SCALAR_STYLE, nil, nil, nil)
+	e.emitScalar(s, "", tag, yaml_PLAIN_SCALAR_STYLE, nil, nil, nil, nil)
 }
 
 func (e *encoder) timev(tag string, in reflect.Value) {
 	t := in.Interface().(time.Time)
 	s := t.Format(time.RFC3339Nano)
-	e.emitScalar(s, "", tag, yaml_PLAIN_SCALAR_STYLE, nil, nil, nil)
+	e.emitScalar(s, "", tag, yaml_PLAIN_SCALAR_STYLE, nil, nil, nil, nil)
 }
 
 func (e *encoder) floatv(tag string, in reflect.Value) {
@@ -377,14 +381,14 @@ func (e *encoder) floatv(tag string, in reflect.Value) {
 	case "NaN":
 		s = ".nan"
 	}
-	e.emitScalar(s, "", tag, yaml_PLAIN_SCALAR_STYLE, nil, nil, nil)
+	e.emitScalar(s, "", tag, yaml_PLAIN_SCALAR_STYLE, nil, nil, nil, nil)
 }
 
 func (e *encoder) nilv() {
-	e.emitScalar("null", "", "", yaml_PLAIN_SCALAR_STYLE, nil, nil, nil)
+	e.emitScalar("null", "", "", yaml_PLAIN_SCALAR_STYLE, nil, nil, nil, nil)
 }
 
-func (e *encoder) emitScalar(value, anchor, tag string, style yaml_scalar_style_t, head, line, foot []byte) {
+func (e *encoder) emitScalar(value, anchor, tag string, style yaml_scalar_style_t, head, line, foot, tail []byte) {
 	// TODO Kill this function. Replace all initialize calls by their underlining Go literals.
 	implicit := tag == ""
 	if !implicit {
@@ -394,14 +398,15 @@ func (e *encoder) emitScalar(value, anchor, tag string, style yaml_scalar_style_
 	e.event.head_comment = head
 	e.event.line_comment = line
 	e.event.foot_comment = foot
+	e.event.tail_comment = tail
 	e.emit()
 }
 
 func (e *encoder) nodev(in reflect.Value) {
-	e.node(in.Interface().(*Node))
+	e.node(in.Interface().(*Node), "")
 }
 
-func (e *encoder) node(node *Node) {
+func (e *encoder) node(node *Node, tail string) {
 	// If the tag was not explicitly requested, and dropping it won't change the
 	// implicit tag of the value, don't include it in the presentation.
 	var tag = node.Tag
@@ -440,7 +445,7 @@ func (e *encoder) node(node *Node) {
 		e.event.head_comment = []byte(node.HeadComment)
 		e.emit()
 		for _, node := range node.Content {
-			e.node(node)
+			e.node(node, "")
 		}
 		yaml_document_end_event_initialize(&e.event, true)
 		e.event.foot_comment = []byte(node.FootComment)
@@ -455,7 +460,7 @@ func (e *encoder) node(node *Node) {
 		e.event.head_comment = []byte(node.HeadComment)
 		e.emit()
 		for _, node := range node.Content {
-			e.node(node)
+			e.node(node, "")
 		}
 		e.must(yaml_sequence_end_event_initialize(&e.event))
 		e.event.line_comment = []byte(node.LineComment)
@@ -468,15 +473,28 @@ func (e *encoder) node(node *Node) {
 			style = yaml_FLOW_MAPPING_STYLE
 		}
 		yaml_mapping_start_event_initialize(&e.event, []byte(node.Anchor), []byte(tag), tag == "", style)
+		e.event.tail_comment = []byte(tail)
 		e.event.head_comment = []byte(node.HeadComment)
 		e.emit()
 
+		// The tail logic below moves the foot comment of prior keys to the following key,
+		// since the value for each key may be a nested structure and the foot needs to be
+		// processed only the entirety of the value is streamed. The last tail is processed
+		// with the mapping end event.
+		var tail string
 		for i := 0; i+1 < len(node.Content); i += 2 {
-			e.node(node.Content[i])
-			e.node(node.Content[i+1])
+			k := node.Content[i]
+			foot := k.FootComment
+			k.FootComment = ""
+			e.node(k, tail)
+			tail = foot
+
+			v := node.Content[i+1]
+			e.node(v, "")
 		}
 
 		yaml_mapping_end_event_initialize(&e.event)
+		e.event.tail_comment = []byte(tail)
 		e.event.line_comment = []byte(node.LineComment)
 		e.event.foot_comment = []byte(node.FootComment)
 		e.emit()
@@ -519,7 +537,7 @@ func (e *encoder) node(node *Node) {
 			style = yaml_DOUBLE_QUOTED_SCALAR_STYLE
 		}
 
-		e.emitScalar(value, node.Anchor, tag, style, []byte(node.HeadComment), []byte(node.LineComment), []byte(node.FootComment))
+		e.emitScalar(value, node.Anchor, tag, style, []byte(node.HeadComment), []byte(node.LineComment), []byte(node.FootComment), []byte(tail))
 	}
 }
 

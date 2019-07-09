@@ -773,11 +773,20 @@ var unmarshalTests = []struct {
 	{
 		"true\n#" + strings.Repeat(" ", 512*3),
 		"true",
-	},
-	{
+	}, {
 		"true #" + strings.Repeat(" ", 512*3),
 		"true",
 	},
+
+	// CRLF
+	{
+		"a: b\r\nc:\r\n- d\r\n- e\r\n",
+		map[string]interface{}{
+			"a": "b",
+			"c": []interface{}{"d", "e"},
+		},
+	},
+
 }
 
 type M map[string]interface{}

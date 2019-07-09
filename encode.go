@@ -326,7 +326,11 @@ func (e *encoder) stringv(tag string, in reflect.Value) {
 	// text that's incompatible with that tag.
 	switch {
 	case strings.Contains(s, "\n"):
-		style = yaml_LITERAL_SCALAR_STYLE
+		if e.flow {
+			style = yaml_DOUBLE_QUOTED_SCALAR_STYLE
+		} else {
+			style = yaml_LITERAL_SCALAR_STYLE
+		}
 	case canUsePlain:
 		style = yaml_PLAIN_SCALAR_STYLE
 	default:

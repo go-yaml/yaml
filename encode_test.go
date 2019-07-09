@@ -261,6 +261,11 @@ var marshalTests = []struct {
 			} "a,flow"
 		}{struct{ B, D string }{"c", "e"}},
 		"a: {b: c, d: e}\n",
+	}, {
+		&struct {
+			A string "a,flow"
+		}{"b\nc"},
+		"a: \"b\\nc\"\n",
 	},
 
 	// Unexported field

@@ -13,3 +13,7 @@ go:
     - tip
 
 go_import_path: gopkg.in/yaml.v2
+
+script:
+- GO111MODULE=on go test -v -race ./...
+- git diff --exit-code

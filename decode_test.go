@@ -816,6 +816,57 @@ func (s *S) TestUnmarshal(c *C) {
 		}
 		c.Assert(value.Elem().Interface(), DeepEquals, item.value, Commentf("error: %v", err))
 	}
+
+	// Unmarshal should fail on UnmarshalPermissive specific tests
+	for i, item := range unmarshalPermissiveTests {
+		c.Logf("test %d: %q", i, item.data)
+		t := reflect.ValueOf(item.value).Type()
+		value := reflect.New(t)
+		err := yaml.Unmarshal([]byte(item.data), value.Interface())
+		c.Assert(err, NotNil)
+	}
+}
+
+var unmarshalPermissiveTests = []struct {
+	data  string
+	value interface{}
+}{
+	// if a key appears more than once, the last value is used
+	{
+		"v: 10 \nv: 11",
+		map[string]interface{}{"v": 11},
+	},
+	// if a key appears more than once with different types, the last value is used
+	{
+		"v: 10 \nv: hello",
+		map[string]interface{}{"v": "hello"},
+	},
+}
+
+func (s *S) TestUnmarshalPermissive(c *C) {
+	// UnmarshalPermissive should work for all input yaml that Unmarshal accepts
+	for i, item := range unmarshalTests {
+		c.Logf("test %d: %q", i, item.data)
+		t := reflect.ValueOf(item.value).Type()
+		value := reflect.New(t)
+		err := yaml.UnmarshalPermissive([]byte(item.data), value.Interface())
+		if _, ok := err.(*yaml.TypeError); !ok {
+			c.Assert(err, IsNil)
+		}
+		c.Assert(value.Elem().Interface(), DeepEquals, item.value, Commentf("error: %v", err))
+	}
+
+	// UnmarshalPermissive allows things that Unmarshal does not
+	for i, item := range unmarshalPermissiveTests {
+		c.Logf("unmarshalPermissive test %d: %q", i, item.data)
+		t := reflect.ValueOf(item.value).Type()
+		value := reflect.New(t)
+		err := yaml.UnmarshalPermissive([]byte(item.data), value.Interface())
+		if _, ok := err.(*yaml.TypeError); !ok {
+			c.Assert(err, IsNil)
+		}
+		c.Assert(value.Elem().Interface(), DeepEquals, item.value, Commentf("error: %v", err))
+	}
 }
 
 func (s *S) TestUnmarshalFullTimestamp(c *C) {

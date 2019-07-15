@@ -86,6 +86,12 @@ type Marshaler interface {
 // supported tag options.
 //
 func Unmarshal(in []byte, out interface{}) (err error) {
+	return unmarshal(in, out, true)
+}
+
+// UnmarshalPermissive acts as Unmarshal but allows duplicate keys within
+// the input data.
+func UnmarshalPermissive(in []byte, out interface{}) (err error) {
 	return unmarshal(in, out, false)
 }
 
@@ -117,7 +123,7 @@ func (dec *Decoder) KnownFields(enable bool) {
 // See the documentation for Unmarshal for details about the
 // conversion of YAML into a Go value.
 func (dec *Decoder) Decode(v interface{}) (err error) {
-	d := newDecoder()
+	d := newDecoder(true)
 	d.knownFields = dec.knownFields
 	defer handleErr(&err)
 	node := dec.parser.parse()
@@ -140,7 +146,7 @@ func (dec *Decoder) Decode(v interface{}) (err error) {
 // See the documentation for Unmarshal for details about the
 // conversion of YAML into a Go value.
 func (n *Node) Decode(v interface{}) (err error) {
-	d := newDecoder()
+	d := newDecoder(true)
 	defer handleErr(&err)
 	out := reflect.ValueOf(v)
 	if out.Kind() == reflect.Ptr && !out.IsNil() {
@@ -155,7 +161,7 @@ func (n *Node) Decode(v interface{}) (err error) {
 
 func unmarshal(in []byte, out interface{}, strict bool) (err error) {
 	defer handleErr(&err)
-	d := newDecoder()
+	d := newDecoder(strict)
 	p := newParser(in)
 	defer p.destroy()
 	node := p.parse()

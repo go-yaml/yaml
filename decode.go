@@ -324,11 +324,11 @@ var (
 	ptrTimeType    = reflect.TypeOf(&time.Time{})
 )
 
-func newDecoder() *decoder {
+func newDecoder(strict bool) *decoder {
 	d := &decoder{
 		stringMapType:  stringMapType,
 		generalMapType: generalMapType,
-		uniqueKeys:     true,
+		uniqueKeys:     strict,
 	}
 	d.aliases = make(map[*Node]bool)
 	return d

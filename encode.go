@@ -320,6 +320,11 @@ func (e *encoder) stringv(tag string, in reflect.Value) {
 		// there's no need to quote it.
 		rtag, _ := resolve("", s)
 		canUsePlain = rtag == strTag && !isBase60Float(s)
+
+		// Check to see if this is a v1.1 yaml bool string
+		// if it is, require quotes to preserve backwards compatibility
+		_, is11BoolString := boolMap[s]
+		canUsePlain = !is11BoolString && canUsePlain
 	}
 	// Note: it's possible for user code to emit invalid YAML
 	// if they explicitly specify a tag and a string containing

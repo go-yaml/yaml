@@ -422,10 +422,38 @@ var marshalTests = []struct {
 		map[string]string{"a": "\tB\n\tC\n"},
 		"a: |\n    \tB\n    \tC\n",
 	},
-	// the strings "yes" and "no" should be marshalled with quotes
+	// yaml 1.1 bool strings should be marshalled with quotes to preserve compatibility
+	{
+		map[string]string{"a": "y", "b": "n"},
+		"a: \"y\"\nb: \"n\"\n",
+	},
+	{
+		map[string]string{"a": "Y", "b": "N"},
+		"a: \"Y\"\nb: \"N\"\n",
+	},
 	{
 		map[string]string{"a": "yes", "b": "no"},
 		"a: \"yes\"\nb: \"no\"\n",
+	},
+	{
+		map[string]string{"a": "Yes", "b": "No"},
+		"a: \"Yes\"\nb: \"No\"\n",
+	},
+	{
+		map[string]string{"a": "YES", "b": "NO"},
+		"a: \"YES\"\nb: \"NO\"\n",
+	},
+	{
+		map[string]string{"a": "on", "b": "off"},
+		"a: \"on\"\nb: \"off\"\n",
+	},
+	{
+		map[string]string{"a": "On", "b": "Off"},
+		"a: \"On\"\nb: \"Off\"\n",
+	},
+	{
+		map[string]string{"a": "ON", "b": "OFF"},
+		"a: \"ON\"\nb: \"OFF\"\n",
 	},
 }
 

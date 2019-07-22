@@ -31,6 +31,7 @@ type resolveMapItem struct {
 
 var resolveTable = make([]byte, 256)
 var resolveMap = make(map[string]resolveMapItem)
+var boolMap = make(map[string]bool)
 
 func init() {
 	t := resolveTable
@@ -64,6 +65,26 @@ func init() {
 		for _, s := range item.l {
 			m[s] = resolveMapItem{item.v, item.tag}
 		}
+	}
+
+	// the remaining bool values from the 1.1 spec (https://yaml.org/type/bool.html)
+	boolMap = map[string]bool{
+		"y": true,
+		"Y": true,
+		"yes": true,
+		"Yes": true,
+		"YES": true,
+		"on": true,
+		"On": true,
+		"ON": true,
+		"n": false,
+		"N": false,
+		"no": false,
+		"No": false,
+		"NO": false,
+		"off": false,
+		"Off": false,
+		"OFF": false,
 	}
 }
 

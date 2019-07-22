@@ -422,6 +422,11 @@ var marshalTests = []struct {
 		map[string]string{"a": "\tB\n\tC\n"},
 		"a: |\n    \tB\n    \tC\n",
 	},
+	// the strings "yes" and "no" should be marshalled with quotes
+	{
+		map[string]string{"a": "yes", "b": "no"},
+		"a: \"yes\"\nb: \"no\"\n",
+	},
 }
 
 func (s *S) TestMarshal(c *C) {

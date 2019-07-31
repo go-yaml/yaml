@@ -320,6 +320,10 @@ func (e *encoder) stringv(tag string, in reflect.Value) {
 		rtag, _ := resolve("", s)
 		canUsePlain = rtag == yaml_STR_TAG && !isBase60Float(s)
 	}
+
+	if s == "=" {
+		canUsePlain = false
+	}
 	// Note: it's possible for user code to emit invalid YAML
 	// if they explicitly specify a tag and a string containing
 	// text that's incompatible with that tag.

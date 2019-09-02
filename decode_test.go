@@ -113,6 +113,21 @@ var unmarshalTests = []struct {
 	{
 		"canonical: true",
 		map[string]interface{}{"canonical": true},
+	}, {
+		"canonical: false",
+		map[string]interface{}{"canonical": false},
+	}, {
+		"bool: True",
+		map[string]interface{}{"bool": true},
+	}, {
+		"bool: False",
+		map[string]interface{}{"bool": false},
+	}, {
+		"bool: TRUE",
+		map[string]interface{}{"bool": true},
+	}, {
+		"bool: FALSE",
+		map[string]interface{}{"bool": false},
 	},
 	// For backwards compatibility with 1.1, decoding old strings into typed values still works.
 	{

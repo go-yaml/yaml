@@ -341,6 +341,7 @@ func yaml_emitter_emit_stream_start(emitter *yaml_emitter_t, event *yaml_event_t
 	emitter.whitespace = true
 	emitter.indention = true
 	emitter.space_above = true
+	emitter.foot_indent = -1
 
 	if emitter.encoding != yaml_UTF8_ENCODING {
 		if !yaml_emitter_write_bom(emitter) {
@@ -498,16 +499,14 @@ func yaml_emitter_emit_document_end(emitter *yaml_emitter_t, event *yaml_event_t
 	if event.typ != yaml_DOCUMENT_END_EVENT {
 		return yaml_emitter_set_emitter_error(emitter, "expected DOCUMENT-END")
 	}
-	if !yaml_emitter_write_indent(emitter) {
+	// [Go] Force document foot separation.
+	emitter.foot_indent = 0
+	if !yaml_emitter_process_foot_comment(emitter) {
 		return false
 	}
-	if len(emitter.foot_comment) > 0 {
-		if !put_break(emitter) {
-			return false
-		}
-		if !yaml_emitter_process_foot_comment(emitter) {
-			return false
-		}
+	emitter.foot_indent = -1
+	if !yaml_emitter_write_indent(emitter) {
+		return false
 	}
 	if !event.implicit {
 		// [Go] Allocate the slice elsewhere.
@@ -1097,26 +1096,14 @@ func yaml_emitter_process_head_comment(emitter *yaml_emitter_t) bool {
 			return false
 		}
 		emitter.tail_comment = emitter.tail_comment[:0]
+		emitter.foot_indent = emitter.indent
+		if emitter.foot_indent < 0 {
+			emitter.foot_indent = 0
+		}
 	}
 
 	if len(emitter.head_comment) == 0 {
 		return true
-	}
-
-	space_above := emitter.space_above
-	if !emitter.indention {
-		if !put_break(emitter) {
-			return false
-		}
-	}
-	if !space_above &&
-		emitter.state != yaml_EMIT_FLOW_SEQUENCE_FIRST_ITEM_STATE &&
-		emitter.state != yaml_EMIT_FLOW_MAPPING_FIRST_KEY_STATE &&
-		emitter.state != yaml_EMIT_BLOCK_MAPPING_FIRST_KEY_STATE &&
-		emitter.state != yaml_EMIT_BLOCK_SEQUENCE_FIRST_ITEM_STATE {
-		if !put_break(emitter) {
-			return false
-		}
 	}
 	if !yaml_emitter_write_indent(emitter) {
 		return false
@@ -1157,6 +1144,10 @@ func yaml_emitter_process_foot_comment(emitter *yaml_emitter_t) bool {
 		return false
 	}
 	emitter.foot_comment = emitter.foot_comment[:0]
+	emitter.foot_indent = emitter.indent
+	if emitter.foot_indent < 0 {
+		emitter.foot_indent = 0
+	}
 	return true
 }
 
@@ -1478,6 +1469,11 @@ func yaml_emitter_write_indent(emitter *yaml_emitter_t) bool {
 			return false
 		}
 	}
+	if emitter.foot_indent == indent {
+		if !put_break(emitter) {
+			return false
+		}
+	}
 	for emitter.column < indent {
 		if !put(emitter, ' ') {
 			return false
@@ -1486,6 +1482,7 @@ func yaml_emitter_write_indent(emitter *yaml_emitter_t) bool {
 	emitter.whitespace = true
 	//emitter.indention = true
 	emitter.space_above = false
+	emitter.foot_indent = -1
 	return true
 }
 
@@ -1582,7 +1579,7 @@ func yaml_emitter_write_tag_content(emitter *yaml_emitter_t, value []byte, need_
 }
 
 func yaml_emitter_write_plain_scalar(emitter *yaml_emitter_t, value []byte, allow_breaks bool) bool {
-	if !emitter.whitespace {
+	if len(value) > 0 && !emitter.whitespace {
 		if !put(emitter, ' ') {
 			return false
 		}
@@ -1629,7 +1626,9 @@ func yaml_emitter_write_plain_scalar(emitter *yaml_emitter_t, value []byte, allo
 		}
 	}
 
-	emitter.whitespace = false
+	if len(value) > 0 {
+		emitter.whitespace = false
+	}
 	emitter.indention = false
 	if emitter.root_context {
 		emitter.open_ended = true

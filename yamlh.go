@@ -753,7 +753,8 @@ type yaml_emitter_t struct {
 	indention  bool // If the last character was an indentation character (' ', '-', '?', ':')?
 	open_ended bool // If an explicit document end is required?
 
-	space_above bool // If there's an empty line right above?
+	space_above bool // Is there's an empty line above?
+	foot_indent int  // The indent used to write the foot comment above, or -1 if none.
 
 	// Anchor analysis.
 	anchor_data struct {

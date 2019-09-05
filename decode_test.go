@@ -113,6 +113,21 @@ var unmarshalTests = []struct {
 	{
 		"canonical: true",
 		map[string]interface{}{"canonical": true},
+	}, {
+		"canonical: false",
+		map[string]interface{}{"canonical": false},
+	}, {
+		"bool: True",
+		map[string]interface{}{"bool": true},
+	}, {
+		"bool: False",
+		map[string]interface{}{"bool": false},
+	}, {
+		"bool: TRUE",
+		map[string]interface{}{"bool": true},
+	}, {
+		"bool: FALSE",
+		map[string]interface{}{"bool": false},
 	},
 	// For backwards compatibility with 1.1, decoding old strings into typed values still works.
 	{
@@ -1154,6 +1169,37 @@ func (s *S) TestUnmarshalerTypeError(c *C) {
 	type T struct {
 		Before int
 		After  int
+		M      map[string]*unmarshalerType
+	}
+	var v T
+	data := `{before: A, m: {abc: 1, def: 2, ghi: 3, jkl: 4}, after: B}`
+	err := yaml.Unmarshal([]byte(data), &v)
+	c.Assert(err, ErrorMatches, ""+
+		"yaml: unmarshal errors:\n"+
+		"  line 1: cannot unmarshal !!str `A` into int\n"+
+		"  foo\n"+
+		"  bar\n"+
+		"  line 1: cannot unmarshal !!str `B` into int")
+	c.Assert(v.M["abc"], NotNil)
+	c.Assert(v.M["def"], IsNil)
+	c.Assert(v.M["ghi"], NotNil)
+	c.Assert(v.M["jkl"], IsNil)
+
+	c.Assert(v.M["abc"].value, Equals, 1)
+	c.Assert(v.M["ghi"].value, Equals, 3)
+}
+
+func (s *S) TestObsoleteUnmarshalerTypeError(c *C) {
+	unmarshalerResult[2] = &yaml.TypeError{[]string{"foo"}}
+	unmarshalerResult[4] = &yaml.TypeError{[]string{"bar"}}
+	defer func() {
+		delete(unmarshalerResult, 2)
+		delete(unmarshalerResult, 4)
+	}()
+
+	type T struct {
+		Before int
+		After  int
 		M      map[string]*obsoleteUnmarshalerType
 	}
 	var v T
@@ -1176,23 +1222,23 @@ func (s *S) TestUnmarshalerTypeError(c *C) {
 
 type proxyTypeError struct{}
 
-func (v *proxyTypeError) UnmarshalYAML(unmarshal func(interface{}) error) error {
+func (v *proxyTypeError) UnmarshalYAML(node *yaml.Node) error {
 	var s string
 	var a int32
 	var b int64
-	if err := unmarshal(&s); err != nil {
+	if err := node.Decode(&s); err != nil {
 		panic(err)
 	}
 	if s == "a" {
-		if err := unmarshal(&b); err == nil {
+		if err := node.Decode(&b); err == nil {
 			panic("should have failed")
 		}
-		return unmarshal(&a)
+		return node.Decode(&a)
 	}
-	if err := unmarshal(&a); err == nil {
+	if err := node.Decode(&a); err == nil {
 		panic("should have failed")
 	}
-	return unmarshal(&b)
+	return node.Decode(&b)
 }
 
 func (s *S) TestUnmarshalerTypeErrorProxying(c *C) {
@@ -1212,11 +1258,49 @@ func (s *S) TestUnmarshalerTypeErrorProxying(c *C) {
 		"  line 1: cannot unmarshal !!str `B` into int")
 }
 
-type failingUnmarshaler struct{}
+type obsoleteProxyTypeError struct{}
+
+func (v *obsoleteProxyTypeError) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	var s string
+	var a int32
+	var b int64
+	if err := unmarshal(&s); err != nil {
+		panic(err)
+	}
+	if s == "a" {
+		if err := unmarshal(&b); err == nil {
+			panic("should have failed")
+		}
+		return unmarshal(&a)
+	}
+	if err := unmarshal(&a); err == nil {
+		panic("should have failed")
+	}
+	return unmarshal(&b)
+}
+
+func (s *S) TestObsoleteUnmarshalerTypeErrorProxying(c *C) {
+	type T struct {
+		Before int
+		After  int
+		M      map[string]*obsoleteProxyTypeError
+	}
+	var v T
+	data := `{before: A, m: {abc: a, def: b}, after: B}`
+	err := yaml.Unmarshal([]byte(data), &v)
+	c.Assert(err, ErrorMatches, ""+
+		"yaml: unmarshal errors:\n"+
+		"  line 1: cannot unmarshal !!str `A` into int\n"+
+		"  line 1: cannot unmarshal !!str `a` into int32\n"+
+		"  line 1: cannot unmarshal !!str `b` into int64\n"+
+		"  line 1: cannot unmarshal !!str `B` into int")
+}
 
 var failingErr = errors.New("failingErr")
 
-func (ft *failingUnmarshaler) UnmarshalYAML(unmarshal func(interface{}) error) error {
+type failingUnmarshaler struct{}
+
+func (ft *failingUnmarshaler) UnmarshalYAML(node *yaml.Node) error {
 	return failingErr
 }
 
@@ -1225,18 +1309,29 @@ func (s *S) TestUnmarshalerError(c *C) {
 	c.Assert(err, Equals, failingErr)
 }
 
+type obsoleteFailingUnmarshaler struct{}
+
+func (ft *obsoleteFailingUnmarshaler) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	return failingErr
+}
+
+func (s *S) TestObsoleteUnmarshalerError(c *C) {
+	err := yaml.Unmarshal([]byte("a: b"), &obsoleteFailingUnmarshaler{})
+	c.Assert(err, Equals, failingErr)
+}
+
 type sliceUnmarshaler []int
 
-func (su *sliceUnmarshaler) UnmarshalYAML(unmarshal func(interface{}) error) error {
+func (su *sliceUnmarshaler) UnmarshalYAML(node *yaml.Node) error {
 	var slice []int
-	err := unmarshal(&slice)
+	err := node.Decode(&slice)
 	if err == nil {
 		*su = slice
 		return nil
 	}
 
 	var intVal int
-	err = unmarshal(&intVal)
+	err = node.Decode(&intVal)
 	if err == nil {
 		*su = []int{intVal}
 		return nil
@@ -1254,6 +1349,37 @@ func (s *S) TestUnmarshalerRetry(c *C) {
 	err = yaml.Unmarshal([]byte("1"), &su)
 	c.Assert(err, IsNil)
 	c.Assert(su, DeepEquals, sliceUnmarshaler([]int{1}))
+}
+
+type obsoleteSliceUnmarshaler []int
+
+func (su *obsoleteSliceUnmarshaler) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	var slice []int
+	err := unmarshal(&slice)
+	if err == nil {
+		*su = slice
+		return nil
+	}
+
+	var intVal int
+	err = unmarshal(&intVal)
+	if err == nil {
+		*su = []int{intVal}
+		return nil
+	}
+
+	return err
+}
+
+func (s *S) TestObsoleteUnmarshalerRetry(c *C) {
+	var su obsoleteSliceUnmarshaler
+	err := yaml.Unmarshal([]byte("[1, 2, 3]"), &su)
+	c.Assert(err, IsNil)
+	c.Assert(su, DeepEquals, obsoleteSliceUnmarshaler([]int{1, 2, 3}))
+
+	err = yaml.Unmarshal([]byte("1"), &su)
+	c.Assert(err, IsNil)
+	c.Assert(su, DeepEquals, obsoleteSliceUnmarshaler([]int{1}))
 }
 
 // From http://yaml.org/type/merge.html

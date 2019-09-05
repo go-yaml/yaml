@@ -350,7 +350,12 @@ func (d *decoder) terror(n *Node, tag string, out reflect.Value) {
 }
 
 func (d *decoder) callUnmarshaler(n *Node, u Unmarshaler) (good bool) {
-	if err := u.UnmarshalYAML(n); err != nil {
+	err := u.UnmarshalYAML(n)
+	if e, ok := err.(*TypeError); ok {
+		d.terrors = append(d.terrors, e.Errors...)
+		return false
+	}
+	if err != nil {
 		fail(err)
 	}
 	return true

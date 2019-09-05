@@ -758,7 +758,7 @@ func yaml_parser_fetch_next_token(parser *yaml_parser_t) (ok bool) {
 	}
 
 	comment_mark := parser.mark
-	if parser.flow_level > 0 && buf[pos] == ',' && len(parser.tokens) > 0 {
+	if len(parser.tokens) > 0 && (parser.flow_level == 0 && buf[pos] == ':' || parser.flow_level > 0 && buf[pos] == ',') {
 		// Associate any following comments with the prior token.
 		comment_mark = parser.tokens[len(parser.tokens)-1].start_mark
 	}
@@ -2839,7 +2839,7 @@ func yaml_parser_scan_comments(parser *yaml_parser_t, scan_mark yaml_mark_t) boo
 	var start_mark yaml_mark_t
 
 	var recent_empty = false
-	var first_empty = true
+	var first_empty = parser.newlines <= 1
 
 	var line = parser.mark.line
 	var column = parser.mark.column
@@ -2848,11 +2848,14 @@ func yaml_parser_scan_comments(parser *yaml_parser_t, scan_mark yaml_mark_t) boo
 
 	// The foot line is the place where a comment must start to
 	// still be considered as a foot of the prior content.
-	// If there's some content in the currently parsed line, then the foot
-	// is the line below it.
-	var foot_line = parser.mark.line-parser.newlines+1
-	if parser.newlines == 0 && parser.mark.column > 1 {
-		foot_line++
+	// If there's some content in the currently parsed line, then
+	// the foot is the line below it.
+	var foot_line = -1
+	if scan_mark.line > 0 {
+		foot_line = parser.mark.line-parser.newlines+1
+		if parser.newlines == 0 && parser.mark.column > 1 {
+			foot_line++
+		}
 	}
 
 	var peek = 0
@@ -2868,11 +2871,15 @@ func yaml_parser_scan_comments(parser *yaml_parser_t, scan_mark yaml_mark_t) boo
 		if is_breakz(parser.buffer, parser.buffer_pos+peek) || parser.flow_level > 0 && (c == ']' || c == '}') {
 			// Got line break or terminator.
 			if !recent_empty {
-				if first_empty && (start_mark.line > 0 && start_mark.line == foot_line || start_mark.column-1 < parser.indent) {
+				if first_empty && (start_mark.line == foot_line || start_mark.column-1 < parser.indent) {
 					// This is the first empty line and there were no empty lines before,
 					// so this initial part of the comment is a foot of the prior token
 					// instead of being a head for the following one. Split it up.
 					if len(text) > 0 {
+						if start_mark.column-1 < parser.indent {
+							// If dedented it's unrelated to the prior token.
+							token_mark = start_mark
+						}
 						parser.comments = append(parser.comments, yaml_comment_t{
 							scan_mark:  scan_mark,
 							token_mark: token_mark,

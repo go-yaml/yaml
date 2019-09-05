@@ -714,6 +714,26 @@ var nodeTests = []struct {
 			}},
 		},
 	}, {
+
+		"[decode]\n# One\n\n# Two\n\n# Three\ntrue # Four\n# Five\n\n# Six\n\n# Seven\n",
+		yaml.Node{
+			Kind:   yaml.DocumentNode,
+			Line:   7,
+			Column: 1,
+			HeadComment: "# One\n\n# Two",
+			FootComment: "# Six\n\n# Seven",
+			Content: []*yaml.Node{{
+				Kind:        yaml.ScalarNode,
+				Value:       "true",
+				Tag:         "!!bool",
+				Line:        7,
+				Column:      1,
+				HeadComment: "# Three",
+				LineComment: "# Four",
+				FootComment: "# Five",
+			}},
+		},
+	}, {
 		// Write out the pound character if missing from comments.
 		"[encode]# One\n# Two\ntrue # Three\n# Four\n# Five\n",
 		yaml.Node{
@@ -848,7 +868,7 @@ var nodeTests = []struct {
 			}},
 		},
 	}, {
-		"# DH1\n\n- la # IA\n\n# HB1\n- lb\n",
+		"# DH1\n\n- la # IA\n# HB1\n- lb\n",
 		yaml.Node{
 			Kind:        yaml.DocumentNode,
 			Line:        3,
@@ -869,7 +889,7 @@ var nodeTests = []struct {
 				}, {
 					Kind:        yaml.ScalarNode,
 					Tag:         "!!str",
-					Line:        6,
+					Line:        5,
 					Column:      3,
 					Value:       "lb",
 					HeadComment: "# HB1",
@@ -1275,6 +1295,49 @@ var nodeTests = []struct {
 			},
 		},
 	}, {
+		// Same as above, but without FB1.
+		"# HA1\nka:\n  # HB1\n  kb: vb\n# FA1\n",
+		yaml.Node{
+			Kind:   yaml.DocumentNode,
+			Line:   2,
+			Column: 1,
+			Content: []*yaml.Node{{
+				Kind:   yaml.MappingNode,
+				Tag:    "!!map",
+				Line:   2,
+				Column: 1,
+				Content: []*yaml.Node{{
+					Kind:        yaml.ScalarNode,
+					Tag:         "!!str",
+					Value:       "ka",
+					HeadComment: "# HA1",
+					FootComment: "# FA1",
+					Line:        2,
+					Column:      1,
+				}, {
+					Kind:   yaml.MappingNode,
+					Tag:    "!!map",
+					Line:   4,
+					Column: 3,
+					Content: []*yaml.Node{{
+						Kind:        yaml.ScalarNode,
+						Tag:         "!!str",
+						Value:       "kb",
+						HeadComment: "# HB1",
+						Line:        4,
+						Column:      3,
+					}, {
+						Kind:   yaml.ScalarNode,
+						Tag:    "!!str",
+						Value:  "vb",
+						Line:   4,
+						Column: 7,
+					}},
+				}},
+			},
+			},
+		},
+	}, {
 		// Same as above, but with two newlines at the end. Decode-only for that.
 		"[decode]# HA1\nka:\n  # HB1\n  kb: vb\n  # FB1\n# FA1\n\n",
 		yaml.Node{
@@ -1319,48 +1382,200 @@ var nodeTests = []struct {
 			},
 		},
 	}, {
-		"# HA1\nka:\n  # HB1\n  kb: vb\n  # FB1\nkc: vc\n# FC1\n",
+		"ka:\n  kb: vb\n# FA1\n\nkc: vc\n",
 		yaml.Node{
 			Kind:   yaml.DocumentNode,
-			Line:   2,
+			Line:   1,
 			Column: 1,
 			Content: []*yaml.Node{{
 				Kind:   yaml.MappingNode,
 				Tag:    "!!map",
-				Line:   2,
+				Line:   1,
 				Column: 1,
 				Content: []*yaml.Node{{
 					Kind:        yaml.ScalarNode,
 					Tag:         "!!str",
 					Value:       "ka",
-					HeadComment: "# HA1",
-					Line:        2,
+					Line:        1,
 					Column:      1,
+					FootComment: "# FA1",
 				}, {
 					Kind:   yaml.MappingNode,
 					Tag:    "!!map",
-					Line:   4,
+					Line:   2,
 					Column: 3,
 					Content: []*yaml.Node{{
 						Kind:        yaml.ScalarNode,
 						Tag:         "!!str",
 						Value:       "kb",
-						HeadComment: "# HB1",
-						FootComment: "# FB1",
-						Line:        4,
+						Line:        2,
 						Column:      3,
 					}, {
 						Kind:   yaml.ScalarNode,
 						Tag:    "!!str",
 						Value:  "vb",
-						Line:   4,
+						Line:   2,
 						Column: 7,
 					}},
 				}, {
 					Kind:        yaml.ScalarNode,
 					Tag:         "!!str",
 					Value:       "kc",
-					FootComment: "# FC1",
+					Line:        5,
+					Column:      1,
+				}, {
+					Kind:   yaml.ScalarNode,
+					Tag:    "!!str",
+					Value:  "vc",
+					Line:   5,
+					Column: 5,
+				}},
+			}},
+		},
+	}, {
+		"ka:\n  kb: vb\n# HC1\nkc: vc\n",
+		yaml.Node{
+			Kind:   yaml.DocumentNode,
+			Line:   1,
+			Column: 1,
+			Content: []*yaml.Node{{
+				Kind:   yaml.MappingNode,
+				Tag:    "!!map",
+				Line:   1,
+				Column: 1,
+				Content: []*yaml.Node{{
+					Kind:        yaml.ScalarNode,
+					Tag:         "!!str",
+					Value:       "ka",
+					Line:        1,
+					Column:      1,
+				}, {
+					Kind:   yaml.MappingNode,
+					Tag:    "!!map",
+					Line:   2,
+					Column: 3,
+					Content: []*yaml.Node{{
+						Kind:        yaml.ScalarNode,
+						Tag:         "!!str",
+						Value:       "kb",
+						Line:        2,
+						Column:      3,
+					}, {
+						Kind:   yaml.ScalarNode,
+						Tag:    "!!str",
+						Value:  "vb",
+						Line:   2,
+						Column: 7,
+					}},
+				}, {
+					Kind:        yaml.ScalarNode,
+					Tag:         "!!str",
+					Value:       "kc",
+					HeadComment: "# HC1",
+					Line:        4,
+					Column:      1,
+				}, {
+					Kind:   yaml.ScalarNode,
+					Tag:    "!!str",
+					Value:  "vc",
+					Line:   4,
+					Column: 5,
+				}},
+			}},
+		},
+	}, {
+		// Decode only due to empty line before HC1.
+		"[decode]ka:\n  kb: vb\n\n# HC1\nkc: vc\n",
+		yaml.Node{
+			Kind:   yaml.DocumentNode,
+			Line:   1,
+			Column: 1,
+			Content: []*yaml.Node{{
+				Kind:   yaml.MappingNode,
+				Tag:    "!!map",
+				Line:   1,
+				Column: 1,
+				Content: []*yaml.Node{{
+					Kind:        yaml.ScalarNode,
+					Tag:         "!!str",
+					Value:       "ka",
+					Line:        1,
+					Column:      1,
+				}, {
+					Kind:   yaml.MappingNode,
+					Tag:    "!!map",
+					Line:   2,
+					Column: 3,
+					Content: []*yaml.Node{{
+						Kind:        yaml.ScalarNode,
+						Tag:         "!!str",
+						Value:       "kb",
+						Line:        2,
+						Column:      3,
+					}, {
+						Kind:   yaml.ScalarNode,
+						Tag:    "!!str",
+						Value:  "vb",
+						Line:   2,
+						Column: 7,
+					}},
+				}, {
+					Kind:        yaml.ScalarNode,
+					Tag:         "!!str",
+					Value:       "kc",
+					HeadComment: "# HC1",
+					Line:        5,
+					Column:      1,
+				}, {
+					Kind:   yaml.ScalarNode,
+					Tag:    "!!str",
+					Value:  "vc",
+					Line:   5,
+					Column: 5,
+				}},
+			}},
+		},
+	}, {
+		// Decode-only due to empty lines around HC1.
+		"[decode]ka:\n  kb: vb\n\n# HC1\n\nkc: vc\n",
+		yaml.Node{
+			Kind:   yaml.DocumentNode,
+			Line:   1,
+			Column: 1,
+			Content: []*yaml.Node{{
+				Kind:   yaml.MappingNode,
+				Tag:    "!!map",
+				Line:   1,
+				Column: 1,
+				Content: []*yaml.Node{{
+					Kind:        yaml.ScalarNode,
+					Tag:         "!!str",
+					Value:       "ka",
+					Line:        1,
+					Column:      1,
+				}, {
+					Kind:   yaml.MappingNode,
+					Tag:    "!!map",
+					Line:   2,
+					Column: 3,
+					Content: []*yaml.Node{{
+						Kind:        yaml.ScalarNode,
+						Tag:         "!!str",
+						Value:       "kb",
+						Line:        2,
+						Column:      3,
+					}, {
+						Kind:   yaml.ScalarNode,
+						Tag:    "!!str",
+						Value:  "vb",
+						Line:   2,
+						Column: 7,
+					}},
+				}, {
+					Kind:        yaml.ScalarNode,
+					Tag:         "!!str",
+					Value:       "kc",
+					HeadComment: "# HC1\n",
 					Line:        6,
 					Column:      1,
 				}, {
@@ -1373,8 +1588,46 @@ var nodeTests = []struct {
 			}},
 		},
 	}, {
-		// Decode only as encoding adds an empty line between ka's value and kc's headers.
-		"[decode]# HA1\nka:\n  # HB1\n  kb: vb\n  # FB1\n# HC1\n# HC2\nkc: vc\n# FC1\n# FC2\n",
+		"ka: # IA\n  kb: # IB\n",
+		yaml.Node{
+			Kind:   yaml.DocumentNode,
+			Line:   1,
+			Column: 1,
+			Content: []*yaml.Node{{
+				Kind:   yaml.MappingNode,
+				Tag:    "!!map",
+				Line:   1,
+				Column: 1,
+				Content: []*yaml.Node{{
+					Kind:        yaml.ScalarNode,
+					Tag:         "!!str",
+					Value:       "ka",
+					Line:        1,
+					Column:      1,
+					LineComment: "# IA",
+				}, {
+					Kind:   yaml.MappingNode,
+					Tag:    "!!map",
+					Line:   2,
+					Column: 3,
+					Content: []*yaml.Node{{
+						Kind:        yaml.ScalarNode,
+						Tag:         "!!str",
+						Value:       "kb",
+						Line:        2,
+						Column:      3,
+						LineComment: "# IB",
+					}, {
+						Kind:   yaml.ScalarNode,
+						Tag:    "!!null",
+						Line:   2,
+						Column: 6,
+					}},
+				}},
+			}},
+		},
+	}, {
+		"# HA1\nka:\n  # HB1\n  kb: vb\n  # FB1\n# HC1\n# HC2\nkc: vc\n# FC1\n# FC2\n",
 		yaml.Node{
 			Kind:   yaml.DocumentNode,
 			Line:   2,
@@ -1429,8 +1682,8 @@ var nodeTests = []struct {
 			}},
 		},
 	}, {
-		// Same as above, but with the empty line between ka's value and kc's headers.
-		"# HA1\nka:\n  # HB1\n  kb: vb\n  # FB1\n\n# HC1\n# HC2\nkc: vc\n# FC1\n# FC2\n",
+		// Same as above, but decode only due to empty line between ka's value and kc's headers.
+		"[decode]# HA1\nka:\n  # HB1\n  kb: vb\n  # FB1\n\n# HC1\n# HC2\nkc: vc\n# FC1\n# FC2\n",
 		yaml.Node{
 			Kind:   yaml.DocumentNode,
 			Line:   2,

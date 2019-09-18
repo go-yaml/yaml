@@ -18,6 +18,7 @@ package yaml_test
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"io"
 	"math"
 	"reflect"
@@ -942,7 +943,7 @@ var unmarshalErrorTests = []struct {
 	{"value: -", "yaml: block sequence entries are not allowed in this context"},
 	{"a: !!binary ==", "yaml: !!binary value contains invalid base64 data"},
 	{"{[.]}", `yaml: invalid map key: \[\]interface \{\}\{"\."\}`},
-	{"{{.}}", `yaml: invalid map key: map\[interface\ \{\}\]interface \{\}\{".":interface \{\}\(nil\)\}`},
+	{"{{.}}", `yaml: invalid map key: map\[string]interface \{\}\{".":interface \{\}\(nil\)\}`},
 	{"b: *a\na: &a {c: 1}", `yaml: unknown anchor 'a' referenced`},
 	{"%TAG !%79! tag:yaml.org,2002:\n---\nv: !%79!int '1'", "yaml: did not find expected whitespace"},
 	{
@@ -1102,7 +1103,7 @@ func (s *S) TestUnmarshalerWholeDocument(c *C) {
 	obj := &obsoleteUnmarshalerType{}
 	err := yaml.Unmarshal([]byte(unmarshalerTests[0].data), obj)
 	c.Assert(err, IsNil)
-	value, ok := obj.value.(map[interface{}]interface{})
+	value, ok := obj.value.(map[string]interface{})
 	c.Assert(ok, Equals, true, Commentf("value: %#v", obj.value))
 	c.Assert(value["_"], DeepEquals, unmarshalerTests[0].value)
 }
@@ -1395,11 +1396,20 @@ func (s *S) TestMerge(c *C) {
 		"label": "center/big",
 	}
 
+	wantStringMap := make(map[string]interface{})
+	for k, v := range want {
+		wantStringMap[fmt.Sprintf("%v", k)] = v
+	}
+
 	var m map[interface{}]interface{}
 	err := yaml.Unmarshal([]byte(mergeTests), &m)
 	c.Assert(err, IsNil)
 	for name, test := range m {
 		if name == "anchors" {
+			continue
+		}
+		if name == "plain" {
+			c.Assert(test, DeepEquals, wantStringMap, Commentf("test %q failed", name))
 			continue
 		}
 		c.Assert(test, DeepEquals, want, Commentf("test %q failed", name))

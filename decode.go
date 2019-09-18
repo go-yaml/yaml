@@ -795,7 +795,7 @@ func isStringMap(n *Node) bool {
 		return false
 	}
 	l := len(n.Content)
-	for i := 0; i < l; i++ {
+	for i := 0; i < l; i += 2 {
 		if n.Content[i].ShortTag() != strTag {
 			return false
 		}

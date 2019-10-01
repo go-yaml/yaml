@@ -510,6 +510,29 @@ var unmarshalTests = []struct {
 		}{1, map[string]int{"b": 2, "c": 3}},
 	},
 
+	// Case insensitivity
+	{
+		"Name: jpap\nb: 2\n",
+		&struct {
+			Name string `yaml:",insensitive"`
+			B    int
+		}{"jpap", 2},
+	},
+	{
+		"NAME: jpap\nb: 2\n",
+		&struct {
+			Name string `yaml:",insensitive"`
+			B    int
+		}{"jpap", 2},
+	},
+	{
+		"name: jpap\nb: 2\n",
+		&struct {
+			Name string `yaml:",insensitive"`
+			B    int
+		}{"jpap", 2},
+	},
+
 	// bug 1243827
 	{
 		"a: -b_c",

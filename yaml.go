@@ -75,7 +75,13 @@ type Marshaler interface {
 //     yaml.Unmarshal([]byte("a: 1\nb: 2"), &t)
 //
 // See the documentation of Marshal for the format of tags and a list of
-// supported tag options.
+// supported tag options.  Additional options specific to Unmarshal are
+// as follows:
+//
+//     insensitive  Match the key name while ignoring case.  Normally the
+//                  key is matched to the lowercase Go struct field name, or
+//                  the exact case-sensitive key name when specified as a
+//                  field tag key.
 //
 func Unmarshal(in []byte, out interface{}) (err error) {
 	return unmarshal(in, out, false)
@@ -292,10 +298,12 @@ type structInfo struct {
 }
 
 type fieldInfo struct {
-	Key       string
-	Num       int
-	OmitEmpty bool
-	Flow      bool
+	Key             string // field key
+	Num             int    // Index of the field within the struct
+	OmitEmpty       bool   // omitempty tag
+	Flow            bool   // flow tag
+	CaseInsensitive bool   // insensitive tag
+
 	// Id holds the unique field identifier, so we can cheaply
 	// check for field duplicates without maintaining an extra map.
 	Id int
@@ -346,6 +354,8 @@ func getStructInfo(st reflect.Type) (*structInfo, error) {
 					info.Flow = true
 				case "inline":
 					inline = true
+				case "insensitive":
+					info.CaseInsensitive = true
 				default:
 					return nil, errors.New(fmt.Sprintf("Unsupported flag %q in tag %q of type %s", flag, tag, st))
 				}
@@ -389,20 +399,23 @@ func getStructInfo(st reflect.Type) (*structInfo, error) {
 			continue
 		}
 
-		if tag != "" {
+		if len(tag) == 0 {
+			tag = strings.ToLower(field.Name)
+		}
 			info.Key = tag
-		} else {
-			info.Key = strings.ToLower(field.Name)
+
+		if info.CaseInsensitive {
+			tag = strings.ToLower(tag)
 		}
 
-		if _, found = fieldsMap[info.Key]; found {
-			msg := "Duplicated key '" + info.Key + "' in struct " + st.String()
+		if _, found = fieldsMap[tag]; found {
+			msg := "Duplicated key '" + tag + "' in struct " + st.String()
 			return nil, errors.New(msg)
 		}
 
 		info.Id = len(fieldsList)
 		fieldsList = append(fieldsList, info)
-		fieldsMap[info.Key] = info
+		fieldsMap[tag] = info
 	}
 
 	sinfo = &structInfo{

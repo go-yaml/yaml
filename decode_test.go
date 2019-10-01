@@ -771,6 +771,72 @@ func (s *S) TestUnmarshal(c *C) {
 	}
 }
 
+var unmarshalWithParamsTests = []struct {
+	data   string
+	value  interface{}
+	params string
+}{
+
+	// Struct inlining
+	{
+		"a: 1\nb: 2\nc: 3\n",
+		&struct {
+			A int
+			C inlineB
+		}{1, inlineB{2, inlineC{3}}},
+		"inline",
+	},
+
+	// Map inlining
+	{
+		"a: 1\nb: 2\nc: 3\n",
+		&struct {
+			A int
+			C map[string]int
+		}{1, map[string]int{"b": 2, "c": 3}},
+		"inline",
+	},
+
+	// Case insensitivity
+	{
+		"Name: jpap\nB: 2\n",
+		&struct {
+			Name string
+			B    int
+		}{"jpap", 2},
+		"insensitive",
+	},
+	{
+		"NAME: jpap\nB: 2\n",
+		&struct {
+			Name string
+			B    int
+		}{"jpap", 2},
+		"insensitive",
+	},
+	{
+		"name: jpap\nb: 2\n",
+		&struct {
+			Name string
+			B    int
+		}{"jpap", 2},
+		"insensitive",
+	},
+}
+
+func (s *S) TestUnmarshalWithParams(c *C) {
+	for i, item := range unmarshalWithParamsTests {
+		c.Logf("test %d: %q", i, item.data)
+		t := reflect.ValueOf(item.value).Type()
+		value := reflect.New(t)
+		err := yaml.UnmarshalWithParams([]byte(item.data), value.Interface(), item.params)
+		if _, ok := err.(*yaml.TypeError); !ok {
+			c.Assert(err, IsNil)
+		}
+		c.Assert(value.Elem().Interface(), DeepEquals, item.value, Commentf("error: %v", err))
+	}
+}
+
 // TODO(v3): This test should also work when unmarshaling onto an interface{}.
 func (s *S) TestUnmarshalFullTimestamp(c *C) {
 	// Full timestamp in same format as encoded. This is confirmed to be

@@ -61,8 +61,8 @@ type Marshaler interface {
 // upper case first letter), and are unmarshalled using the field name
 // lowercased as the default key. Custom keys may be defined via the
 // "yaml" name in the field tag: the content preceding the first comma
-// is used as the key, and the following comma-separated options are
-// used to tweak the marshalling process (see Marshal).
+// is used as the (optional) key, and the following comma-separated options
+// are used to tweak the marshalling process (see Marshal).
 // Conflicting names result in a runtime error.
 //
 // For example:
@@ -84,7 +84,14 @@ type Marshaler interface {
 //                  field tag key.
 //
 func Unmarshal(in []byte, out interface{}) (err error) {
-	return unmarshal(in, out, false)
+	return UnmarshalWithParams(in, out, "")
+}
+
+// UnmarshalWithParams allows tag options to be specified for the top-level
+// element and inherited for all children.  The form of params is the same as
+// the field tag options.
+func UnmarshalWithParams(in []byte, out interface{}, params string) (err error) {
+	return unmarshal(in, out, false, newParamsFromString(params))
 }
 
 // UnmarshalStrict is like Unmarshal except that any fields that are found
@@ -92,7 +99,14 @@ func Unmarshal(in []byte, out interface{}) (err error) {
 // keys that are duplicates, will result in
 // an error.
 func UnmarshalStrict(in []byte, out interface{}) (err error) {
-	return unmarshal(in, out, true)
+	return UnmarshalStrictWithParams(in, out, "")
+}
+
+// UnmarshalStrictWithParams is like UnmarshalStrict, where field parameters
+// can be specified for the top-level element and inherited for all children.
+// The form of the params is the same as the field tags.
+func UnmarshalStrictWithParams(in []byte, out interface{}, params string) (err error) {
+	return unmarshal(in, out, true, newParamsFromString(params))
 }
 
 // A Decorder reads and decodes YAML values from an input stream.
@@ -123,7 +137,7 @@ func (dec *Decoder) SetStrict(strict bool) {
 // See the documentation for Unmarshal for details about the
 // conversion of YAML into a Go value.
 func (dec *Decoder) Decode(v interface{}) (err error) {
-	d := newDecoder(dec.strict)
+	d := newDecoder(dec.strict, params{})
 	defer handleErr(&err)
 	node := dec.parser.parse()
 	if node == nil {
@@ -140,9 +154,9 @@ func (dec *Decoder) Decode(v interface{}) (err error) {
 	return nil
 }
 
-func unmarshal(in []byte, out interface{}, strict bool) (err error) {
+func unmarshal(in []byte, out interface{}, strict bool, globalParams params) (err error) {
 	defer handleErr(&err)
-	d := newDecoder(strict)
+	d := newDecoder(strict, globalParams)
 	p := newParser(in)
 	defer p.destroy()
 	node := p.parse()
@@ -203,8 +217,15 @@ func unmarshal(in []byte, out interface{}, strict bool) (err error) {
 //     yaml.Marshal(&T{F: 1}} // Returns "a: 1\nb: 0\n"
 //
 func Marshal(in interface{}) (out []byte, err error) {
+	return MarshalWithParams(in, "")
+}
+
+// MarshalWithParams allows field parameters to be specified for the top-level
+// element and inherited for all children.  The form of the params is the same
+// as the field tags.
+func MarshalWithParams(in interface{}, params string) (out []byte, err error) {
 	defer handleErr(&err)
-	e := newEncoder()
+	e := newEncoder(newParamsFromString(params))
 	defer e.destroy()
 	e.marshalDoc("", reflect.ValueOf(in))
 	e.finish()
@@ -221,8 +242,15 @@ type Encoder struct {
 // The Encoder should be closed after use to flush all data
 // to w.
 func NewEncoder(w io.Writer) *Encoder {
+	return NewEncoderWithParams(w, "")
+}
+
+// NewEncoderWithParams is like NewEncoder, where field parameters can be
+// specified for the top-level element and inherited for all children.
+// The form of the params is the same as the field tags.
+func NewEncoderWithParams(w io.Writer, params string) *Encoder {
 	return &Encoder{
-		encoder: newEncoderWithWriter(w),
+		encoder: newEncoderWithWriterAndParams(w, newParamsFromString(params)),
 	}
 }
 
@@ -281,6 +309,33 @@ func (e *TypeError) Error() string {
 	return fmt.Sprintf("yaml: unmarshal errors:\n  %s", strings.Join(e.Errors, "\n  "))
 }
 
+// params are the field parameters that are specified for the top-level
+// element, and inherited for all children.
+type params struct {
+	OmitEmpty       bool
+	Flow            bool
+	CaseInsensitive bool
+	Inline          bool
+}
+
+// newParamsFromString creates params from a comma separated string of field
+// tags.
+func newParamsFromString(s string) (p params) {
+	for _, v := range strings.Split(s, ",") {
+		switch strings.Trim(v, " \t") {
+		case "omitempty":
+			p.OmitEmpty = true
+		case "flow":
+			p.Flow = true
+		case "inline":
+			p.Inline = true
+		case "insensitive":
+			p.CaseInsensitive = true
+		}
+	}
+	return
+}
+
 // --------------------------------------------------------------------------
 // Maintain a mapping of keys to structure field indexes
 
@@ -312,10 +367,18 @@ type fieldInfo struct {
 	Inline []int
 }
 
+func newFieldInfoWithParams(p params) fieldInfo {
+	return fieldInfo{
+		OmitEmpty:       p.OmitEmpty,
+		Flow:            p.Flow,
+		CaseInsensitive: p.CaseInsensitive,
+	}
+}
+
 var structMap = make(map[reflect.Type]*structInfo)
 var fieldMapMutex sync.RWMutex
 
-func getStructInfo(st reflect.Type) (*structInfo, error) {
+func getStructInfo(st reflect.Type, globalParams params) (*structInfo, error) {
 	fieldMapMutex.RLock()
 	sinfo, found := structMap[st]
 	fieldMapMutex.RUnlock()
@@ -333,7 +396,9 @@ func getStructInfo(st reflect.Type) (*structInfo, error) {
 			continue // Private field
 		}
 
-		info := fieldInfo{Num: i}
+		// Initialize fieldInfo, using global params.
+		info := newFieldInfoWithParams(globalParams)
+		info.Num = i
 
 		tag := field.Tag.Get("yaml")
 		if tag == "" && strings.Index(string(field.Tag), ":") < 0 {
@@ -363,6 +428,18 @@ func getStructInfo(st reflect.Type) (*structInfo, error) {
 			tag = fields[0]
 		}
 
+		if globalParams.Inline {
+			// We apple the global inline param for the first map having string key,
+			// or any struct.  It is up to the package user to ensure its use is
+			// appropriate to avoid the extensive error checking further below.
+			switch field.Type.Kind() {
+			case reflect.Map:
+				inline = inlineMap == 0 || field.Type.Key() == reflect.TypeOf("")
+			case reflect.Struct:
+				inline = true
+			}
+		}
+
 		if inline {
 			switch field.Type.Kind() {
 			case reflect.Map:
@@ -374,7 +451,7 @@ func getStructInfo(st reflect.Type) (*structInfo, error) {
 				}
 				inlineMap = info.Num
 			case reflect.Struct:
-				sinfo, err := getStructInfo(field.Type)
+				sinfo, err := getStructInfo(field.Type, globalParams)
 				if err != nil {
 					return nil, err
 				}
@@ -402,7 +479,7 @@ func getStructInfo(st reflect.Type) (*structInfo, error) {
 		if len(tag) == 0 {
 			tag = strings.ToLower(field.Name)
 		}
-			info.Key = tag
+		info.Key = tag
 
 		if info.CaseInsensitive {
 			tag = strings.ToLower(tag)

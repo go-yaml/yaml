@@ -225,11 +225,12 @@ func (p *parser) mapping() *node {
 // Decoder, unmarshals a node into a provided value.
 
 type decoder struct {
-	doc     *node
-	aliases map[*node]bool
-	mapType reflect.Type
-	terrors []string
-	strict  bool
+	doc          *node
+	aliases      map[*node]bool
+	mapType      reflect.Type
+	terrors      []string
+	strict       bool
+	globalParams params
 }
 
 var (
@@ -241,8 +242,8 @@ var (
 	ptrTimeType    = reflect.TypeOf(&time.Time{})
 )
 
-func newDecoder(strict bool) *decoder {
-	d := &decoder{mapType: defaultMapType, strict: strict}
+func newDecoder(strict bool, globalParams params) *decoder {
+	d := &decoder{mapType: defaultMapType, strict: strict, globalParams: globalParams}
 	d.aliases = make(map[*node]bool)
 	return d
 }
@@ -681,7 +682,7 @@ func (d *decoder) mappingSlice(n *node, out reflect.Value) (good bool) {
 }
 
 func (d *decoder) mappingStruct(n *node, out reflect.Value) (good bool) {
-	sinfo, err := getStructInfo(out.Type())
+	sinfo, err := getStructInfo(out.Type(), d.globalParams)
 	if err != nil {
 		panic(err)
 	}

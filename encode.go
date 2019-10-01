@@ -33,19 +33,20 @@ type encoder struct {
 	flow    bool
 	// doneInit holds whether the initial stream_start_event has been
 	// emitted.
-	doneInit bool
+	doneInit     bool
+	globalParams params
 }
 
-func newEncoder() *encoder {
-	e := &encoder{}
+func newEncoder(globalParams params) *encoder {
+	e := &encoder{globalParams: globalParams}
 	yaml_emitter_initialize(&e.emitter)
 	yaml_emitter_set_output_string(&e.emitter, &e.out)
 	yaml_emitter_set_unicode(&e.emitter, true)
 	return e
 }
 
-func newEncoderWithWriter(w io.Writer) *encoder {
-	e := &encoder{}
+func newEncoderWithWriterAndParams(w io.Writer, globalParams params) *encoder {
+	e := &encoder{globalParams: globalParams}
 	yaml_emitter_initialize(&e.emitter)
 	yaml_emitter_set_output_writer(&e.emitter, w)
 	yaml_emitter_set_unicode(&e.emitter, true)
@@ -206,7 +207,7 @@ func (e *encoder) itemsv(tag string, in reflect.Value) {
 }
 
 func (e *encoder) structv(tag string, in reflect.Value) {
-	sinfo, err := getStructInfo(in.Type())
+	sinfo, err := getStructInfo(in.Type(), e.globalParams)
 	if err != nil {
 		panic(err)
 	}

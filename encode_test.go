@@ -410,6 +410,54 @@ func (s *S) TestMarshal(c *C) {
 	}
 }
 
+var marshalWithParamsTests = []struct {
+	value  interface{}
+	data   string
+	params string
+}{
+
+	// Conditional flag
+	{
+		&struct {
+			A int "a"
+			B int "b"
+		}{1, 0},
+		"a: 1\n",
+		"omitempty",
+	},
+
+	// Struct inlining
+	{
+		&struct {
+			A int
+			C inlineB
+		}{1, inlineB{2, inlineC{3}}},
+		"a: 1\nb: 2\nc: 3\n",
+		"inline",
+	},
+
+	// Map inlining
+	{
+		&struct {
+			A int
+			C map[string]int
+		}{1, map[string]int{"b": 2, "c": 3}},
+		"a: 1\nb: 2\nc: 3\n",
+		"inline",
+	},
+}
+
+func (s *S) TestMarshalWithParams(c *C) {
+	defer os.Setenv("TZ", os.Getenv("TZ"))
+	os.Setenv("TZ", "UTC")
+	for i, item := range marshalWithParamsTests {
+		c.Logf("test %d: %q", i, item.data)
+		data, err := yaml.MarshalWithParams(item.value, item.params)
+		c.Assert(err, IsNil)
+		c.Assert(string(data), Equals, item.data)
+	}
+}
+
 func (s *S) TestEncoderSingleDocument(c *C) {
 	for i, item := range marshalTests {
 		c.Logf("test %d. %q", i, item.data)

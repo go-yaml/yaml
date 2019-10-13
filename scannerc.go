@@ -2833,7 +2833,9 @@ func yaml_parser_scan_line_comment(parser *yaml_parser_t, token_mark yaml_mark_t
 					skip_line(parser)
 				} else {
 					if parser.mark.index >= seen {
-						*comment = append(*comment, parser.buffer[parser.buffer_pos])
+						first_byte := parser.buffer[parser.buffer_pos]
+						end_index := parser.buffer_pos + width(first_byte)
+						*comment = append(*comment, parser.buffer[parser.buffer_pos:end_index]...)
 					}
 					skip(parser)
 				}
@@ -2966,7 +2968,9 @@ func yaml_parser_scan_comments(parser *yaml_parser_t, scan_mark yaml_mark_t) boo
 				skip_line(parser)
 			} else {
 				if parser.mark.index >= seen {
-					text = append(text, parser.buffer[parser.buffer_pos])
+					first_byte := parser.buffer[parser.buffer_pos]
+					end_index := parser.buffer_pos + width(first_byte)
+					text = append(text, parser.buffer[parser.buffer_pos:end_index]...)
 				}
 				skip(parser)
 			}

@@ -12,7 +12,7 @@ import (
 	"os"
 
 	. "gopkg.in/check.v1"
-	"gopkg.in/yaml.v2"
+	"gopkg.in/jmhodges/yaml.v2"
 )
 
 type jsonNumberT string
@@ -397,6 +397,11 @@ var marshalTests = []struct {
 		map[string]interface{}{"a": jsonNumberT("bogus")},
 		"a: bogus\n",
 	},
+	// Ensure that strings wrap
+	{
+		map[string]string{"a": "abcdefghijklmnopqrstuvwxyz ABCDEFGHIJKLMNOPQRSTUVWXYZ 1234567890 abcdefghijklmnopqrstuvwxyz ABCDEFGHIJKLMNOPQRSTUVWXYZ 1234567890 "},
+		"a: 'abcdefghijklmnopqrstuvwxyz ABCDEFGHIJKLMNOPQRSTUVWXYZ 1234567890 abcdefghijklmnopqrstuvwxyz\n  ABCDEFGHIJKLMNOPQRSTUVWXYZ 1234567890 '\n",
+	},
 }
 
 func (s *S) TestMarshal(c *C) {
@@ -546,6 +551,28 @@ func (ft *failingMarshaler) MarshalYAML() (interface{}, error) {
 func (s *S) TestMarshalerError(c *C) {
 	_, err := yaml.Marshal(&failingMarshaler{})
 	c.Assert(err, Equals, failingErr)
+}
+
+func (s *S) TestSetSmallWrapLength(c *C) {
+	var buf bytes.Buffer
+	enc := yaml.NewEncoder(&buf)
+	enc.SetLineLength(10)
+	err := enc.Encode(map[string]interface{}{"a": "abcdefghijklmnopqrstuvwxyz ABCDEFGHIJKLMNOPQRSTUVWXYZ 1234567890 abcdefghijklmnopqrstuvwxyz ABCDEFGHIJKLMNOPQRSTUVWXYZ 1234567890 "})
+	c.Assert(err, Equals, nil)
+	err = enc.Close()
+	c.Assert(err, Equals, nil)
+	c.Assert(buf.String(), Equals, "a: 'abcdefghijklmnopqrstuvwxyz\n  ABCDEFGHIJKLMNOPQRSTUVWXYZ\n  1234567890\n  abcdefghijklmnopqrstuvwxyz\n  ABCDEFGHIJKLMNOPQRSTUVWXYZ\n  1234567890 '\n")
+}
+
+func (s *S) TestSetNegativeWrapLength(c *C) {
+	var buf bytes.Buffer
+	enc := yaml.NewEncoder(&buf)
+	enc.SetLineLength(-1)
+	err := enc.Encode(map[string]interface{}{"a": "abcdefghijklmnopqrstuvwxyz ABCDEFGHIJKLMNOPQRSTUVWXYZ 1234567890 abcdefghijklmnopqrstuvwxyz ABCDEFGHIJKLMNOPQRSTUVWXYZ 1234567890 "})
+	c.Assert(err, Equals, nil)
+	err = enc.Close()
+	c.Assert(err, Equals, nil)
+	c.Assert(buf.String(), Equals, "a: 'abcdefghijklmnopqrstuvwxyz ABCDEFGHIJKLMNOPQRSTUVWXYZ 1234567890 abcdefghijklmnopqrstuvwxyz ABCDEFGHIJKLMNOPQRSTUVWXYZ 1234567890 '\n")
 }
 
 func (s *S) TestSortedOutput(c *C) {

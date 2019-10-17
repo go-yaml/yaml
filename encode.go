@@ -388,3 +388,7 @@ func (e *encoder) emitScalar(value, anchor, tag string, style yaml_scalar_style_
 	e.must(yaml_scalar_event_initialize(&e.event, []byte(anchor), []byte(tag), []byte(value), implicit, implicit, style))
 	e.emit()
 }
+
+func (e *encoder) setWidth(width int) {
+	yaml_emitter_set_width(&e.emitter, width)
+}

@@ -3,6 +3,9 @@
 Introduction
 ------------
 
+This is a fork of gopkg.in/yaml.v2 that adds the `SetLineLength` method to
+`Encoder`. The patch was taken from https://github.com/go-yaml/yaml/pull/455
+
 The yaml package enables Go programs to comfortably encode and decode YAML
 values. It was developed within [Canonical](https://www.canonical.com) as
 part of the [juju](https://juju.ubuntu.com) project, and is based on a
@@ -20,18 +23,18 @@ supported since they're a poor design and are gone in YAML 1.2.
 Installation and usage
 ----------------------
 
-The import path for the package is *gopkg.in/yaml.v2*.
+The import path for the package is *gopkg.in/jmhodges/yaml.v2*.
 
 To install it, run:
 
-    go get gopkg.in/yaml.v2
+    go get gopkg.in/jmhodges/yaml.v2
 
 API documentation
 -----------------
 
 If opened in a browser, the import path itself leads to the API documentation:
 
-  * [https://gopkg.in/yaml.v2](https://gopkg.in/yaml.v2)
+  * [https://gopkg.in/jmhodges/yaml.v2](https://gopkg.in/jmhodges/yaml.v2)
 
 API stability
 -------------
@@ -55,7 +58,7 @@ import (
         "fmt"
         "log"
 
-        "gopkg.in/yaml.v2"
+        "gopkg.in/jmhodges/yaml.v2"
 )
 
 var data = `

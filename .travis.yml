@@ -9,4 +9,4 @@ go:
     - 1.9
     - tip
 
-go_import_path: gopkg.in/yaml.v2
+go_import_path: gopkg.in/jmhodges/yaml.v2

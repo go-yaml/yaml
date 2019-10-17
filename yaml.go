@@ -233,6 +233,12 @@ func (e *Encoder) Encode(v interface{}) (err error) {
 	return nil
 }
 
+// SetLineLength changes the desired line wrapping length.
+// if characters is negative, '1<<31 - 1' is used.
+func (e *Encoder) SetLineLength(characters int) {
+	e.encoder.setWidth(characters)
+}
+
 // Close closes the encoder by writing any remaining data.
 // It does not write a stream terminating string "...".
 func (e *Encoder) Close() (err error) {

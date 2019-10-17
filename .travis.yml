@@ -15,12 +15,14 @@ go:
 
 os:
   - linux
-  - osx
 
 jobs:
   allow_failures:
     - go: "1.4.x"
     - go: "1.5.x"
     - go: "1.6.x"
+  include:
+    - go: "1.13.x"
+      os: osx
 
 go_import_path: gopkg.in/yaml.v3

@@ -722,6 +722,18 @@ var unmarshalTests = []struct {
 		"a: 5.5\n",
 		&struct{ A jsonNumberT }{"5.5"},
 	},
+	{
+		`
+a:
+  b
+b:
+  ? a
+  : a`,
+		&M{"a": "b",
+			"b": M{
+				"a": "a",
+			}},
+	},
 }
 
 type M map[interface{}]interface{}

@@ -637,14 +637,7 @@ func yaml_parser_fetch_more_tokens(parser *yaml_parser_t) bool {
 			if !yaml_parser_stale_simple_keys(parser) {
 				return false
 			}
-
-			for i := range parser.simple_keys {
-				simple_key := &parser.simple_keys[i]
-				if simple_key.possible && simple_key.token_number == parser.tokens_parsed {
-					need_more_tokens = true
-					break
-				}
-			}
+			_, need_more_tokens = parser.simple_keys_possible_by_token_number[parser.tokens_parsed]
 		}
 
 		// We are finished.
@@ -851,7 +844,6 @@ func yaml_parser_stale_simple_keys(parser *yaml_parser_t) bool {
 			parser.simple_keys_min_possible_index = i
 			continue
 		}
-
 		// The specification requires that a simple key
 		//
 		//  - is limited to a single line,
@@ -865,6 +857,7 @@ func yaml_parser_stale_simple_keys(parser *yaml_parser_t) bool {
 					"could not find expected ':'")
 			}
 			simple_key.possible = false
+			delete(parser.simple_keys_possible_by_token_number, simple_key.token_number)
 			parser.simple_keys_min_possible_index = i + 1
 		} else {
 			// Once we find a key that's not stale, the rest will be on the
@@ -899,6 +892,8 @@ func yaml_parser_save_simple_key(parser *yaml_parser_t) bool {
 		if !yaml_parser_remove_simple_key(parser) {
 			return false
 		}
+		parser.simple_keys_possible_by_token_number[simple_key.token_number] = struct{}{}
+
 		parser.simple_keys[len(parser.simple_keys)-1] = simple_key
 	}
 	return true
@@ -914,12 +909,13 @@ func yaml_parser_remove_simple_key(parser *yaml_parser_t) bool {
 				"while scanning a simple key", parser.simple_keys[i].mark,
 				"could not find expected ':'")
 		}
+		// Remove the key from the stack.
+		parser.simple_keys[i].possible = false
+		delete(parser.simple_keys_possible_by_token_number, parser.simple_keys[i].token_number)
 	}
 	if parser.simple_keys_min_possible_index > i {
 		parser.simple_keys_min_possible_index = i
 	}
-	// Remove the key from the stack.
-	parser.simple_keys[i].possible = false
 	return true
 }
 
@@ -946,6 +942,9 @@ func yaml_parser_decrease_flow_level(parser *yaml_parser_t) bool {
 	if parser.flow_level > 0 {
 		parser.flow_level--
 		last := len(parser.simple_keys) - 1
+		if parser.simple_keys[last].possible {
+			delete(parser.simple_keys_possible_by_token_number, parser.simple_keys[last].token_number)
+		}
 		parser.simple_keys = parser.simple_keys[:last]
 		if parser.simple_keys_min_possible_index > last {
 			parser.simple_keys_min_possible_index = last
@@ -1025,6 +1024,8 @@ func yaml_parser_fetch_stream_start(parser *yaml_parser_t) bool {
 
 	// Initialize the simple key stack.
 	parser.simple_keys = append(parser.simple_keys, yaml_simple_key_t{})
+
+	parser.simple_keys_possible_by_token_number = make(map[int]struct{})
 
 	// A simple key is allowed at the beginning of the stream.
 	parser.simple_key_allowed = true
@@ -1325,6 +1326,7 @@ func yaml_parser_fetch_value(parser *yaml_parser_t) bool {
 
 		// Remove the simple key.
 		simple_key.possible = false
+		delete(parser.simple_keys_possible_by_token_number, simple_key.token_number)
 
 		// A simple key cannot follow another simple key.
 		parser.simple_key_allowed = false

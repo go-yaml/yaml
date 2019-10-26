@@ -485,7 +485,11 @@ func (e *encoder) node(node *Node, tail string) {
 		for i := 0; i+1 < len(node.Content); i += 2 {
 			k := node.Content[i]
 			foot := k.FootComment
-			k.FootComment = ""
+			if foot != "" {
+				kopy := *k
+				kopy.FootComment = ""
+				k = &kopy
+			}
 			e.node(k, tail)
 			tail = foot
 

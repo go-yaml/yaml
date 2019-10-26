@@ -2113,16 +2113,39 @@ func (s *S) TestNodeRoundtrip(c *C) {
 			c.Assert(node, DeepEquals, item.node)
 		}
 		if encode {
+			node := deepCopyNode(&item.node, nil)
 			buf := bytes.Buffer{}
 			enc := yaml.NewEncoder(&buf)
 			enc.SetIndent(2)
-			err := enc.Encode(&item.node)
+			err := enc.Encode(node)
 			c.Assert(err, IsNil)
 			err = enc.Close()
 			c.Assert(err, IsNil)
 			c.Assert(buf.String(), Equals, testYaml)
+
+			// Ensure there were no mutations to the tree.
+			c.Assert(node, DeepEquals, &item.node)
 		}
 	}
+}
+
+func deepCopyNode(node *yaml.Node, cache map[*yaml.Node]*yaml.Node) *yaml.Node {
+	if n, ok := cache[node]; ok {
+		return n
+	}
+	if cache == nil {
+		cache = make(map[*yaml.Node]*yaml.Node)
+	}
+	copy := *node
+	cache[node] = &copy
+	copy.Content = nil
+	for _, elem := range node.Content {
+		copy.Content = append(copy.Content, deepCopyNode(elem, cache))
+	}
+	if node.Alias != nil {
+		copy.Alias = deepCopyNode(node.Alias, cache)
+	}
+	return &copy
 }
 
 var savedNodes = make(map[string]*yaml.Node)

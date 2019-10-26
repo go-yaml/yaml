@@ -841,14 +841,22 @@ func yaml_parser_fetch_next_token(parser *yaml_parser_t) bool {
 // cannot contain simple keys anymore.
 func yaml_parser_stale_simple_keys(parser *yaml_parser_t) bool {
 	// Check for a potential simple key for each flow level.
-	for i := range parser.simple_keys {
+	for i := parser.simple_keys_min_possible_index; i < len(parser.simple_keys); i++ {
 		simple_key := &parser.simple_keys[i]
+
+		if !simple_key.possible {
+			// If this key was already marked as not possible, just move on.
+			// This might be the uninitialized key at the top of the stack, so
+			// keep min_possible at i instead of i + 1.
+			parser.simple_keys_min_possible_index = i
+			continue
+		}
 
 		// The specification requires that a simple key
 		//
 		//  - is limited to a single line,
 		//  - is shorter than 1024 characters.
-		if simple_key.possible && (simple_key.mark.line < parser.mark.line || simple_key.mark.index+1024 < parser.mark.index) {
+		if simple_key.mark.line < parser.mark.line || simple_key.mark.index+1024 < parser.mark.index {
 
 			// Check if the potential simple key to be removed is required.
 			if simple_key.required {
@@ -857,8 +865,14 @@ func yaml_parser_stale_simple_keys(parser *yaml_parser_t) bool {
 					"could not find expected ':'")
 			}
 			simple_key.possible = false
+			parser.simple_keys_min_possible_index = i + 1
+		} else {
+			// Once we find a key that's not stale, the rest will be on the
+			// same line and shorter, so don't need to be checked now.
+			break
 		}
 	}
+
 	return true
 }
 
@@ -901,6 +915,9 @@ func yaml_parser_remove_simple_key(parser *yaml_parser_t) bool {
 				"could not find expected ':'")
 		}
 	}
+	if parser.simple_keys_min_possible_index > i {
+		parser.simple_keys_min_possible_index = i
+	}
 	// Remove the key from the stack.
 	parser.simple_keys[i].possible = false
 	return true
@@ -928,7 +945,11 @@ func yaml_parser_increase_flow_level(parser *yaml_parser_t) bool {
 func yaml_parser_decrease_flow_level(parser *yaml_parser_t) bool {
 	if parser.flow_level > 0 {
 		parser.flow_level--
-		parser.simple_keys = parser.simple_keys[:len(parser.simple_keys)-1]
+		last := len(parser.simple_keys) - 1
+		parser.simple_keys = parser.simple_keys[:last]
+		if parser.simple_keys_min_possible_index > last {
+			parser.simple_keys_min_possible_index = last
+		}
 	}
 	return true
 }

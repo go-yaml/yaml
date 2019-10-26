@@ -803,6 +803,19 @@ var unmarshalTests = []struct {
 		},
 	},
 
+	// Explicit mapping
+	{
+		`
+a:
+  b
+b:
+  ? a
+  : a`,
+		&M{"a": "b",
+			"b": M{
+				"a": "a",
+			}},
+	},
 }
 
 type M map[string]interface{}

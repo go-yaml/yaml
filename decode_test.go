@@ -886,6 +886,14 @@ var decoderTests = []struct {
 		"hello",
 		"goodbye",
 	},
+}, {
+	// Parse repeated flow maps as separate documents, for compatibility with Go's
+	// encoding/json
+	"{ \"a\": \"b\" }\n{ \"c\": \"d\" }",
+	[]interface{}{
+		map[string]interface{}{"a": "b"},
+		map[string]interface{}{"c": "d"},
+	},
 }}
 
 func (s *S) TestDecoder(c *C) {

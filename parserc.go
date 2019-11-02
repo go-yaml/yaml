@@ -321,7 +321,7 @@ func yaml_parser_parse_document_start(parser *yaml_parser_t, event *yaml_event_t
 		if token == nil {
 			return false
 		}
-		if token.typ != yaml_DOCUMENT_START_TOKEN {
+		if token.typ != yaml_DOCUMENT_START_TOKEN && token.typ != yaml_FLOW_MAPPING_START_TOKEN {
 			yaml_parser_set_parser_error(parser,
 				"did not find expected <document start>", token.start_mark)
 			return false
@@ -338,7 +338,9 @@ func yaml_parser_parse_document_start(parser *yaml_parser_t, event *yaml_event_t
 			tag_directives:    tag_directives,
 			implicit:          false,
 		}
-		skip_token(parser)
+		if token.typ == yaml_DOCUMENT_START_TOKEN {
+			skip_token(parser)
+		}
 
 	} else {
 		// Parse the stream end.

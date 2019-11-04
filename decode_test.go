@@ -1316,6 +1316,39 @@ func (s *S) TestFuzzCrashers(c *C) {
 	}
 }
 
+func (s *S) TestMergeErrors(c *C) {
+	cases := []struct {
+		name string
+		data string
+		err  string
+	}{
+		// Issue #529
+		{
+			name: `nil merge`,
+			data: `
+a: &8
+<<:
+ - *8
+
+8:
+( :
+ &8
+ *8:
+<<:
+ - *8
+`,
+			err: "yaml: line 4, column 1: invalid null merge",
+		},
+	}
+
+	for i, item := range cases {
+		v := map[string]interface{}{}
+		err := yaml.Unmarshal([]byte(item.data), &v)
+		c.Logf("test %d: %s", i, item.name)
+		c.Assert(err, ErrorMatches, item.err)
+	}
+}
+
 //var data []byte
 //func init() {
 //	var err error

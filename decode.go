@@ -660,7 +660,13 @@ func (d *decoder) mapping(n *node, out reflect.Value) (good bool) {
 	l := len(n.children)
 	for i := 0; i < l; i += 2 {
 		if isMerge(n.children[i]) {
+			if i+1 >= l {
+				failf("line %d, column %d: invalid merge, missing value", n.children[i].line+1, n.children[i].column)
+			}
 			d.merge(n.children[i+1], out)
+			if out.IsNil() {
+				failf("line %d, column %d: invalid null merge", n.children[i+1].line+1, n.children[i+1].column)
+			}
 			continue
 		}
 		k := reflect.New(kt).Elem()
@@ -671,6 +677,9 @@ func (d *decoder) mapping(n *node, out reflect.Value) (good bool) {
 			}
 			if kkind == reflect.Map || kkind == reflect.Slice {
 				failf("invalid map key: %#v", k.Interface())
+			}
+			if i+1 >= l {
+				failf("line %d, column %d: invalid mapping, missing value", n.children[i].line+1, n.children[i].column)
 			}
 			e := reflect.New(et).Elem()
 			if d.unmarshal(n.children[i+1], e) {

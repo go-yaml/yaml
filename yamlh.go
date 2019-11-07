@@ -600,6 +600,7 @@ type yaml_parser_t struct {
 	line_comment []byte // The current line comments
 	foot_comment []byte // The current foot comments
 	tail_comment []byte // Foot comment that happens at the end of a block.
+	stem_comment []byte // Comment in item preceding a nested structure (list inside list item, etc)
 
 	comments      []yaml_comment_t // The folded comments for all parsed tokens
 	comments_head int

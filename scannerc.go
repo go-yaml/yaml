@@ -660,11 +660,11 @@ func yaml_parser_fetch_more_tokens(parser *yaml_parser_t) bool {
 		// Check if we really need to fetch more tokens.
 		need_more_tokens := false
 
-		// [Go] The comment parsing logic requires a lookahead of one token
-		// in block style or two tokens in flow style so that the foot
-		// comments may be parsed in time of associating them with the tokens
-		// that are parsed before them.
-		if parser.tokens_head >= len(parser.tokens)-1 || parser.flow_level > 0 && parser.tokens_head >= len(parser.tokens)-2 {
+		// [Go] The comment parsing logic requires a lookahead of two tokens
+		// so that foot comments may be parsed in time of associating them
+		// with the tokens that are parsed before them, and also for line
+		// comments to be transformed into head comments in some edge cases.
+		if parser.tokens_head >= len(parser.tokens)-2 {
 			need_more_tokens = true
 		} else {
 			// Check if any potential simple key may occupy the head position.
@@ -1558,6 +1558,28 @@ func yaml_parser_scan_to_next_token(parser *yaml_parser_t) bool {
 			}
 		}
 
+		// Check if we just had a line comment under a sequence entry that
+		// looks more like a header to the following content. Similar to this:
+		//
+		// - # The comment
+		//   - Some data
+		//
+		// If so, transform the line comment to a head comment and reposition.
+		if len(parser.comments) > 0 && len(parser.tokens) > 0 {
+			token := parser.tokens[len(parser.tokens)-1]
+			comment := &parser.comments[len(parser.comments)-1]
+			if token.typ == yaml_BLOCK_ENTRY_TOKEN && len(comment.line) > 0 && !is_break(parser.buffer, parser.buffer_pos) {
+				// If it was in the prior line, reposition so it becomes a
+				// header of the follow up token. Otherwise, keep it in place
+				// so it becomes a header of the former.
+				comment.head = comment.line
+				comment.line = nil
+				if comment.start_mark.line == parser.mark.line-1 {
+					comment.token_mark = parser.mark
+				}
+			}
+		}
+
 		// Eat a comment until a line break.
 		if parser.buffer[parser.buffer_pos] == '#' {
 			if !yaml_parser_scan_comments(parser, scan_mark) {
@@ -2233,8 +2255,15 @@ func yaml_parser_scan_block_scalar(parser *yaml_parser_t, token *yaml_token_t, l
 		}
 	}
 	if parser.buffer[parser.buffer_pos] == '#' {
-		if !yaml_parser_scan_line_comment(parser, start_mark) {
-			return false
+		// TODO Test this and then re-enable it.
+		//if !yaml_parser_scan_line_comment(parser, start_mark) {
+		//	return false
+		//}
+		for !is_breakz(parser.buffer, parser.buffer_pos) {
+			skip(parser)
+			if parser.unread < 1 && !yaml_parser_update_buffer(parser, 1) {
+				return false
+			}
 		}
 	}
 
@@ -2803,8 +2832,8 @@ func yaml_parser_scan_line_comment(parser *yaml_parser_t, token_mark yaml_mark_t
 		return true
 	}
 
-	parser.comments = append(parser.comments, yaml_comment_t{token_mark: token_mark})
-	comment := &parser.comments[len(parser.comments)-1].line
+	var start_mark yaml_mark_t
+	var text []byte
 
 	for peek := 0; peek < 512; peek++ {
 		if parser.unread < peek+1 && !yaml_parser_update_buffer(parser, peek+1) {
@@ -2814,11 +2843,6 @@ func yaml_parser_scan_line_comment(parser *yaml_parser_t, token_mark yaml_mark_t
 			continue
 		}
 		if parser.buffer[parser.buffer_pos+peek] == '#' {
-			if len(*comment) > 0 {
-				*comment = append(*comment, '\n')
-			}
-
-			// Consume until after the consumed comment line.
 			seen := parser.mark.index+peek
 			for {
 				if parser.unread < 1 && !yaml_parser_update_buffer(parser, 1) {
@@ -2834,13 +2858,23 @@ func yaml_parser_scan_line_comment(parser *yaml_parser_t, token_mark yaml_mark_t
 					skip_line(parser)
 				} else {
 					if parser.mark.index >= seen {
-						*comment = append(*comment, parser.buffer[parser.buffer_pos])
+						if len(text) == 0 {
+							start_mark = parser.mark
+						}
+						text = append(text, parser.buffer[parser.buffer_pos])
 					}
 					skip(parser)
 				}
 			}
 		}
 		break
+	}
+	if len(text) > 0 {
+		parser.comments = append(parser.comments, yaml_comment_t{
+			token_mark: token_mark,
+			start_mark: start_mark,
+			line: text,
+		})
 	}
 	return true
 }

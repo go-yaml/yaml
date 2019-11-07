@@ -1,6 +1,7 @@
 package yaml_test
 
 import (
+	"regexp"
 	"strings"
 	"testing"
 
@@ -29,6 +30,10 @@ var limitTests = []struct {
 		name:  "1000kb of deeply nested indents",
 		data:  []byte(strings.Repeat(`- `, 1000*1024)),
 		error: "yaml: exceeded max depth of 10000",
+	}, {
+		name:  "1000 duplicate map keys",
+		data:  []byte(`{` + strings.Repeat(`a,`, 1000) + `}`),
+		error: "(?s).*already defined at line.*",
 	}, {
 		name: "1000kb of 1000-indent lines",
 		data: []byte(strings.Repeat(strings.Repeat(`- `, 1000)+"\n", 1024/2)),
@@ -92,6 +97,10 @@ func BenchmarkDeepFlow(b *testing.B) {
 	benchmark(b, "1000kb slice nested in maps at max-depth")
 }
 
+func BenchmarkDuplicateKeys(b *testing.B) {
+	benchmark(b, "1000 duplicate map keys")
+}
+
 func benchmark(b *testing.B, name string) {
 	for _, t := range limitTests {
 		if t.name != name {
@@ -106,7 +115,7 @@ func benchmark(b *testing.B, name string) {
 			if len(t.error) > 0 {
 				if err == nil {
 					b.Errorf("expected error, got none")
-				} else if err.Error() != t.error {
+				} else if match, _ := regexp.MatchString(`^`+t.error+`$`, err.Error()); !match {
 					b.Errorf("expected error '%s', got '%s'", t.error, err.Error())
 				}
 			} else {

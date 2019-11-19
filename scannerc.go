@@ -639,7 +639,9 @@ func yaml_parser_fetch_more_tokens(parser *yaml_parser_t) bool {
 				if simple_key.token_number < parser.tokens_parsed {
 					break
 				}
-				if yaml_simple_key_is_valid(parser, simple_key) && simple_key.token_number == parser.tokens_parsed {
+				if valid, ok := yaml_simple_key_is_valid(parser, simple_key); !ok {
+					return false
+				} else if valid && simple_key.token_number == parser.tokens_parsed {
 					need_more_tokens = true
 					break
 				}
@@ -831,9 +833,9 @@ func yaml_parser_fetch_next_token(parser *yaml_parser_t) bool {
 		"found character that cannot start any token")
 }
 
-func yaml_simple_key_is_valid(parser *yaml_parser_t, simple_key *yaml_simple_key_t) bool {
+func yaml_simple_key_is_valid(parser *yaml_parser_t, simple_key *yaml_simple_key_t) (valid, ok bool) {
 	if !simple_key.possible {
-		return false
+		return false, true
 	}
 
 	// The 1.2 specification says:
@@ -847,14 +849,14 @@ func yaml_simple_key_is_valid(parser *yaml_parser_t, simple_key *yaml_simple_key
 	if simple_key.mark.line < parser.mark.line || simple_key.mark.index+1024 < parser.mark.index {
 		// Check if the potential simple key to be removed is required.
 		if simple_key.required {
-			return yaml_parser_set_scanner_error(parser,
+			return false, yaml_parser_set_scanner_error(parser,
 				"while scanning a simple key", simple_key.mark,
 				"could not find expected ':'")
 		}
 		simple_key.possible = false
-		return false
+		return false, true
 	}
-	return true
+	return true, true
 }
 
 // Check if a simple key may start at the current position and add it if
@@ -1286,7 +1288,10 @@ func yaml_parser_fetch_value(parser *yaml_parser_t) bool {
 	simple_key := &parser.simple_keys[len(parser.simple_keys)-1]
 
 	// Have we found a simple key?
-	if yaml_simple_key_is_valid(parser, simple_key) {
+	if valid, ok := yaml_simple_key_is_valid(parser, simple_key); !ok {
+		return false
+
+	} else if valid {
 
 		// Create the KEY token and insert it into the queue.
 		token := yaml_token_t{

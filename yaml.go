@@ -307,6 +307,29 @@ type fieldInfo struct {
 var structMap = make(map[reflect.Type]*structInfo)
 var fieldMapMutex sync.RWMutex
 
+var fieldTags = []string{"yaml"}
+
+func AlternativeFieldTags(fields ...string) {
+	for _, newTag := range fields {
+		for _, tag := range fieldTags {
+			if tag == newTag {
+				continue
+			}
+			fieldTags = append(fieldTags, newTag)
+		}
+	}
+}
+
+func getTag(field reflect.StructField) string {
+	for _, fieldTag := range fieldTags {
+		tag := field.Tag.Get(fieldTag)
+		if tag != "" {
+			return tag
+		}
+	}
+	return ""
+}
+
 func getStructInfo(st reflect.Type) (*structInfo, error) {
 	fieldMapMutex.RLock()
 	sinfo, found := structMap[st]
@@ -327,7 +350,7 @@ func getStructInfo(st reflect.Type) (*structInfo, error) {
 
 		info := fieldInfo{Num: i}
 
-		tag := field.Tag.Get("yaml")
+		tag := getTag(field)
 		if tag == "" && strings.Index(string(field.Tag), ":") < 0 {
 			tag = string(field.Tag)
 		}

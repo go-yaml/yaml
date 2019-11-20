@@ -623,3 +623,44 @@ func (s *S) TestSortedOutput(c *C) {
 func newTime(t time.Time) *time.Time {
 	return &t
 }
+
+var marshalAlternativeTests = []struct {
+	value interface{}
+	data  string
+}{
+	{
+		&struct {
+			A int `foo:"a,omitempty"`
+			B int `foo:"b,omitempty"`
+		}{1, 0},
+		"a: 1\n",
+	},
+	{
+		&struct {
+			A int `foo:"c,omitempty"`
+			B int `foo:"d,omitempty"`
+		}{1, 0},
+		"c: 1\n",
+	},
+	{
+		&struct {
+			A int `proto:"c,omitempty" foo:"b,omitempty" yaml:"a,omitempty"`
+			B int `blah:"e,omitempty" foo:"d,omitempty"`
+		}{3, 2},
+		"a: 3\nd: 2\n",
+	},
+}
+
+func (s *S) TestEncoderAlternativeFields(c *C) {
+	defer os.Setenv("TZ", os.Getenv("TZ"))
+	os.Setenv("TZ", "UTC")
+	yaml.AlternativeFieldTags("foo")
+	yaml.AlternativeFieldTags("proto")
+	yaml.AlternativeFieldTags("foo") // don't panic
+	for i, item := range marshalAlternativeTests {
+		c.Logf("test %d: %q", i, item.data)
+		data, err := yaml.Marshal(item.value)
+		c.Assert(err, IsNil)
+		c.Assert(string(data), Equals, item.data)
+	}
+}

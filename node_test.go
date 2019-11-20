@@ -948,6 +948,41 @@ var nodeTests = []struct {
 			}},
 		},
 	}, {
+		"- la # IA\n- lb # IB\n- lc # IC\n",
+		yaml.Node{
+			Kind:        yaml.DocumentNode,
+			Line:        1,
+			Column:      1,
+			Content: []*yaml.Node{{
+				Kind:   yaml.SequenceNode,
+				Tag:    "!!seq",
+				Line:   1,
+				Column: 1,
+				Content: []*yaml.Node{{
+					Kind:        yaml.ScalarNode,
+					Tag:         "!!str",
+					Line:        1,
+					Column:      3,
+					Value:       "la",
+					LineComment: "# IA",
+				}, {
+					Kind:        yaml.ScalarNode,
+					Tag:         "!!str",
+					Line:        2,
+					Column:      3,
+					Value:       "lb",
+					LineComment: "# IB",
+				}, {
+					Kind:        yaml.ScalarNode,
+					Tag:         "!!str",
+					Line:        3,
+					Column:      3,
+					Value:       "lc",
+					LineComment: "# IC",
+				}},
+			}},
+		},
+	}, {
 		"# DH1\n\n# HL1\n- - la\n  # HB1\n  - lb\n",
 		yaml.Node{
 			Kind:   yaml.DocumentNode,

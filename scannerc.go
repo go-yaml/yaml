@@ -1570,10 +1570,11 @@ func yaml_parser_scan_to_next_token(parser *yaml_parser_t) bool {
 		//   - Some data
 		//
 		// If so, transform the line comment to a head comment and reposition.
-		if len(parser.comments) > 0 && len(parser.tokens) > 0 {
-			token := parser.tokens[len(parser.tokens)-1]
+		if len(parser.comments) > 0 && len(parser.tokens) > 1 {
+			tokenA := parser.tokens[len(parser.tokens)-2]
+			tokenB := parser.tokens[len(parser.tokens)-1]
 			comment := &parser.comments[len(parser.comments)-1]
-			if token.typ == yaml_BLOCK_ENTRY_TOKEN && len(comment.line) > 0 && !is_break(parser.buffer, parser.buffer_pos) {
+			if tokenA.typ == yaml_BLOCK_SEQUENCE_START_TOKEN && tokenB.typ == yaml_BLOCK_ENTRY_TOKEN && len(comment.line) > 0 && !is_break(parser.buffer, parser.buffer_pos) {
 				// If it was in the prior line, reposition so it becomes a
 				// header of the follow up token. Otherwise, keep it in place
 				// so it becomes a header of the former.

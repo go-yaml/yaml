@@ -1,6 +1,7 @@
 package yaml_test
 
 import (
+	"regexp"
 	"strings"
 	"testing"
 
@@ -30,6 +31,10 @@ var limitTests = []struct {
 		data:  []byte(strings.Repeat(`- `, 1000*1024)),
 		error: "yaml: exceeded max depth of 10000",
 	}, {
+		name:  "1000 duplicate map keys",
+		data:  []byte(`{` + strings.Repeat(`a,`, 1000) + `}`),
+		error: "(?s).*already defined at line.*",
+	}, {
 		name: "1000kb of 1000-indent lines",
 		data: []byte(strings.Repeat(strings.Repeat(`- `, 1000)+"\n", 1024/2)),
 	},
@@ -37,6 +42,8 @@ var limitTests = []struct {
 	{name: "10kb of maps", data: []byte(`a: &a [{a}` + strings.Repeat(`,{a}`, 10*1024/4-1) + `]`)},
 	{name: "100kb of maps", data: []byte(`a: &a [{a}` + strings.Repeat(`,{a}`, 100*1024/4-1) + `]`)},
 	{name: "1000kb of maps", data: []byte(`a: &a [{a}` + strings.Repeat(`,{a}`, 1000*1024/4-1) + `]`)},
+	{name: "1000kb slice nested at max-depth", data: []byte(strings.Repeat(`[`, 10000) + `1` + strings.Repeat(`,1`, 1000*1024/2-20000-1) + strings.Repeat(`]`, 10000))},
+	{name: "1000kb slice nested in maps at max-depth", data: []byte("{a,b:\n" + strings.Repeat(" {a,b:", 10000-2) + ` [1` + strings.Repeat(",1", 1000*1024/2-6*10000-1) + `]` + strings.Repeat(`}`, 10000-1))},
 }
 
 func (s *S) TestLimits(c *C) {
@@ -82,6 +89,18 @@ func Benchmark1000KBMaps(b *testing.B) {
 	benchmark(b, "1000kb of maps")
 }
 
+func BenchmarkDeepSlice(b *testing.B) {
+	benchmark(b, "1000kb slice nested at max-depth")
+}
+
+func BenchmarkDeepFlow(b *testing.B) {
+	benchmark(b, "1000kb slice nested in maps at max-depth")
+}
+
+func BenchmarkDuplicateKeys(b *testing.B) {
+	benchmark(b, "1000 duplicate map keys")
+}
+
 func benchmark(b *testing.B, name string) {
 	for _, t := range limitTests {
 		if t.name != name {
@@ -96,7 +115,7 @@ func benchmark(b *testing.B, name string) {
 			if len(t.error) > 0 {
 				if err == nil {
 					b.Errorf("expected error, got none")
-				} else if err.Error() != t.error {
+				} else if match, _ := regexp.MatchString(`^`+t.error+`$`, err.Error()); !match {
 					b.Errorf("expected error '%s', got '%s'", t.error, err.Error())
 				}
 			} else {

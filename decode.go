@@ -746,12 +746,16 @@ func (d *decoder) mapping(n *Node, out reflect.Value) (good bool) {
 	l := len(n.Content)
 	if d.uniqueKeys {
 		nerrs := len(d.terrors)
+	UNIQUECHECK:
 		for i := 0; i < l; i += 2 {
 			ni := n.Content[i]
 			for j := i + 2; j < l; j += 2 {
 				nj := n.Content[j]
 				if ni.Kind == nj.Kind && ni.Value == nj.Value {
 					d.terrors = append(d.terrors, fmt.Sprintf("line %d: mapping key %#v already defined at line %d", nj.Line, nj.Value, ni.Line))
+					if len(d.terrors)-nerrs >= 10 {
+						continue UNIQUECHECK
+					}
 				}
 			}
 		}

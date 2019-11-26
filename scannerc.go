@@ -633,15 +633,20 @@ func yaml_parser_fetch_more_tokens(parser *yaml_parser_t) bool {
 			// Queue is empty.
 			need_more_tokens = true
 		} else {
+			// Check for any now stale keys in a required position.
+			if !yaml_parser_stale_simple_keys(parser) {
+				return false
+			}
 			// Check if any potential simple key may occupy the head position.
 			for i := len(parser.simple_keys) - 1; i >= 0; i-- {
 				simple_key := &parser.simple_keys[i]
+				if !simple_key.possible {
+					break
+				}
 				if simple_key.token_number < parser.tokens_parsed {
 					break
 				}
-				if valid, ok := yaml_simple_key_is_valid(parser, simple_key); !ok {
-					return false
-				} else if valid && simple_key.token_number == parser.tokens_parsed {
+				if simple_key.token_number == parser.tokens_parsed {
 					need_more_tokens = true
 					break
 				}
@@ -859,6 +864,20 @@ func yaml_simple_key_is_valid(parser *yaml_parser_t, simple_key *yaml_simple_key
 	return true, true
 }
 
+func yaml_parser_stale_simple_keys(parser *yaml_parser_t) bool {
+	// fmt.Println(parser.simple_keys_min_possible_index, ":", len(parser.simple_keys))
+	for i := parser.simple_keys_min_possible_index; i < len(parser.simple_keys); i++ {
+		simple_key := &parser.simple_keys[i]
+		if valid, ok := yaml_simple_key_is_valid(parser, simple_key); !ok {
+			return false
+		} else if !valid {
+			parser.simple_keys_min_possible_index = i + 1
+		}
+
+	}
+	return true
+}
+
 // Check if a simple key may start at the current position and add it if
 // needed.
 func yaml_parser_save_simple_key(parser *yaml_parser_t) bool {
@@ -897,9 +916,12 @@ func yaml_parser_remove_simple_key(parser *yaml_parser_t) bool {
 				"while scanning a simple key", parser.simple_keys[i].mark,
 				"could not find expected ':'")
 		}
+		// Remove the key from the stack.
+		parser.simple_keys[i].possible = false
+		if parser.simple_keys_min_possible_index > i {
+			parser.simple_keys_min_possible_index = i
+		}
 	}
-	// Remove the key from the stack.
-	parser.simple_keys[i].possible = false
 	return true
 }
 
@@ -930,7 +952,11 @@ func yaml_parser_increase_flow_level(parser *yaml_parser_t) bool {
 func yaml_parser_decrease_flow_level(parser *yaml_parser_t) bool {
 	if parser.flow_level > 0 {
 		parser.flow_level--
-		parser.simple_keys = parser.simple_keys[:len(parser.simple_keys)-1]
+		last := len(parser.simple_keys) - 1
+		parser.simple_keys = parser.simple_keys[:last]
+		if parser.simple_keys_min_possible_index > last {
+			parser.simple_keys_min_possible_index = last
+		}
 	}
 	return true
 }

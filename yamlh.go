@@ -577,8 +577,9 @@ type yaml_parser_t struct {
 	indent  int   // The current indentation level.
 	indents []int // The indentation levels stack.
 
-	simple_key_allowed bool                // May a simple key occur at the current position?
-	simple_keys        []yaml_simple_key_t // The stack of simple keys.
+	simple_key_allowed             bool                // May a simple key occur at the current position?
+	simple_keys                    []yaml_simple_key_t // The stack of simple keys.
+	simple_keys_min_possible_index int
 
 	// Parser stuff
 

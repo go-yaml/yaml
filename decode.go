@@ -299,6 +299,28 @@ func (p *parser) mapping() *Node {
 // ----------------------------------------------------------------------------
 // Decoder, unmarshals a node into a provided value.
 
+// DecodeConfig represents configuration for decoding.
+// Config could be initialized in "builder" style for convenience:
+// NewDecodeConfig().KnownFields(true).UniqueFields(true)
+type DecodeConfig struct {
+	knownFields bool
+	uniqueKeys  bool
+}
+
+func NewDecodeConfig() *DecodeConfig {
+	return &DecodeConfig{uniqueKeys: true}
+}
+
+func (c *DecodeConfig) KnownFields(enabled bool) *DecodeConfig {
+	c.knownFields = enabled
+	return c
+}
+
+func (c *DecodeConfig) UniqueFields(enabled bool) *DecodeConfig {
+	c.uniqueKeys = enabled
+	return c
+}
+
 type decoder struct {
 	doc     *Node
 	aliases map[*Node]bool
@@ -307,8 +329,7 @@ type decoder struct {
 	stringMapType  reflect.Type
 	generalMapType reflect.Type
 
-	knownFields bool
-	uniqueKeys  bool
+	config      *DecodeConfig
 	decodeCount int
 	aliasCount  int
 	aliasDepth  int
@@ -328,7 +349,7 @@ func newDecoder() *decoder {
 	d := &decoder{
 		stringMapType:  stringMapType,
 		generalMapType: generalMapType,
-		uniqueKeys:     true,
+		config:         NewDecodeConfig(),
 	}
 	d.aliases = make(map[*Node]bool)
 	return d
@@ -744,7 +765,7 @@ func (d *decoder) sequence(n *Node, out reflect.Value) (good bool) {
 
 func (d *decoder) mapping(n *Node, out reflect.Value) (good bool) {
 	l := len(n.Content)
-	if d.uniqueKeys {
+	if d.config.uniqueKeys {
 		nerrs := len(d.terrors)
 		for i := 0; i < l; i += 2 {
 			ni := n.Content[i]
@@ -852,7 +873,7 @@ func (d *decoder) mappingStruct(n *Node, out reflect.Value) (good bool) {
 	}
 
 	var doneFields []bool
-	if d.uniqueKeys {
+	if d.config.uniqueKeys {
 		doneFields = make([]bool, len(sinfo.FieldsList))
 	}
 	name := settableValueOf("")
@@ -867,7 +888,7 @@ func (d *decoder) mappingStruct(n *Node, out reflect.Value) (good bool) {
 			continue
 		}
 		if info, ok := sinfo.FieldsMap[name.String()]; ok {
-			if d.uniqueKeys {
+			if d.config.uniqueKeys {
 				if doneFields[info.Id] {
 					d.terrors = append(d.terrors, fmt.Sprintf("line %d: field %s already set in type %s", ni.Line, name.String(), out.Type()))
 					continue
@@ -888,7 +909,7 @@ func (d *decoder) mappingStruct(n *Node, out reflect.Value) (good bool) {
 			value := reflect.New(elemType).Elem()
 			d.unmarshal(n.Content[i+1], value)
 			inlineMap.SetMapIndex(name, value)
-		} else if d.knownFields {
+		} else if d.config.knownFields {
 			d.terrors = append(d.terrors, fmt.Sprintf("line %d: field %s not found in type %s", ni.Line, name.String(), out.Type()))
 		}
 	}

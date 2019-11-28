@@ -86,13 +86,17 @@ type Marshaler interface {
 // supported tag options.
 //
 func Unmarshal(in []byte, out interface{}) (err error) {
-	return unmarshal(in, out, false)
+	return unmarshal(in, out, nil)
+}
+
+func UnmarshalWithConfig(in []byte, out interface{}, config *DecodeConfig) (err error) {
+	return unmarshal(in, out, config)
 }
 
 // A Decorder reads and decodes YAML values from an input stream.
 type Decoder struct {
-	parser      *parser
-	knownFields bool
+	parser *parser
+	config *DecodeConfig
 }
 
 // NewDecoder returns a new decoder that reads from r.
@@ -102,13 +106,20 @@ type Decoder struct {
 func NewDecoder(r io.Reader) *Decoder {
 	return &Decoder{
 		parser: newParserFromReader(r),
+		config: NewDecodeConfig(),
 	}
 }
 
 // KnownFields ensures that the keys in decoded mappings to
 // exist as fields in the struct being decoded into.
 func (dec *Decoder) KnownFields(enable bool) {
-	dec.knownFields = enable
+	dec.config.knownFields = enable
+}
+
+// UniqueKeys ensures that the keys in decoded mappings
+// are unique.
+func (dec *Decoder) UniqueKeys(enable bool) {
+	dec.config.uniqueKeys = enable
 }
 
 // Decode reads the next YAML-encoded value from its input
@@ -118,7 +129,7 @@ func (dec *Decoder) KnownFields(enable bool) {
 // conversion of YAML into a Go value.
 func (dec *Decoder) Decode(v interface{}) (err error) {
 	d := newDecoder()
-	d.knownFields = dec.knownFields
+	d.config = dec.config
 	defer handleErr(&err)
 	node := dec.parser.parse()
 	if node == nil {
@@ -141,6 +152,20 @@ func (dec *Decoder) Decode(v interface{}) (err error) {
 // conversion of YAML into a Go value.
 func (n *Node) Decode(v interface{}) (err error) {
 	d := newDecoder()
+	return n.decode(d, v)
+}
+
+// DecodeWithConfig decodes the node and stores its data into the value pointed to by v.
+// It uses passed DecodeConfig to setup internal decoder.
+func (n *Node) DecodeWithConfig(v interface{}, config *DecodeConfig) (err error) {
+	d := newDecoder()
+	if config != nil {
+		d.config = config
+	}
+	return n.decode(d, v)
+}
+
+func (n *Node) decode(d *decoder, v interface{}) (err error) {
 	defer handleErr(&err)
 	out := reflect.ValueOf(v)
 	if out.Kind() == reflect.Ptr && !out.IsNil() {
@@ -153,9 +178,12 @@ func (n *Node) Decode(v interface{}) (err error) {
 	return nil
 }
 
-func unmarshal(in []byte, out interface{}, strict bool) (err error) {
+func unmarshal(in []byte, out interface{}, config *DecodeConfig) (err error) {
 	defer handleErr(&err)
 	d := newDecoder()
+	if config != nil {
+		d.config = config
+	}
 	p := newParser(in)
 	defer p.destroy()
 	node := p.parse()
@@ -339,7 +367,7 @@ const (
 //             Address yaml.Node
 //     }
 //     err := yaml.Unmarshal(data, &person)
-// 
+//
 // Or by itself:
 //
 //     var person Node
@@ -349,7 +377,7 @@ type Node struct {
 	// Kind defines whether the node is a document, a mapping, a sequence,
 	// a scalar value, or an alias to another node. The specific data type of
 	// scalar nodes may be obtained via the ShortTag and LongTag methods.
-	Kind  Kind
+	Kind Kind
 
 	// Style allows customizing the apperance of the node in the tree.
 	Style Style

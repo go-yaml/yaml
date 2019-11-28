@@ -802,7 +802,6 @@ var unmarshalTests = []struct {
 			"c": []interface{}{"d", "e"},
 		},
 	},
-
 }
 
 type M map[string]interface{}
@@ -949,14 +948,14 @@ var unmarshalErrorTests = []struct {
 	{"a:\n  1:\nb\n  2:", ".*could not find expected ':'"},
 	{
 		"a: &a [00,00,00,00,00,00,00,00,00]\n" +
-		"b: &b [*a,*a,*a,*a,*a,*a,*a,*a,*a]\n" +
-		"c: &c [*b,*b,*b,*b,*b,*b,*b,*b,*b]\n" +
-		"d: &d [*c,*c,*c,*c,*c,*c,*c,*c,*c]\n" +
-		"e: &e [*d,*d,*d,*d,*d,*d,*d,*d,*d]\n" +
-		"f: &f [*e,*e,*e,*e,*e,*e,*e,*e,*e]\n" +
-		"g: &g [*f,*f,*f,*f,*f,*f,*f,*f,*f]\n" +
-		"h: &h [*g,*g,*g,*g,*g,*g,*g,*g,*g]\n" +
-		"i: &i [*h,*h,*h,*h,*h,*h,*h,*h,*h]\n",
+			"b: &b [*a,*a,*a,*a,*a,*a,*a,*a,*a]\n" +
+			"c: &c [*b,*b,*b,*b,*b,*b,*b,*b,*b]\n" +
+			"d: &d [*c,*c,*c,*c,*c,*c,*c,*c,*c]\n" +
+			"e: &e [*d,*d,*d,*d,*d,*d,*d,*d,*d]\n" +
+			"f: &f [*e,*e,*e,*e,*e,*e,*e,*e,*e]\n" +
+			"g: &g [*f,*f,*f,*f,*f,*f,*f,*f,*f]\n" +
+			"h: &h [*g,*g,*g,*g,*g,*g,*g,*g,*g]\n" +
+			"i: &i [*h,*h,*h,*h,*h,*h,*h,*h,*h]\n",
 		"yaml: document contains excessive aliasing",
 	},
 }
@@ -1464,7 +1463,7 @@ func (s *S) TestUnmarshalNull(c *C) {
 func (s *S) TestUnmarshalPreservesData(c *C) {
 	var v struct {
 		A, B int
-		C int `yaml:"-"`
+		C    int `yaml:"-"`
 	}
 	v.A = 42
 	v.C = 88
@@ -1561,6 +1560,29 @@ var unmarshalStrictTests = []struct {
 	error: `yaml: unmarshal errors:\n  line 4: mapping key "9" already defined at line 2`,
 }}
 
+func (s *S) TestDecodeKnownFields(c *C) {
+	for i, item := range unmarshalStrictTests {
+		c.Logf("test %d: %q", i, item.data)
+		// First test that normal Decode unmarshals to the expected value.
+		if !item.unique {
+			t := reflect.ValueOf(item.value).Type()
+			value := reflect.New(t)
+			dec := yaml.NewDecoder(bytes.NewBuffer([]byte(item.data)))
+			err := dec.Decode(value.Interface())
+			c.Assert(err, Equals, nil)
+			c.Assert(value.Elem().Interface(), DeepEquals, item.value)
+		}
+
+		// Then test that Decode fails on the same thing with KnownFields on.
+		t := reflect.ValueOf(item.value).Type()
+		value := reflect.New(t)
+		dec := yaml.NewDecoder(bytes.NewBuffer([]byte(item.data)))
+		dec.KnownFields(item.known)
+		err := dec.Decode(value.Interface())
+		c.Assert(err, ErrorMatches, item.error)
+	}
+}
+
 func (s *S) TestUnmarshalKnownFields(c *C) {
 	for i, item := range unmarshalStrictTests {
 		c.Logf("test %d: %q", i, item.data)
@@ -1573,12 +1595,10 @@ func (s *S) TestUnmarshalKnownFields(c *C) {
 			c.Assert(value.Elem().Interface(), DeepEquals, item.value)
 		}
 
-		// Then test that it fails on the same thing with KnownFields on.
+		// Then test that Unmarshal fails on the same thing with KnownFields on.
 		t := reflect.ValueOf(item.value).Type()
 		value := reflect.New(t)
-		dec := yaml.NewDecoder(bytes.NewBuffer([]byte(item.data)))
-		dec.KnownFields(item.known)
-		err := dec.Decode(value.Interface())
+		err := yaml.UnmarshalWithConfig([]byte(item.data), value.Interface(), yaml.NewDecodeConfig().KnownFields(false))
 		c.Assert(err, ErrorMatches, item.error)
 	}
 }

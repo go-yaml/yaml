@@ -60,7 +60,7 @@ func newEncoderWithWriter(w io.Writer, opt ...EncoderOption) *encoder {
 	return e
 }
 
-type EncoderOption = func(*encoder)
+type EncoderOption func(*encoder)
 
 func WithFieldNameMarshaler(f FieldNameMarshaler) EncoderOption {
 	return func(e *encoder) {

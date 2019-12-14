@@ -307,8 +307,8 @@ type fieldInfo struct {
 var structMap = make(map[reflect.Type]*structInfo)
 var fieldMapMutex sync.RWMutex
 
-type StructTagParser = func(reflect.StructTag) (tag string, flags []string)
-type FieldNameMarshaler = func(reflect.StructField) string
+type StructTagParser func(reflect.StructTag) (tag string, flags []string)
+type FieldNameMarshaler func(reflect.StructField) string
 
 func DefaultStructTagParser(t reflect.StructTag) (tag string, flags []string) {
 	tag = t.Get("yaml")

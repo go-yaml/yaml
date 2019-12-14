@@ -196,9 +196,9 @@ func unmarshal(in []byte, out interface{}, strict bool) (err error) {
 //     yaml.Marshal(&T{B: 2}) // Returns "b: 2\n"
 //     yaml.Marshal(&T{F: 1}} // Returns "a: 1\nb: 0\n"
 //
-func Marshal(in interface{}) (out []byte, err error) {
+func Marshal(in interface{}, opt ...EncoderOption) (out []byte, err error) {
 	defer handleErr(&err)
-	e := newEncoder()
+	e := newEncoder(opt...)
 	defer e.destroy()
 	e.marshalDoc("", reflect.ValueOf(in))
 	e.finish()
@@ -214,9 +214,9 @@ type Encoder struct {
 // NewEncoder returns a new encoder that writes to w.
 // The Encoder should be closed after use to flush all data
 // to w.
-func NewEncoder(w io.Writer) *Encoder {
+func NewEncoder(w io.Writer, opt ...EncoderOption) *Encoder {
 	return &Encoder{
-		encoder: newEncoderWithWriter(w),
+		encoder: newEncoderWithWriter(w, opt...),
 	}
 }
 
@@ -307,7 +307,36 @@ type fieldInfo struct {
 var structMap = make(map[reflect.Type]*structInfo)
 var fieldMapMutex sync.RWMutex
 
-func getStructInfo(st reflect.Type) (*structInfo, error) {
+type StructTagParser = func(reflect.StructTag) (tag string, flags []string)
+type FieldNameMarshaler = func(reflect.StructField) string
+
+func DefaultStructTagParser(t reflect.StructTag) (tag string, flags []string) {
+	tag = t.Get("yaml")
+	if tag == "" && strings.Index(string(t), ":") < 0 {
+		tag = string(t)
+	}
+	if tag == "-" {
+		return
+	}
+	fields := strings.Split(tag, ",")
+	if len(fields) > 1 {
+		return fields[0], fields[1:]
+	}
+	return
+}
+
+func DefaultFieldNameMarshaler(f reflect.StructField) string {
+	return strings.ToLower(f.Name)
+}
+
+type StructParser struct {
+	tagParser     StructTagParser
+	nameMarshaler FieldNameMarshaler
+}
+
+var DefaultStructParser = StructParser{DefaultStructTagParser, DefaultFieldNameMarshaler}
+
+func (p StructParser) GetStructInfo(st reflect.Type) (*structInfo, error) {
 	fieldMapMutex.RLock()
 	sinfo, found := structMap[st]
 	fieldMapMutex.RUnlock()
@@ -327,18 +356,13 @@ func getStructInfo(st reflect.Type) (*structInfo, error) {
 
 		info := fieldInfo{Num: i}
 
-		tag := field.Tag.Get("yaml")
-		if tag == "" && strings.Index(string(field.Tag), ":") < 0 {
-			tag = string(field.Tag)
-		}
+		tag, flags := p.tagParser(field.Tag)
 		if tag == "-" {
 			continue
 		}
-
 		inline := false
-		fields := strings.Split(tag, ",")
-		if len(fields) > 1 {
-			for _, flag := range fields[1:] {
+		if len(flags) > 0 {
+			for _, flag := range flags {
 				switch flag {
 				case "omitempty":
 					info.OmitEmpty = true
@@ -350,7 +374,6 @@ func getStructInfo(st reflect.Type) (*structInfo, error) {
 					return nil, errors.New(fmt.Sprintf("Unsupported flag %q in tag %q of type %s", flag, tag, st))
 				}
 			}
-			tag = fields[0]
 		}
 
 		if inline {
@@ -364,7 +387,7 @@ func getStructInfo(st reflect.Type) (*structInfo, error) {
 				}
 				inlineMap = info.Num
 			case reflect.Struct:
-				sinfo, err := getStructInfo(field.Type)
+				sinfo, err := p.GetStructInfo(field.Type)
 				if err != nil {
 					return nil, err
 				}
@@ -392,7 +415,7 @@ func getStructInfo(st reflect.Type) (*structInfo, error) {
 		if tag != "" {
 			info.Key = tag
 		} else {
-			info.Key = strings.ToLower(field.Name)
+			info.Key = p.nameMarshaler(field)
 		}
 
 		if _, found = fieldsMap[info.Key]; found {

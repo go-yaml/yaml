@@ -233,6 +233,8 @@ type decoder struct {
 	decodeCount int
 	aliasCount  int
 	aliasDepth  int
+
+	structParser StructParser
 }
 
 var (
@@ -245,7 +247,7 @@ var (
 )
 
 func newDecoder(strict bool) *decoder {
-	d := &decoder{mapType: defaultMapType, strict: strict}
+	d := &decoder{mapType: defaultMapType, strict: strict, structParser: DefaultStructParser}
 	d.aliases = make(map[*node]bool)
 	return d
 }
@@ -722,7 +724,7 @@ func (d *decoder) mappingSlice(n *node, out reflect.Value) (good bool) {
 }
 
 func (d *decoder) mappingStruct(n *node, out reflect.Value) (good bool) {
-	sinfo, err := getStructInfo(out.Type())
+	sinfo, err := d.structParser.GetStructInfo(out.Type())
 	if err != nil {
 		panic(err)
 	}

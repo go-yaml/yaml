@@ -34,22 +34,44 @@ type encoder struct {
 	// doneInit holds whether the initial stream_start_event has been
 	// emitted.
 	doneInit bool
+
+	structParser StructParser
 }
 
-func newEncoder() *encoder {
-	e := &encoder{}
+func newEncoder(opt ...EncoderOption) *encoder {
+	e := &encoder{structParser: DefaultStructParser}
 	yaml_emitter_initialize(&e.emitter)
 	yaml_emitter_set_output_string(&e.emitter, &e.out)
 	yaml_emitter_set_unicode(&e.emitter, true)
+	for _, o := range opt {
+		o(e)
+	}
 	return e
 }
 
-func newEncoderWithWriter(w io.Writer) *encoder {
-	e := &encoder{}
+func newEncoderWithWriter(w io.Writer, opt ...EncoderOption) *encoder {
+	e := &encoder{structParser: DefaultStructParser}
 	yaml_emitter_initialize(&e.emitter)
 	yaml_emitter_set_output_writer(&e.emitter, w)
 	yaml_emitter_set_unicode(&e.emitter, true)
+	for _, o := range opt {
+		o(e)
+	}
 	return e
+}
+
+type EncoderOption = func(*encoder)
+
+func WithFieldNameMarshaler(f FieldNameMarshaler) EncoderOption {
+	return func(e *encoder) {
+		e.structParser.nameMarshaler = f
+	}
+}
+
+func WithStructTagParser(f StructTagParser) EncoderOption {
+	return func(e *encoder) {
+		e.structParser.tagParser = f
+	}
 }
 
 func (e *encoder) init() {
@@ -206,7 +228,7 @@ func (e *encoder) itemsv(tag string, in reflect.Value) {
 }
 
 func (e *encoder) structv(tag string, in reflect.Value) {
-	sinfo, err := getStructInfo(in.Type())
+	sinfo, err := e.structParser.GetStructInfo(in.Type())
 	if err != nil {
 		panic(err)
 	}

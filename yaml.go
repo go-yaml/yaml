@@ -339,7 +339,7 @@ const (
 //             Address yaml.Node
 //     }
 //     err := yaml.Unmarshal(data, &person)
-// 
+//
 // Or by itself:
 //
 //     var person Node
@@ -349,7 +349,7 @@ type Node struct {
 	// Kind defines whether the node is a document, a mapping, a sequence,
 	// a scalar value, or an alias to another node. The specific data type of
 	// scalar nodes may be obtained via the ShortTag and LongTag methods.
-	Kind  Kind
+	Kind Kind
 
 	// Style allows customizing the apperance of the node in the tree.
 	Style Style
@@ -510,9 +510,17 @@ func getStructInfo(st reflect.Type) (*structInfo, error) {
 		info := fieldInfo{Num: i}
 
 		tag := field.Tag.Get("yaml")
-		if tag == "" && strings.Index(string(field.Tag), ":") < 0 {
+		if tag == "" && !strings.Contains(string(field.Tag), ":") {
 			tag = string(field.Tag)
 		}
+		// compatible with only json-tag
+		if tag == "" {
+			tag = field.Tag.Get("json")
+			if tag == "" && !strings.Contains(string(field.Tag), ":") {
+				tag = string(field.Tag)
+			}
+		}
+
 		if tag == "-" {
 			continue
 		}

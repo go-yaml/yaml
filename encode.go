@@ -132,6 +132,17 @@ func (e *encoder) marshal(tag string, in reflect.Value) {
 			return
 		}
 		in = reflect.ValueOf(v)
+	case FlowMarshaler:
+		e.flow = true
+		v, err := m.FlowMarshalYAML()
+		if err != nil {
+			fail(err)
+		}
+		if v == nil {
+			e.nilv()
+			return
+		}
+		in = reflect.ValueOf(v)
 	case encoding.TextMarshaler:
 		text, err := m.MarshalText()
 		if err != nil {

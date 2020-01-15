@@ -623,3 +623,40 @@ func (s *S) TestSortedOutput(c *C) {
 func newTime(t time.Time) *time.Time {
 	return &t
 }
+
+type FlowTestType struct {
+	Nested []string `yaml:"flow"`
+}
+
+var _ yaml.FlowMarshaler = &FlowTestType{}
+var _ yaml.Unmarshaler = &FlowTestType{}
+
+func (n *FlowTestType) FlowMarshalYAML() (interface{}, error) {
+	return n.Nested, nil
+}
+func (n *FlowTestType) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	return unmarshal(&n.Nested)
+}
+
+func (s *S) TestFlowMarshaller(c *C) {
+	type parentType struct {
+		ArrayOfArrays []*FlowTestType `yaml:"arrayOfArrays"`
+	}
+	testInput := &parentType{
+		ArrayOfArrays: []*FlowTestType{
+			{
+				Nested: []string{"a", "b"},
+			},
+			{
+				Nested: []string{"c", "d"},
+			},
+		},
+	}
+	output, err := yaml.Marshal(testInput)
+	c.Assert(err, IsNil)
+	expected := `arrayOfArrays:
+- [a, b]
+- [c, d]
+`
+	c.Assert(string(output), Equals, expected)
+}

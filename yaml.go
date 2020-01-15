@@ -43,6 +43,15 @@ type Marshaler interface {
 	MarshalYAML() (interface{}, error)
 }
 
+// The FlowMarshaler interface may be implemented by types to customize their
+// behavior when being unmarshaled from a YAML document, while also having flow
+// style marshalling. The FlowMarshalYAML method receives a function that may be
+// called to unmarshal the original YAML value into a field or variable. It is
+// safe to call the unmarshal function parameter more than once if necessary.
+type FlowMarshaler interface {
+	FlowMarshalYAML() (interface{}, error)
+}
+
 // Unmarshal decodes the first document found within the in byte slice
 // and assigns decoded values into the out value.
 //

@@ -19,12 +19,11 @@ import (
 	"bytes"
 	"fmt"
 	"math"
+	"net"
+	"os"
 	"strconv"
 	"strings"
 	"time"
-
-	"net"
-	"os"
 
 	. "gopkg.in/check.v1"
 	"gopkg.in/yaml.v3"
@@ -421,6 +420,40 @@ var marshalTests = []struct {
 	{
 		map[string]string{"a": "\tB\n\tC\n"},
 		"a: |\n    \tB\n    \tC\n",
+	},
+
+	// Strings that are equal to the YAML 1.1 boolean values should be quoted
+	// so that YAML 1.1 parsers will parse them as booleans.
+	{
+		map[string]string{"v": "yes"},
+		"v: \"yes\"\n",
+	}, {
+		map[string]interface{}{"v": "no"},
+		"v: \"no\"\n",
+	}, {
+		&yaml.Node{Value: `yes`, Tag: "!!str", Kind: yaml.ScalarNode},
+		"\"yes\"\n",
+	}, {
+		&yaml.Node{Value: `no`, Tag: "!!str", Kind: yaml.ScalarNode},
+		"\"no\"\n",
+	}, {
+		&yaml.Node{Value: `true`, Tag: "!!str", Kind: yaml.ScalarNode},
+		"\"true\"\n",
+	}, {
+		&yaml.Node{Value: `false`, Tag: "!!str", Kind: yaml.ScalarNode},
+		"\"false\"\n",
+	}, {
+		&yaml.Node{Value: `yes`, Tag: "", Kind: yaml.ScalarNode},
+		"yes\n",
+	}, {
+		&yaml.Node{Value: `no`, Tag: "", Kind: yaml.ScalarNode},
+		"no\n",
+	}, {
+		&yaml.Node{Value: `true`, Tag: "", Kind: yaml.ScalarNode},
+		"true\n",
+	}, {
+		&yaml.Node{Value: `false`, Tag: "", Kind: yaml.ScalarNode},
+		"false\n",
 	},
 }
 

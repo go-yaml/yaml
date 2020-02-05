@@ -298,6 +298,23 @@ func isBase60Float(s string) (result bool) {
 // is bogus. In practice parsers do not enforce the "\.[0-9_]*" suffix.
 var base60float = regexp.MustCompile(`^[-+]?[0-9][0-9_]*(?::[0-5]?[0-9])+(?:\.[0-9_]*)?$`)
 
+// isYaml11Bool returns whether s is a boolean value as defined in YAML 1.1.
+//
+// The extra boolean values in YAML 1.1 are a terrible idea and is unsupported
+// in YAML 1.2 and by this package, but these should be marshalled quoted for
+// the time being for compatibility with other parsers.
+func isYaml11Bool(s string) (result bool) {
+	// Fast path.
+	if s == "" {
+		return false
+	}
+	return yaml11Bool.MatchString(s)
+}
+
+// From https://yaml.org/type/bool.html, except "true" and "false" are removed
+// since those are supported in YAML 1.2
+var yaml11Bool = regexp.MustCompile(`^(y|Y|yes|Yes|YES|n|N|no|No|NO|True|TRUE|False|FALSE|on|On|ON|off|Off|OFF)$`)
+
 func (e *encoder) stringv(tag string, in reflect.Value) {
 	var style yaml_scalar_style_t
 	s := in.String()
@@ -319,7 +336,7 @@ func (e *encoder) stringv(tag string, in reflect.Value) {
 		// tag when encoded unquoted. If it doesn't,
 		// there's no need to quote it.
 		rtag, _ := resolve("", s)
-		canUsePlain = rtag == strTag && !isBase60Float(s)
+		canUsePlain = rtag == strTag && !isBase60Float(s) && !isYaml11Bool(s)
 	}
 	// Note: it's possible for user code to emit invalid YAML
 	// if they explicitly specify a tag and a string containing
@@ -423,6 +440,9 @@ func (e *encoder) node(node *Node, tail string) {
 					tag = ""
 				} else if stag == strTag {
 					tag = ""
+					forceQuoting = true
+				}
+				if stag == strTag && isYaml11Bool(node.Value) {
 					forceQuoting = true
 				}
 			}

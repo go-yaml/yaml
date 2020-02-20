@@ -62,13 +62,13 @@ func newEncoderWithWriter(w io.Writer, opt ...EncoderOption) *encoder {
 
 type EncoderOption func(*encoder)
 
-func WithFieldNameMarshaler(f FieldNameMarshaler) EncoderOption {
+func EncoderWithFieldNameMarshaler(f FieldNameMarshaler) EncoderOption {
 	return func(e *encoder) {
 		e.structParser.nameMarshaler = f
 	}
 }
 
-func WithStructTagParser(f StructTagParser) EncoderOption {
+func EncoderWithStructTagParser(f StructTagParser) EncoderOption {
 	return func(e *encoder) {
 		e.structParser.tagParser = f
 	}

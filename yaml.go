@@ -77,8 +77,8 @@ type Marshaler interface {
 // See the documentation of Marshal for the format of tags and a list of
 // supported tag options.
 //
-func Unmarshal(in []byte, out interface{}) (err error) {
-	return unmarshal(in, out, false)
+func Unmarshal(in []byte, out interface{}, opt ...DecoderOption) (err error) {
+	return unmarshal(in, out, opt...)
 }
 
 // UnmarshalStrict is like Unmarshal except that any fields that are found
@@ -86,7 +86,7 @@ func Unmarshal(in []byte, out interface{}) (err error) {
 // keys that are duplicates, will result in
 // an error.
 func UnmarshalStrict(in []byte, out interface{}) (err error) {
-	return unmarshal(in, out, true)
+	return unmarshal(in, out, DecoderWithStrictFields())
 }
 
 // A Decoder reads and decodes YAML values from an input stream.
@@ -117,7 +117,7 @@ func (dec *Decoder) SetStrict(strict bool) {
 // See the documentation for Unmarshal for details about the
 // conversion of YAML into a Go value.
 func (dec *Decoder) Decode(v interface{}) (err error) {
-	d := newDecoder(dec.strict)
+	d := newDecoder(DecoderWithStrictFields())
 	defer handleErr(&err)
 	node := dec.parser.parse()
 	if node == nil {
@@ -134,9 +134,9 @@ func (dec *Decoder) Decode(v interface{}) (err error) {
 	return nil
 }
 
-func unmarshal(in []byte, out interface{}, strict bool) (err error) {
+func unmarshal(in []byte, out interface{}, opt ...DecoderOption) (err error) {
 	defer handleErr(&err)
-	d := newDecoder(strict)
+	d := newDecoder(opt...)
 	p := newParser(in)
 	defer p.destroy()
 	node := p.parse()

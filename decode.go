@@ -246,10 +246,36 @@ var (
 	ptrTimeType    = reflect.TypeOf(&time.Time{})
 )
 
-func newDecoder(strict bool) *decoder {
-	d := &decoder{mapType: defaultMapType, strict: strict, structParser: DefaultStructParser}
+func newDecoder(opt ...DecoderOption) *decoder {
+	d := &decoder{mapType: defaultMapType, structParser: DefaultStructParser}
+	for _, o := range opt {
+		o(d)
+	}
 	d.aliases = make(map[*node]bool)
 	return d
+}
+
+type DecoderOption func(*decoder)
+
+// WithStrictFields makes the decoder to report an error for any fields that are
+// found in the data that do not have corresponding struct members,
+// or mapping keys that are duplicates
+func DecoderWithStrictFields() DecoderOption {
+	return func(d *decoder) {
+		d.strict = true
+	}
+}
+
+func DecoderWithFieldNameMarshaler(f FieldNameMarshaler) DecoderOption {
+	return func(d *decoder) {
+		d.structParser.nameMarshaler = f
+	}
+}
+
+func DecoderWithStructTagParser(f StructTagParser) DecoderOption {
+	return func(d *decoder) {
+		d.structParser.tagParser = f
+	}
 }
 
 func (d *decoder) terror(n *node, tag string, out reflect.Value) {

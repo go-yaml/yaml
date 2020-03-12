@@ -176,6 +176,12 @@ var marshalTests = []struct {
 	}, {
 		&struct{ A bool }{true},
 		"a: true\n",
+	}, {
+		&struct{ A string }{"true"},
+		"a: \"true\"\n",
+	}, {
+		&struct{ A string }{"off"},
+		"a: \"off\"\n",
 	},
 
 	// Conditional flag

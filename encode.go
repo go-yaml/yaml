@@ -116,7 +116,7 @@ func (e *encoder) marshal(tag string, in reflect.Value) {
 	}
 	iface := in.Interface()
 	switch value := iface.(type) {
-	case *Node:
+	case *Node, Node:
 		e.nodev(in)
 		return
 	case time.Time:
@@ -418,7 +418,14 @@ func (e *encoder) emitScalar(value, anchor, tag string, style yaml_scalar_style_
 }
 
 func (e *encoder) nodev(in reflect.Value) {
-	e.node(in.Interface().(*Node), "")
+	iface := in.Interface()
+	switch iface.(type) {
+		case Node:
+			n := iface.(Node)
+			e.node(&n, "")
+		case *Node:
+			e.node(iface.(*Node), "")
+	}
 }
 
 func (e *encoder) node(node *Node, tail string) {

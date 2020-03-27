@@ -428,6 +428,15 @@ var marshalTests = []struct {
 		map[string]string{"a": "\tB\n\tC\n"},
 		"a: |\n    \tB\n    \tC\n",
 	},
+
+	{
+		&struct{ A yaml.Node }{yaml.Node{Kind: yaml.ScalarNode, Tag: "!!str", Value: "some value"}},
+		"a: some value\n",
+	},
+	{
+		&struct{ A *yaml.Node }{&yaml.Node{Kind: yaml.ScalarNode, Tag: "!!str", Value: "some value"}},
+		"a: some value\n",
+	},
 }
 
 func (s *S) TestMarshal(c *C) {

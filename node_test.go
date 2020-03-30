@@ -765,6 +765,23 @@ var nodeTests = []struct {
 			}},
 		},
 	}, {
+		"# 一\n# 二\ntrue # 三\n# 四\n# 五\n",
+		yaml.Node{
+			Kind:   yaml.DocumentNode,
+			Line:   3,
+			Column: 1,
+			Content: []*yaml.Node{{
+				Kind:        yaml.ScalarNode,
+				Value:       "true",
+				Tag:         "!!bool",
+				Line:        3,
+				Column:      1,
+				HeadComment: "# 一\n# 二",
+				LineComment: "# 三",
+				FootComment: "# 四\n# 五",
+			}},
+		},
+	}, {
 
 		"[decode]\n# One\n\n# Two\n\n# Three\ntrue # Four\n# Five\n\n# Six\n\n# Seven\n",
 		yaml.Node{
@@ -950,9 +967,9 @@ var nodeTests = []struct {
 	}, {
 		"- la # IA\n- lb # IB\n- lc # IC\n",
 		yaml.Node{
-			Kind:        yaml.DocumentNode,
-			Line:        1,
-			Column:      1,
+			Kind:   yaml.DocumentNode,
+			Line:   1,
+			Column: 1,
 			Content: []*yaml.Node{{
 				Kind:   yaml.SequenceNode,
 				Tag:    "!!seq",
@@ -985,9 +1002,9 @@ var nodeTests = []struct {
 	}, {
 		"# DH1\n\n# HL1\n- - la\n  # HB1\n  - lb\n",
 		yaml.Node{
-			Kind:   yaml.DocumentNode,
-			Line:   4,
-			Column: 1,
+			Kind:        yaml.DocumentNode,
+			Line:        4,
+			Column:      1,
 			HeadComment: "# DH1",
 			Content: []*yaml.Node{{
 				Kind:   yaml.SequenceNode,
@@ -1020,9 +1037,9 @@ var nodeTests = []struct {
 	}, {
 		"# DH1\n\n# HL1\n- # HA1\n  - la\n  # HB1\n  - lb\n",
 		yaml.Node{
-			Kind:   yaml.DocumentNode,
-			Line:   4,
-			Column: 1,
+			Kind:        yaml.DocumentNode,
+			Line:        4,
+			Column:      1,
 			HeadComment: "# DH1",
 			Content: []*yaml.Node{{
 				Kind:   yaml.SequenceNode,
@@ -1036,11 +1053,11 @@ var nodeTests = []struct {
 					Column:      3,
 					HeadComment: "# HL1",
 					Content: []*yaml.Node{{
-						Kind:   yaml.ScalarNode,
-						Tag:    "!!str",
-						Line:   5,
-						Column: 5,
-						Value:  "la",
+						Kind:        yaml.ScalarNode,
+						Tag:         "!!str",
+						Line:        5,
+						Column:      5,
+						Value:       "la",
 						HeadComment: "# HA1",
 					}, {
 						Kind:        yaml.ScalarNode,
@@ -1056,9 +1073,9 @@ var nodeTests = []struct {
 	}, {
 		"[decode]# DH1\n\n# HL1\n- # HA1\n\n  - la\n  # HB1\n  - lb\n",
 		yaml.Node{
-			Kind:   yaml.DocumentNode,
-			Line:   4,
-			Column: 1,
+			Kind:        yaml.DocumentNode,
+			Line:        4,
+			Column:      1,
 			HeadComment: "# DH1",
 			Content: []*yaml.Node{{
 				Kind:   yaml.SequenceNode,

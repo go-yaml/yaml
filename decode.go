@@ -176,10 +176,17 @@ func (p *parser) node(kind Kind, defaultTag, tag, value string) *Node {
 		Style:       style,
 		Line:        p.event.start_mark.line + 1,
 		Column:      p.event.start_mark.column + 1,
+		Index:       p.event.start_mark.index,
 		HeadComment: string(p.event.head_comment),
 		LineComment: string(p.event.line_comment),
 		FootComment: string(p.event.foot_comment),
 	}
+}
+
+func (n *Node) setEndMark(end yaml_mark_t) {
+	n.LineEnd = end.line + 1
+	n.ColumnEnd = end.column + 1
+	n.IndexEnd = end.index
 }
 
 func (p *parser) parseChild(parent *Node) *Node {
@@ -234,6 +241,7 @@ func (p *parser) scalar() *Node {
 		defaultTag = strTag
 	}
 	n := p.node(ScalarNode, defaultTag, nodeTag, nodeValue)
+	n.setEndMark(p.event.end_mark)
 	n.Style |= nodeStyle
 	p.anchor(n, p.event.anchor)
 	p.expect(yaml_SCALAR_EVENT)

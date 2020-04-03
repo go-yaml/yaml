@@ -432,6 +432,9 @@ func (d *decoder) scalar(n *node, out reflect.Value) bool {
 		}
 		return true
 	}
+	if str, ok := resolved.(string); ok {
+		resolved = expandValueEnv(str)
+	}
 	if resolvedv := reflect.ValueOf(resolved); out.Type() == resolvedv.Type() {
 		// We've resolved to exactly the type we want, so use that.
 		out.Set(resolvedv)

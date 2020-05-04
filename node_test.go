@@ -766,6 +766,22 @@ var nodeTests = []struct {
 		},
 	}, {
 
+		"# š\ntrue\n",
+		yaml.Node{
+			Kind:   yaml.DocumentNode,
+			Line:   2,
+			Column: 1,
+			Content: []*yaml.Node{{
+				Kind:        yaml.ScalarNode,
+				Value:       "true",
+				Tag:         "!!bool",
+				Line:        2,
+				Column:      1,
+				HeadComment: "# š",
+			}},
+		},
+	}, {
+
 		"[decode]\n# One\n\n# Two\n\n# Three\ntrue # Four\n# Five\n\n# Six\n\n# Seven\n",
 		yaml.Node{
 			Kind:        yaml.DocumentNode,

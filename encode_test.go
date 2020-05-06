@@ -397,6 +397,11 @@ var marshalTests = []struct {
 		map[string]interface{}{"a": jsonNumberT("bogus")},
 		"a: bogus\n",
 	},
+	// Ensure that strings do not wrap
+	{
+		map[string]string{"a": "abcdefghijklmnopqrstuvwxyz ABCDEFGHIJKLMNOPQRSTUVWXYZ 1234567890 abcdefghijklmnopqrstuvwxyz ABCDEFGHIJKLMNOPQRSTUVWXYZ 1234567890 "},
+		"a: 'abcdefghijklmnopqrstuvwxyz ABCDEFGHIJKLMNOPQRSTUVWXYZ 1234567890 abcdefghijklmnopqrstuvwxyz ABCDEFGHIJKLMNOPQRSTUVWXYZ 1234567890 '\n",
+	},
 }
 
 func (s *S) TestMarshal(c *C) {

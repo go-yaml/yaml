@@ -176,6 +176,12 @@ var marshalTests = []struct {
 	}, {
 		&struct{ A bool }{true},
 		"a: true\n",
+	}, {
+		&struct{ A string }{"true"},
+		"a: \"true\"\n",
+	}, {
+		&struct{ A string }{"off"},
+		"a: \"off\"\n",
 	},
 
 	// Conditional flag
@@ -422,10 +428,26 @@ var marshalTests = []struct {
 		map[string]string{"a": "\tB\n\tC\n"},
 		"a: |\n    \tB\n    \tC\n",
 	},
-	// Ensure that strings do not wrap
+
+  // Ensure that strings do not wrap
 	{
 		map[string]string{"a": "abcdefghijklmnopqrstuvwxyz ABCDEFGHIJKLMNOPQRSTUVWXYZ 1234567890 abcdefghijklmnopqrstuvwxyz ABCDEFGHIJKLMNOPQRSTUVWXYZ 1234567890 "},
 		"a: 'abcdefghijklmnopqrstuvwxyz ABCDEFGHIJKLMNOPQRSTUVWXYZ 1234567890 abcdefghijklmnopqrstuvwxyz ABCDEFGHIJKLMNOPQRSTUVWXYZ 1234567890 '\n",
+  },
+
+	// yaml.Node
+	{
+		&struct {
+			Value yaml.Node
+		}{
+			yaml.Node{
+				Kind:  yaml.ScalarNode,
+				Tag:   "!!str",
+				Value: "foo",
+				Style: yaml.SingleQuotedStyle,
+			},
+		},
+		"value: 'foo'\n",
 	},
 }
 

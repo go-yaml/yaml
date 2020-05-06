@@ -429,11 +429,11 @@ var marshalTests = []struct {
 		"a: |\n    \tB\n    \tC\n",
 	},
 
-  // Ensure that strings do not wrap
+	// Ensure that strings do not wrap
 	{
 		map[string]string{"a": "abcdefghijklmnopqrstuvwxyz ABCDEFGHIJKLMNOPQRSTUVWXYZ 1234567890 abcdefghijklmnopqrstuvwxyz ABCDEFGHIJKLMNOPQRSTUVWXYZ 1234567890 "},
 		"a: 'abcdefghijklmnopqrstuvwxyz ABCDEFGHIJKLMNOPQRSTUVWXYZ 1234567890 abcdefghijklmnopqrstuvwxyz ABCDEFGHIJKLMNOPQRSTUVWXYZ 1234567890 '\n",
-  },
+	},
 
 	// yaml.Node
 	{

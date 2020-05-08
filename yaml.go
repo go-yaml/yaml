@@ -89,6 +89,10 @@ func Unmarshal(in []byte, out interface{}) (err error) {
 	return unmarshal(in, out, false)
 }
 
+func UnmarshalWithCustomTypes(in []byte, out interface{}, customTypeFactories map[string]CustomTypeFactory) (err error) {
+	return unmarshalWithCustomTypes(in, out, false, customTypeFactories)
+}
+
 // A Decorder reads and decodes YAML values from an input stream.
 type Decoder struct {
 	parser      *parser
@@ -117,7 +121,11 @@ func (dec *Decoder) KnownFields(enable bool) {
 // See the documentation for Unmarshal for details about the
 // conversion of YAML into a Go value.
 func (dec *Decoder) Decode(v interface{}) (err error) {
-	d := newDecoder()
+	return dec.DecodeWithCustomTypes(v, nil)
+}
+
+func (dec *Decoder) DecodeWithCustomTypes(v interface{}, customTypeFactories map[string]CustomTypeFactory) (err error) {
+	d := newDecoder(customTypeFactories)
 	d.knownFields = dec.knownFields
 	defer handleErr(&err)
 	node := dec.parser.parse()
@@ -140,7 +148,11 @@ func (dec *Decoder) Decode(v interface{}) (err error) {
 // See the documentation for Unmarshal for details about the
 // conversion of YAML into a Go value.
 func (n *Node) Decode(v interface{}) (err error) {
-	d := newDecoder()
+	return n.DecodeWithCustomTypes(v, nil)
+}
+
+func (n *Node) DecodeWithCustomTypes(v interface{}, customTypeFactories map[string]CustomTypeFactory) (err error) {
+	d := newDecoder(customTypeFactories)
 	defer handleErr(&err)
 	out := reflect.ValueOf(v)
 	if out.Kind() == reflect.Ptr && !out.IsNil() {
@@ -154,8 +166,12 @@ func (n *Node) Decode(v interface{}) (err error) {
 }
 
 func unmarshal(in []byte, out interface{}, strict bool) (err error) {
+	return unmarshalWithCustomTypes(in, out, strict, nil)
+}
+
+func unmarshalWithCustomTypes(in []byte, out interface{}, strict bool, customTypeFactories map[string]CustomTypeFactory) (err error) {
 	defer handleErr(&err)
-	d := newDecoder()
+	d := newDecoder(customTypeFactories)
 	p := newParser(in)
 	defer p.destroy()
 	node := p.parse()

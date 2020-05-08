@@ -1650,3 +1650,26 @@ func (s *S) TestFuzzCrashers(c *C) {
 //		yaml.Marshal(&v)
 //	}
 //}
+
+type Figure struct {
+	Shape interface{}
+}
+
+type Circle struct {
+	Radius int
+}
+
+func (s *S) TestCustomUserTags(c *C) {
+	var figure Figure
+
+	customTypeFactories := make(map[string]yaml.CustomTypeFactory)
+	customTypeFactories["!circle"] = func() interface{} { return &Circle{} }
+
+	err := yaml.UnmarshalWithCustomTypes([]byte("shape: !circle { radius: 5} "), &figure, customTypeFactories)
+
+	circle, ok := figure.Shape.(*Circle)
+	c.Assert(ok, Equals, true)
+	c.Assert(circle.Radius, Equals, 5)
+
+	c.Assert(err, IsNil)
+}

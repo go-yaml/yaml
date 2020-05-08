@@ -1671,10 +1671,15 @@ type Figures struct {
 func (s *S) TestCustomUserTagsInProperty(c *C) {
 	var figure Figure
 
-	customTypeFactories := make(map[string]yaml.CustomTypeFactory)
-	customTypeFactories["!circle"] = func() interface{} { return &Circle{} }
+	factories := map[string]yaml.CustomTypeFactory {
+		"!circle": func() interface{} { return &Circle{} },
+	}
 
-	err := yaml.UnmarshalWithCustomTypes([]byte("shape: !circle { radius: 5} "), &figure, customTypeFactories)
+	y :=
+`shape: !circle
+   radius: 5
+`
+	err := yaml.UnmarshalWithCustomTypes([]byte(y), &figure, factories)
 
 	circle, ok := figure.Shape.(*Circle)
 	c.Assert(ok, Equals, true)
@@ -1686,11 +1691,20 @@ func (s *S) TestCustomUserTagsInProperty(c *C) {
 func (s *S) TestCustomUserTagsInSequence(c *C) {
 	var figures Figures
 
-	customTypeFactories := make(map[string]yaml.CustomTypeFactory)
-	customTypeFactories["!circle"] = func() interface{} { return &Circle{} }
-	customTypeFactories["!triangle"] = func() interface{} { return &Triangle{} }
+	factories := map[string]yaml.CustomTypeFactory{
+		"!circle": func () interface{}{return &Circle{}},
+		"!triangle": func () interface{}{return &Triangle{}},
+	}
 
-	err := yaml.UnmarshalWithCustomTypes([]byte("shapes:\n   - !circle { radius: 5}\n   - !triangle { height: 3, base: 4 }\n"), &figures, customTypeFactories)
+	y :=
+`shapes:
+   - !circle
+      radius: 5
+   - !triangle
+      height: 3
+      base: 4
+`
+	err := yaml.UnmarshalWithCustomTypes([]byte(y), &figures, factories)
 
 	c.Assert(len(figures.Shapes), Equals, 2)
 

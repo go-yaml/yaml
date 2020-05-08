@@ -89,6 +89,38 @@ func Unmarshal(in []byte, out interface{}) (err error) {
 	return unmarshal(in, out, false)
 }
 
+// UnmarshalWithCustomTypes decodes the document, see Unmarshal function description.
+//
+// This function allows additionally to map custom user tags to factory functions that create instances
+// of specific types and return pointers to those instances.
+//
+// For example:
+// Having the following types:
+//
+// type Figure struct {
+//    Shape interface{}
+// }
+//
+// type Circle struct {
+//    Radius int
+// }
+//
+// you can decode the following yaml:
+//
+// `shape: !circle
+//     radius: 5
+// `
+//
+// var figure Figure
+//
+// by preparing factory for custom user tags:
+// factories := map[string]yaml.CustomTypeFactory {
+//     "!circle": func() interface{} { return &Circle{} },
+// }
+//
+// and passing the factories to unmarshal function
+//
+// yaml.UnmarshalWithCustomTypes([]byte(y), &figure, factories)
 func UnmarshalWithCustomTypes(in []byte, out interface{}, customTypeFactories map[string]CustomTypeFactory) (err error) {
 	return unmarshalWithCustomTypes(in, out, false, customTypeFactories)
 }

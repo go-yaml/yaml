@@ -1659,7 +1659,16 @@ type Circle struct {
 	Radius int
 }
 
-func (s *S) TestCustomUserTags(c *C) {
+type Triangle struct {
+	Base int
+	Height int
+}
+
+type Figures struct {
+	Shapes []interface{}
+}
+
+func (s *S) TestCustomUserTagsInProperty(c *C) {
 	var figure Figure
 
 	customTypeFactories := make(map[string]yaml.CustomTypeFactory)
@@ -1670,6 +1679,29 @@ func (s *S) TestCustomUserTags(c *C) {
 	circle, ok := figure.Shape.(*Circle)
 	c.Assert(ok, Equals, true)
 	c.Assert(circle.Radius, Equals, 5)
+
+	c.Assert(err, IsNil)
+}
+
+func (s *S) TestCustomUserTagsInSequence(c *C) {
+	var figures Figures
+
+	customTypeFactories := make(map[string]yaml.CustomTypeFactory)
+	customTypeFactories["!circle"] = func() interface{} { return &Circle{} }
+	customTypeFactories["!triangle"] = func() interface{} { return &Triangle{} }
+
+	err := yaml.UnmarshalWithCustomTypes([]byte("shapes:\n   - !circle { radius: 5}\n   - !triangle { height: 3, base: 4 }\n"), &figures, customTypeFactories)
+
+	c.Assert(len(figures.Shapes), Equals, 2)
+
+	circle, ok := figures.Shapes[0].(*Circle)
+	c.Assert(ok, Equals, true)
+	c.Assert(circle.Radius, Equals, 5)
+
+	triangle, ok := figures.Shapes[1].(*Triangle)
+	c.Assert(ok, Equals, true)
+	c.Assert(triangle.Height, Equals, 3)
+	c.Assert(triangle.Base, Equals, 4)
 
 	c.Assert(err, IsNil)
 }

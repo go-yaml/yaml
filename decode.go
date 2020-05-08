@@ -777,10 +777,12 @@ func (d *decoder) mapping(n *Node, out reflect.Value) (good bool) {
 		iface := out
 		if factory, exists := d.customTypeFactories[n.Tag]; exists {
 			out = reflect.ValueOf(factory())
-			b := d.mappingStruct(n, out.Elem())
-			iface.Set(out)
-			return b
-		} else if isStringMap(n) {
+			if d.mappingStruct(n, out.Elem()) {
+				iface.Set(out)
+				return true
+			}
+		}
+		if isStringMap(n) {
 			out = reflect.MakeMap(d.stringMapType)
 		} else {
 			out = reflect.MakeMap(d.generalMapType)

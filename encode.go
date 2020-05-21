@@ -29,6 +29,7 @@ type jsonNumber interface {
 type encoder struct {
 	emitter yaml_emitter_t
 	event   yaml_event_t
+	hook    func(in interface{}) (ok bool, out interface{}, err error)
 	out     []byte
 	flow    bool
 	// doneInit holds whether the initial stream_start_event has been
@@ -100,7 +101,22 @@ func (e *encoder) marshal(tag string, in reflect.Value) {
 		e.nilv()
 		return
 	}
+
 	iface := in.Interface()
+	if e.hook != nil {
+		ok, out, err := e.hook(iface)
+		if ok {
+			if err != nil {
+				fail(err)
+			}
+			if out == nil {
+				e.nilv()
+				return
+			}
+			iface = out
+		}
+	}
+
 	switch m := iface.(type) {
 	case jsonNumber:
 		integer, err := m.Int64()

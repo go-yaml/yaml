@@ -625,6 +625,38 @@ func (s *S) TestSortedOutput(c *C) {
 	}
 }
 
+type secret string
+
+func (s secret) MarshalYAML() (interface{}, error) {
+	return "<secret>", nil
+}
+
+type account struct {
+	Username string `yaml:"username"`
+	Password secret `yaml:"password"`
+}
+
+func (s *S) TestEncoderHook(c *C) {
+	user := account{Username: "admin", Password: secret("supersecret")}
+
+	var buf bytes.Buffer
+	e := yaml.NewEncoder(&buf)
+	e.SetHook(func(in interface{}) (ok bool, out interface{}, err error) {
+		switch v := in.(type) {
+		case secret:
+			return true, string(v), nil
+		default:
+			return false, nil, nil
+		}
+	})
+
+	err := e.Encode(user)
+	c.Assert(err, IsNil)
+
+	expect := "username: admin\npassword: supersecret\n"
+	c.Assert(string(buf.Bytes()), Equals, expect)
+}
+
 func newTime(t time.Time) *time.Time {
 	return &t
 }

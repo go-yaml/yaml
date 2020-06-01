@@ -580,8 +580,8 @@ func (s *S) TestSortedOutput(c *C) {
 		"a/11",
 		"a/0012",
 		"a/100",
-		"a~10",
 		"ab/1",
+		"a~10",
 		"b/1",
 		"b/01",
 		"b/2",
@@ -598,6 +598,8 @@ func (s *S) TestSortedOutput(c *C) {
 		"d7abc",
 		"d12",
 		"d12a",
+		"e11",
+		"e1a",
 	}
 	m := make(map[interface{}]int)
 	for _, k := range order {

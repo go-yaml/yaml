@@ -43,12 +43,10 @@ func (l keyList) Less(i, j int) bool {
 		}
 		al := unicode.IsLetter(ar[i])
 		bl := unicode.IsLetter(br[i])
-		if al && bl {
+		if al || bl {
 			return ar[i] < br[i]
 		}
-		if al || bl {
-			return bl
-		}
+
 		var ai, bi int
 		var an, bn int64
 		if ar[i] == '0' || br[i] == '0' {

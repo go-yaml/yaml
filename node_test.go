@@ -766,7 +766,7 @@ var nodeTests = []struct {
 		},
 	}, {
 
-		"# š\ntrue\n",
+		"# š\ntrue # š\n",
 		yaml.Node{
 			Kind:   yaml.DocumentNode,
 			Line:   2,
@@ -778,6 +778,7 @@ var nodeTests = []struct {
 				Line:        2,
 				Column:      1,
 				HeadComment: "# š",
+				LineComment: "# š",
 			}},
 		},
 	}, {

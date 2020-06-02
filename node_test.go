@@ -967,9 +967,9 @@ var nodeTests = []struct {
 	}, {
 		"- la # IA\n- lb # IB\n- lc # IC\n",
 		yaml.Node{
-			Kind:        yaml.DocumentNode,
-			Line:        1,
-			Column:      1,
+			Kind:   yaml.DocumentNode,
+			Line:   1,
+			Column: 1,
 			Content: []*yaml.Node{{
 				Kind:   yaml.SequenceNode,
 				Tag:    "!!seq",
@@ -1002,9 +1002,9 @@ var nodeTests = []struct {
 	}, {
 		"# DH1\n\n# HL1\n- - la\n  # HB1\n  - lb\n",
 		yaml.Node{
-			Kind:   yaml.DocumentNode,
-			Line:   4,
-			Column: 1,
+			Kind:        yaml.DocumentNode,
+			Line:        4,
+			Column:      1,
 			HeadComment: "# DH1",
 			Content: []*yaml.Node{{
 				Kind:   yaml.SequenceNode,
@@ -1037,9 +1037,9 @@ var nodeTests = []struct {
 	}, {
 		"# DH1\n\n# HL1\n- # HA1\n  - la\n  # HB1\n  - lb\n",
 		yaml.Node{
-			Kind:   yaml.DocumentNode,
-			Line:   4,
-			Column: 1,
+			Kind:        yaml.DocumentNode,
+			Line:        4,
+			Column:      1,
 			HeadComment: "# DH1",
 			Content: []*yaml.Node{{
 				Kind:   yaml.SequenceNode,
@@ -1053,11 +1053,11 @@ var nodeTests = []struct {
 					Column:      3,
 					HeadComment: "# HL1",
 					Content: []*yaml.Node{{
-						Kind:   yaml.ScalarNode,
-						Tag:    "!!str",
-						Line:   5,
-						Column: 5,
-						Value:  "la",
+						Kind:        yaml.ScalarNode,
+						Tag:         "!!str",
+						Line:        5,
+						Column:      5,
+						Value:       "la",
 						HeadComment: "# HA1",
 					}, {
 						Kind:        yaml.ScalarNode,
@@ -1073,9 +1073,9 @@ var nodeTests = []struct {
 	}, {
 		"[decode]# DH1\n\n# HL1\n- # HA1\n\n  - la\n  # HB1\n  - lb\n",
 		yaml.Node{
-			Kind:   yaml.DocumentNode,
-			Line:   4,
-			Column: 1,
+			Kind:        yaml.DocumentNode,
+			Line:        4,
+			Column:      1,
 			HeadComment: "# DH1",
 			Content: []*yaml.Node{{
 				Kind:   yaml.SequenceNode,
@@ -2415,6 +2415,85 @@ func (s *S) TestSetString(c *C) {
 		err = node.Decode(&str)
 		c.Assert(err, IsNil)
 		c.Assert(str, Equals, item.str)
+	}
+}
+
+var nodeEncodeDecodeTests = []struct {
+	value interface{}
+	yaml  string
+	node  yaml.Node
+}{{
+	"something simple",
+	"something simple\n",
+	yaml.Node{
+		Kind:  yaml.ScalarNode,
+		Value: "something simple",
+		Tag:   "!!str",
+	},
+}, {
+	`"quoted value"`,
+	"'\"quoted value\"'\n",
+	yaml.Node{
+		Kind:  yaml.ScalarNode,
+		Style: yaml.SingleQuotedStyle,
+		Value: `"quoted value"`,
+		Tag:   "!!str",
+	},
+}, {
+	123,
+	"123",
+	yaml.Node{
+		Kind:  yaml.ScalarNode,
+		Value: `123`,
+		Tag:   "!!int",
+	},
+}, {
+	[]interface{}{1, 2},
+	"[1, 2]",
+	yaml.Node{
+		Kind: yaml.SequenceNode,
+		Tag:  "!!seq",
+		Content: []*yaml.Node{{
+			Kind:  yaml.ScalarNode,
+			Value: "1",
+			Tag:   "!!int",
+		}, {
+			Kind:  yaml.ScalarNode,
+			Value: "2",
+			Tag:   "!!int",
+		}},
+	},
+}, {
+	map[string]interface{}{"a": "b"},
+	"a: b",
+	yaml.Node{
+		Kind: yaml.MappingNode,
+		Tag:  "!!map",
+		Content: []*yaml.Node{{
+			Kind:  yaml.ScalarNode,
+			Value: "a",
+			Tag:   "!!str",
+		}, {
+			Kind:  yaml.ScalarNode,
+			Value: "b",
+			Tag:   "!!str",
+		}},
+	},
+}}
+
+func (s *S) TestNodeEncodeDecode(c *C) {
+	for i, item := range nodeEncodeDecodeTests {
+		c.Logf("Encode/Decode test value #%d: %#v", i, item.value)
+
+		var v interface{}
+		err := item.node.Decode(&v)
+		c.Assert(err, IsNil)
+		c.Assert(v, DeepEquals, item.value)
+
+		var n yaml.Node
+		err = n.Encode(item.value)
+		c.Assert(err, IsNil)
+		c.Assert(n, DeepEquals, item.node)
 	}
 }
 

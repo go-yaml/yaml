@@ -252,6 +252,24 @@ func (e *Encoder) Encode(v interface{}) (err error) {
 	return nil
 }
 
+// Encode encodes value v and stores its representation in n.
+//
+// See the documentation for Marshal for details about the
+// conversion of Go values into YAML.
+func (n *Node) Encode(v interface{}) (err error) {
+	defer handleErr(&err)
+	e := newEncoder()
+	defer e.destroy()
+	e.marshalDoc("", reflect.ValueOf(v))
+	e.finish()
+	p := newParser(e.out)
+	p.textless = true
+	defer p.destroy()
+	doc := p.parse()
+	*n = *doc.Content[0]
+	return nil
+}
+
 // SetIndent changes the used indentation used when encoding.
 func (e *Encoder) SetIndent(spaces int) {
 	if spaces < 0 {

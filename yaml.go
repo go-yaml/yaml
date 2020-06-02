@@ -89,7 +89,7 @@ func Unmarshal(in []byte, out interface{}) (err error) {
 	return unmarshal(in, out, false)
 }
 
-// A Decorder reads and decodes YAML values from an input stream.
+// A Decoder reads and decodes YAML values from an input stream.
 type Decoder struct {
 	parser      *parser
 	knownFields bool

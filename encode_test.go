@@ -449,6 +449,43 @@ var marshalTests = []struct {
 		},
 		"value: 'foo'\n",
 	},
+
+	// Enforced tagging with shorthand notation (issue #616).
+	{
+		&struct {
+			Value yaml.Node
+		}{
+			yaml.Node{
+				Kind:  yaml.ScalarNode,
+				Style: yaml.TaggedStyle,
+				Value: "foo",
+				Tag:   "!!str",
+			},
+		},
+		"value: !!str foo\n",
+	}, {
+		&struct {
+			Value yaml.Node
+		}{
+			yaml.Node{
+				Kind:  yaml.MappingNode,
+				Style: yaml.TaggedStyle,
+				Tag:   "!!map",
+			},
+		},
+		"value: !!map {}\n",
+	}, {
+		&struct {
+			Value yaml.Node
+		}{
+			yaml.Node{
+				Kind:  yaml.SequenceNode,
+				Style: yaml.TaggedStyle,
+				Tag:   "!!seq",
+			},
+		},
+		"value: !!seq []\n",
+	},
 }
 
 func (s *S) TestMarshal(c *C) {

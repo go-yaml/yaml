@@ -425,6 +425,12 @@ func (e *encoder) nodev(in reflect.Value) {
 }
 
 func (e *encoder) node(node *Node, tail string) {
+	// Zero nodes behave as nil.
+	if node.Kind == 0 && node.IsZero() {
+		e.nilv()
+		return
+	}
+
 	// If the tag was not explicitly requested, and dropping it won't change the
 	// implicit tag of the value, don't include it in the presentation.
 	var tag = node.Tag
@@ -560,5 +566,7 @@ func (e *encoder) node(node *Node, tail string) {
 		}
 
 		e.emitScalar(value, node.Anchor, tag, style, []byte(node.HeadComment), []byte(node.LineComment), []byte(node.FootComment), []byte(tail))
+	default:
+		failf("cannot encode node with unknown kind %d", node.Kind)
 	}
 }

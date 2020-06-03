@@ -409,6 +409,13 @@ type Node struct {
 	Column int
 }
 
+// IsZero returns whether the node has all of its fields unset.
+func (n *Node) IsZero() bool {
+	return n.Kind == 0 && n.Style == 0 && n.Tag == "" && n.Value == "" && n.Anchor == "" && n.Alias == nil && n.Content == nil &&
+		n.HeadComment == "" && n.LineComment == "" && n.FootComment == "" && n.Line == 0 && n.Column == 0
+}
+
+
 // LongTag returns the long form of the tag that indicates the data type for
 // the node. If the Tag field isn't explicitly defined, one will be computed
 // based on the node properties.

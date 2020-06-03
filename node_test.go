@@ -45,6 +45,9 @@ var nodeTests = []struct {
 			}},
 		},
 	}, {
+		"[encode]null\n",
+		yaml.Node{},
+	}, {
 		"foo\n",
 		yaml.Node{
 			Kind:   yaml.DocumentNode,
@@ -2495,6 +2498,40 @@ func (s *S) TestNodeEncodeDecode(c *C) {
 		c.Assert(err, IsNil)
 		c.Assert(n, DeepEquals, item.node)
 	}
+}
+
+func (s *S) TestNodeZeroEncodeDecode(c *C) {
+	// Zero node value behaves as nil when encoding...
+	var n yaml.Node
+	data, err := yaml.Marshal(&n)
+	c.Assert(err, IsNil)
+	c.Assert(string(data), Equals, "null\n")
+
+	// ... and decoding.
+	var v *struct{} = &struct{}{}
+	c.Assert(n.Decode(&v), IsNil)
+	c.Assert(v, IsNil)
+
+	// Kind zero is still unknown, though.
+	n.Line = 1
+	_, err = yaml.Marshal(&n)
+	c.Assert(err, ErrorMatches, "yaml: cannot encode node with unknown kind 0")
+	c.Assert(n.Decode(&v), ErrorMatches, "yaml: cannot decode node with unknown kind 0")
+}
+
+func (s *S) TestNodeOmitEmpty(c *C) {
+	var v struct {
+		A int
+		B yaml.Node ",omitempty"
+	}
+	v.A = 1
+	data, err := yaml.Marshal(&v)
+	c.Assert(err, IsNil)
+	c.Assert(string(data), Equals, "a: 1\n")
+
+	v.B.Line = 1
+	_, err = yaml.Marshal(&v)
+	c.Assert(err, ErrorMatches, "yaml: cannot encode node with unknown kind 0")
 }
 
 func fprintComments(out io.Writer, node *yaml.Node, indent string) {

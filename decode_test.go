@@ -1576,8 +1576,7 @@ func (s *S) TestDecodeKnownFields(c *C) {
 		// Then test that Decode fails on the same thing with KnownFields on.
 		t := reflect.ValueOf(item.value).Type()
 		value := reflect.New(t)
-		dec := yaml.NewDecoder(bytes.NewBuffer([]byte(item.data)))
-		dec.KnownFields(item.known)
+		dec := yaml.NewDecoderWith(yaml.NewDecodeOptions().KnownFields(item.known), bytes.NewBuffer([]byte(item.data)))
 		err := dec.Decode(value.Interface())
 		c.Assert(err, ErrorMatches, item.error)
 	}

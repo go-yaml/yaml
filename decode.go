@@ -308,7 +308,7 @@ type DecodeOptions struct {
 }
 
 func NewDecodeOptions() *DecodeOptions {
-	return &DecodeOptions{uniqueKeys: true}
+	return &DecodeOptions{knownFields: false, uniqueKeys: true}
 }
 
 func (c *DecodeOptions) KnownFields(enabled bool) *DecodeOptions {
@@ -345,11 +345,14 @@ var (
 	ptrTimeType    = reflect.TypeOf(&time.Time{})
 )
 
-func newDecoder() *decoder {
+func newDecoder(options *DecodeOptions) *decoder {
+	if options == nil {
+		options = NewDecodeOptions()
+	}
 	d := &decoder{
 		stringMapType:  stringMapType,
 		generalMapType: generalMapType,
-		options:        NewDecodeOptions(),
+		options:        options,
 	}
 	d.aliases = make(map[*Node]bool)
 	return d

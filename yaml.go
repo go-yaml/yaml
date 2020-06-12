@@ -110,16 +110,15 @@ func NewDecoder(r io.Reader) *Decoder {
 	}
 }
 
-// KnownFields ensures that the keys in decoded mappings to
-// exist as fields in the struct being decoded into.
-func (dec *Decoder) KnownFields(enable bool) {
-	dec.options.knownFields = enable
-}
-
-// UniqueKeys ensures that the keys in decoded mappings
-// are unique.
-func (dec *Decoder) UniqueKeys(enable bool) {
-	dec.options.uniqueKeys = enable
+// NewDecoderWith returns a new decoder that reads from r using options.
+//
+// The decoder introduces its own buffering and may read
+// data from r beyond the YAML values requested.
+func NewDecoderWith(options *DecodeOptions, r io.Reader) *Decoder {
+	return &Decoder{
+		parser:  newParserFromReader(r),
+		options: options,
+	}
 }
 
 // Decode reads the next YAML-encoded value from its input
@@ -128,8 +127,7 @@ func (dec *Decoder) UniqueKeys(enable bool) {
 // See the documentation for Unmarshal for details about the
 // conversion of YAML into a Go value.
 func (dec *Decoder) Decode(v interface{}) (err error) {
-	d := newDecoder()
-	d.options = dec.options
+	d := newDecoder(dec.options)
 	defer handleErr(&err)
 	node := dec.parser.parse()
 	if node == nil {
@@ -151,17 +149,14 @@ func (dec *Decoder) Decode(v interface{}) (err error) {
 // See the documentation for Unmarshal for details about the
 // conversion of YAML into a Go value.
 func (n *Node) Decode(v interface{}) (err error) {
-	d := newDecoder()
+	d := newDecoder(nil)
 	return n.decode(d, v)
 }
 
 // DecodeWith decodes the node and stores its data into the value pointed to by v.
 // It uses passed DecodeOptions to setup internal decoder.
 func (n *Node) DecodeWith(options *DecodeOptions, v interface{}) (err error) {
-	d := newDecoder()
-	if options != nil {
-		d.options = options
-	}
+	d := newDecoder(options)
 	return n.decode(d, v)
 }
 
@@ -180,10 +175,7 @@ func (n *Node) decode(d *decoder, v interface{}) (err error) {
 
 func unmarshal(options *DecodeOptions, in []byte, out interface{}) (err error) {
 	defer handleErr(&err)
-	d := newDecoder()
-	if options != nil {
-		d.options = options
-	}
+	d := newDecoder(options)
 	p := newParser(in)
 	defer p.destroy()
 	node := p.parse()

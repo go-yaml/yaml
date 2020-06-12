@@ -86,17 +86,17 @@ type Marshaler interface {
 // supported tag options.
 //
 func Unmarshal(in []byte, out interface{}) (err error) {
-	return unmarshal(in, out, nil)
+	return unmarshal(nil, in, out)
 }
 
-func UnmarshalWithConfig(in []byte, out interface{}, config *DecodeConfig) (err error) {
-	return unmarshal(in, out, config)
+func UnmarshalWith(options *DecodeOptions, in []byte, out interface{}) (err error) {
+	return unmarshal(options, in, out)
 }
 
 // A Decorder reads and decodes YAML values from an input stream.
 type Decoder struct {
-	parser *parser
-	config *DecodeConfig
+	parser  *parser
+	options *DecodeOptions
 }
 
 // NewDecoder returns a new decoder that reads from r.
@@ -105,21 +105,21 @@ type Decoder struct {
 // data from r beyond the YAML values requested.
 func NewDecoder(r io.Reader) *Decoder {
 	return &Decoder{
-		parser: newParserFromReader(r),
-		config: NewDecodeConfig(),
+		parser:  newParserFromReader(r),
+		options: NewDecodeOptions(),
 	}
 }
 
 // KnownFields ensures that the keys in decoded mappings to
 // exist as fields in the struct being decoded into.
 func (dec *Decoder) KnownFields(enable bool) {
-	dec.config.knownFields = enable
+	dec.options.knownFields = enable
 }
 
 // UniqueKeys ensures that the keys in decoded mappings
 // are unique.
 func (dec *Decoder) UniqueKeys(enable bool) {
-	dec.config.uniqueKeys = enable
+	dec.options.uniqueKeys = enable
 }
 
 // Decode reads the next YAML-encoded value from its input
@@ -129,7 +129,7 @@ func (dec *Decoder) UniqueKeys(enable bool) {
 // conversion of YAML into a Go value.
 func (dec *Decoder) Decode(v interface{}) (err error) {
 	d := newDecoder()
-	d.config = dec.config
+	d.options = dec.options
 	defer handleErr(&err)
 	node := dec.parser.parse()
 	if node == nil {
@@ -155,12 +155,12 @@ func (n *Node) Decode(v interface{}) (err error) {
 	return n.decode(d, v)
 }
 
-// DecodeWithConfig decodes the node and stores its data into the value pointed to by v.
-// It uses passed DecodeConfig to setup internal decoder.
-func (n *Node) DecodeWithConfig(v interface{}, config *DecodeConfig) (err error) {
+// DecodeWith decodes the node and stores its data into the value pointed to by v.
+// It uses passed DecodeOptions to setup internal decoder.
+func (n *Node) DecodeWith(options *DecodeOptions, v interface{}) (err error) {
 	d := newDecoder()
-	if config != nil {
-		d.config = config
+	if options != nil {
+		d.options = options
 	}
 	return n.decode(d, v)
 }
@@ -178,11 +178,11 @@ func (n *Node) decode(d *decoder, v interface{}) (err error) {
 	return nil
 }
 
-func unmarshal(in []byte, out interface{}, config *DecodeConfig) (err error) {
+func unmarshal(options *DecodeOptions, in []byte, out interface{}) (err error) {
 	defer handleErr(&err)
 	d := newDecoder()
-	if config != nil {
-		d.config = config
+	if options != nil {
+		d.options = options
 	}
 	p := newParser(in)
 	defer p.destroy()

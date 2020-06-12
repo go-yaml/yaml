@@ -1598,7 +1598,7 @@ func (s *S) TestUnmarshalKnownFields(c *C) {
 		// Then test that Unmarshal fails on the same thing with KnownFields on.
 		t := reflect.ValueOf(item.value).Type()
 		value := reflect.New(t)
-		err := yaml.UnmarshalWithConfig([]byte(item.data), value.Interface(), yaml.NewDecodeConfig().KnownFields(true))
+		err := yaml.UnmarshalWith(yaml.NewDecodeOptions().KnownFields(true), []byte(item.data), value.Interface())
 		c.Assert(err, ErrorMatches, item.error)
 	}
 }

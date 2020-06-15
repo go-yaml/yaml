@@ -598,6 +598,56 @@ var nodeTests = []struct {
 			}},
 		},
 	}, {
+		// Indentless sequence.
+		"[decode]a:\n# HM\n- # HB1\n  # HB2\n  b: # IB\n    c # IC\n",
+		yaml.Node{
+			Kind:   yaml.DocumentNode,
+			Line:   1,
+			Column: 1,
+			Content: []*yaml.Node{{
+				Kind:   yaml.MappingNode,
+				Tag:    "!!map",
+				Line:   1,
+				Column: 1,
+				Content: []*yaml.Node{{
+					Kind:   yaml.ScalarNode,
+					Style:  0x0,
+					Tag:    "!!str",
+					Value:  "a",
+					Line:   1,
+					Column: 1,
+				}, {
+					Kind:   yaml.SequenceNode,
+					Tag:    "!!seq",
+					Line:   3,
+					Column: 1,
+					Content: []*yaml.Node{{
+						Kind:        yaml.MappingNode,
+						Tag:         "!!map",
+						HeadComment: "# HM",
+						Line:        5,
+						Column:      3,
+						Content: []*yaml.Node{{
+							Kind:        yaml.ScalarNode,
+							Tag:         "!!str",
+							Value:       "b",
+							HeadComment: "# HB1\n# HB2",
+							LineComment: "# IB",
+							Line:        5,
+							Column:      3,
+						}, {
+							Kind:        yaml.ScalarNode,
+							Tag:         "!!str",
+							Value:       "c",
+							LineComment: "# IC",
+							Line:        6,
+							Column:      5,
+						}},
+					}},
+				}},
+			}},
+		},
+	}, {
 		"- a\n- b\n",
 		yaml.Node{
 			Kind:   yaml.DocumentNode,

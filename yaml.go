@@ -93,6 +93,7 @@ func Unmarshal(in []byte, out interface{}) (err error) {
 type Decoder struct {
 	parser      *parser
 	knownFields bool
+	supportIncludeFile bool
 }
 
 // NewDecoder returns a new decoder that reads from r.
@@ -111,6 +112,11 @@ func (dec *Decoder) KnownFields(enable bool) {
 	dec.knownFields = enable
 }
 
+// SupportIncludeFile to support !!include tag’s for file import
+func (dec *Decoder) SupportIncludeFile(enable bool) {
+	dec.supportIncludeFile = enable
+}
+
 // Decode reads the next YAML-encoded value from its input
 // and stores it in the value pointed to by v.
 //
@@ -119,6 +125,7 @@ func (dec *Decoder) KnownFields(enable bool) {
 func (dec *Decoder) Decode(v interface{}) (err error) {
 	d := newDecoder()
 	d.knownFields = dec.knownFields
+	d.supportIncludeFile = dec.supportIncludeFile
 	defer handleErr(&err)
 	node := dec.parser.parse()
 	if node == nil {
@@ -363,7 +370,7 @@ const (
 //             Address yaml.Node
 //     }
 //     err := yaml.Unmarshal(data, &person)
-// 
+//
 // Or by itself:
 //
 //     var person Node

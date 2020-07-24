@@ -1,5 +1,5 @@
 //
-// Copyrightunmarsah (c) 2011-2019 Canonical Ltd
+// Copyright (c) 2011-2019 Canonical Ltd
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -316,11 +316,12 @@ type decoder struct {
 	stringMapType  reflect.Type
 	generalMapType reflect.Type
 
-	knownFields bool
-	uniqueKeys  bool
-	decodeCount int
-	aliasCount  int
-	aliasDepth  int
+	knownFields        bool
+	supportIncludeFile bool
+	uniqueKeys         bool
+	decodeCount        int
+	aliasCount         int
+	aliasDepth         int
 }
 
 var (
@@ -578,7 +579,7 @@ func (d *decoder) scalar(n *Node, out reflect.Value) bool {
 		return d.null(out)
 	}
 
-	if tag == "!!include" {
+	if d.supportIncludeFile && tag == "!!include" {
 		str := resolved.(string)
 		f, err := os.Open(str)
 		if err != nil {

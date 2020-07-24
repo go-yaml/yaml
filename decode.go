@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2011-2019 Canonical Ltd
+// Copyrightunmarsah (c) 2011-2019 Canonical Ltd
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"io"
 	"math"
+	"os"
 	"reflect"
 	"strconv"
 	"time"
@@ -576,6 +577,18 @@ func (d *decoder) scalar(n *Node, out reflect.Value) bool {
 	if resolved == nil {
 		return d.null(out)
 	}
+
+	if tag == "!!include" {
+		str := resolved.(string)
+		f, err := os.Open(str)
+		if err != nil {
+			failf("open file error %+v", err)
+		}
+		parser := newParserFromReader(f)
+		node := parser.parse()
+		return d.unmarshal(node, out)
+	}
+
 	if resolvedv := reflect.ValueOf(resolved); out.Type() == resolvedv.Type() {
 		// We've resolved to exactly the type we want, so use that.
 		out.Set(resolvedv)

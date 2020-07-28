@@ -125,7 +125,7 @@ func UnmarshalWithCustomTypes(in []byte, out interface{}, customTypeFactories ma
 	return unmarshalWithCustomTypes(in, out, false, customTypeFactories)
 }
 
-// A Decorder reads and decodes YAML values from an input stream.
+// A Decoder reads and decodes YAML values from an input stream.
 type Decoder struct {
 	parser      *parser
 	knownFields bool
@@ -242,7 +242,7 @@ func unmarshalWithCustomTypes(in []byte, out interface{}, strict bool, customTyp
 //                  Zero valued structs will be omitted if all their public
 //                  fields are zero, unless they implement an IsZero
 //                  method (see the IsZeroer interface type), in which
-//                  case the field will be included if that method returns true.
+//                  case the field will be excluded if IsZero returns true.
 //
 //     flow         Marshal using a flow style (useful for structs,
 //                  sequences and maps).
@@ -297,6 +297,24 @@ func NewEncoder(w io.Writer) *Encoder {
 func (e *Encoder) Encode(v interface{}) (err error) {
 	defer handleErr(&err)
 	e.encoder.marshalDoc("", reflect.ValueOf(v))
+	return nil
+}
+
+// Encode encodes value v and stores its representation in n.
+//
+// See the documentation for Marshal for details about the
+// conversion of Go values into YAML.
+func (n *Node) Encode(v interface{}) (err error) {
+	defer handleErr(&err)
+	e := newEncoder()
+	defer e.destroy()
+	e.marshalDoc("", reflect.ValueOf(v))
+	e.finish()
+	p := newParser(e.out)
+	p.textless = true
+	defer p.destroy()
+	doc := p.parse()
+	*n = *doc.Content[0]
 	return nil
 }
 
@@ -376,6 +394,12 @@ const (
 // and maps, Node is an intermediate representation that allows detailed
 // control over the content being decoded or encoded.
 //
+// It's worth noting that although Node offers access into details such as
+// line numbers, colums, and comments, the content when re-encoded will not
+// have its original textual representation preserved. An effort is made to
+// render the data plesantly, and to preserve comments near the data they
+// describe, though.
+//
 // Values that make use of the Node type interact with the yaml package in the
 // same way any other type would do, by encoding and decoding yaml data
 // directly or indirectly into them.
@@ -438,6 +462,13 @@ type Node struct {
 	Line   int
 	Column int
 }
+
+// IsZero returns whether the node has all of its fields unset.
+func (n *Node) IsZero() bool {
+	return n.Kind == 0 && n.Style == 0 && n.Tag == "" && n.Value == "" && n.Anchor == "" && n.Alias == nil && n.Content == nil &&
+		n.HeadComment == "" && n.LineComment == "" && n.FootComment == "" && n.Line == 0 && n.Column == 0
+}
+
 
 // LongTag returns the long form of the tag that indicates the data type for
 // the node. If the Tag field isn't explicitly defined, one will be computed

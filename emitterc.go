@@ -241,7 +241,7 @@ func yaml_emitter_increase_indent(emitter *yaml_emitter_t, flow, indentless bool
 			emitter.indent += 2
 		} else {
 			// Everything else aligns to the chosen indentation.
-			emitter.indent = emitter.best_indent*((emitter.indent+emitter.best_indent)/emitter.best_indent)
+			emitter.indent = emitter.best_indent * ((emitter.indent + emitter.best_indent) / emitter.best_indent)
 		}
 	}
 	return true
@@ -829,7 +829,7 @@ func yaml_emitter_emit_block_mapping_value(emitter *yaml_emitter_t, event *yaml_
 			emitter.line_comment, emitter.key_line_comment = emitter.key_line_comment, emitter.line_comment
 			// Indent in unless it's a block that will reindent anyway.
 			if event.sequence_style() == yaml_FLOW_SEQUENCE_STYLE || (event.typ != yaml_MAPPING_START_EVENT && event.typ != yaml_SEQUENCE_START_EVENT) {
-				emitter.indent = emitter.best_indent*((emitter.indent+emitter.best_indent)/emitter.best_indent)
+				emitter.indent = emitter.best_indent * ((emitter.indent + emitter.best_indent) / emitter.best_indent)
 				if !yaml_emitter_write_indent(emitter) {
 					return false
 				}
@@ -866,6 +866,9 @@ func yaml_emitter_emit_node(emitter *yaml_emitter_t, event *yaml_event_t,
 	case yaml_ALIAS_EVENT:
 		return yaml_emitter_emit_alias(emitter, event)
 	case yaml_SCALAR_EVENT:
+		if len(emitter.head_comment) > 0 {
+			yaml_emitter_process_head_comment(emitter)
+		}
 		return yaml_emitter_emit_scalar(emitter, event)
 	case yaml_SEQUENCE_START_EVENT:
 		return yaml_emitter_emit_sequence_start(emitter, event)

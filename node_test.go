@@ -20,10 +20,11 @@ import (
 	"fmt"
 	"os"
 
-	. "gopkg.in/check.v1"
-	"gopkg.in/yaml.v3"
 	"io"
 	"strings"
+
+	. "gopkg.in/check.v1"
+	"gopkg.in/yaml.v3"
 )
 
 var nodeTests = []struct {

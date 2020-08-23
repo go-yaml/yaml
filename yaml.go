@@ -270,6 +270,23 @@ func (n *Node) Encode(v interface{}) (err error) {
 	return nil
 }
 
+// EncodeWithComments encodes but allows comments to remain.
+//
+// See documentation for Encode
+func (n *Node) EncodeWithComments(v interface{}) (err error) {
+	defer handleErr(&err)
+	e := newEncoder()
+	defer e.destroy()
+	e.marshalDoc("", reflect.ValueOf(v))
+	e.finish()
+	p := newParser(e.out)
+	p.textless = false // This is what differs between Encode and EncodeWithComments
+	defer p.destroy()
+	doc := p.parse()
+	*n = *doc.Content[0]
+	return nil
+}
+
 // SetIndent changes the used indentation used when encoding.
 func (e *Encoder) SetIndent(spaces int) {
 	if spaces < 0 {

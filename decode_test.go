@@ -314,6 +314,16 @@ var unmarshalTests = []struct {
 		"a: YES",
 		&struct{ A bool }{true},
 	},
+	// Inlined interface
+	{
+		"a: 1\nb:\n  privateinterface: null\n",
+		&struct {
+			A int
+			B struct {
+				privateInterface
+			}
+		}{A: 1},
+	},
 
 	// Some cross type conversions
 	{

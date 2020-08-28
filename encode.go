@@ -96,7 +96,7 @@ func (e *encoder) marshalDoc(tag string, in reflect.Value) {
 }
 
 func (e *encoder) marshal(tag string, in reflect.Value) {
-	if !in.IsValid() || in.Kind() == reflect.Ptr && in.IsNil() {
+	if !in.IsValid() || in.Kind() == reflect.Ptr && in.IsNil() || !in.CanInterface() {
 		e.nilv()
 		return
 	}

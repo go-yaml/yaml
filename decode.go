@@ -547,16 +547,11 @@ func resetMap(out reflect.Value) {
 }
 
 func (d *decoder) null(out reflect.Value) bool {
-	if out.CanAddr() {
+	if out.CanAddr() && out.CanSet() {
 		switch out.Kind() {
-		case reflect.Ptr, reflect.Map, reflect.Slice:
+		case reflect.Interface, reflect.Ptr, reflect.Map, reflect.Slice:
 			out.Set(reflect.Zero(out.Type()))
 			return true
-		case reflect.Interface:
-			if out.CanSet() {
-				out.Set(reflect.Zero(out.Type()))
-				return true
-			}
 		}
 	}
 	return false

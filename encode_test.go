@@ -305,6 +305,17 @@ var marshalTests = []struct {
 		"a: 1\nb:\n    privateinterface: null\n",
 	},
 
+	// private struct
+	{
+		&struct {
+			A int
+			B struct {
+				*privateStruct
+			}
+		}{A: 1},
+		"a: 1\nb:\n    privatestruct: null\n",
+	},
+
 	// Struct inlining
 	{
 		&struct {

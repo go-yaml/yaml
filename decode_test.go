@@ -29,6 +29,8 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+type privateStruct struct{}
+
 var unmarshalIntTest = 123
 
 var unmarshalTests = []struct {
@@ -321,6 +323,16 @@ var unmarshalTests = []struct {
 			A int
 			B struct {
 				privateInterface
+			}
+		}{A: 1},
+	},
+	// private struct
+	{
+		"a: 1\nb:\n  privatestruct: null\n",
+		&struct {
+			A int
+			B struct {
+				*privateStruct
 			}
 		}{A: 1},
 	},

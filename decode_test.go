@@ -572,6 +572,12 @@ var unmarshalTests = []struct {
 		&yaml.MapSlice{{"b", 2}, {"a", 1}, {"d", 4}, {"c", 3}, {"sub", yaml.MapSlice{{"e", 5}}}},
 	},
 
+	// Ordered maps with a merge.
+	{
+		"foo: &foo\n  color: red\n  state: awesome\nbar:\n  color: green\n  <<: *foo\n  color: blue",
+		&yaml.MapSlice{yaml.MapItem{Key: "foo", Value: yaml.MapSlice{yaml.MapItem{Key: "color", Value: "red"}, yaml.MapItem{Key: "state", Value: "awesome"}}}, yaml.MapItem{Key: "bar", Value: yaml.MapSlice{yaml.MapItem{Key: "color", Value: "green"}, yaml.MapItem{Key: "color", Value: "red"}, yaml.MapItem{Key: "state", Value: "awesome"}, yaml.MapItem{Key: "color", Value: "blue"}}}},
+	},
+
 	// Issue #39.
 	{
 		"a:\n b:\n  c: d\n",

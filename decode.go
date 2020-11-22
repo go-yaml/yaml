@@ -464,14 +464,10 @@ func (d *decoder) scalar(n *node, out reflect.Value) bool {
 			out.SetString(resolved.(string))
 			return true
 		}
-		if resolved != nil {
-			out.SetString(n.value)
-			return true
-		}
+		out.SetString(n.value)
+		return true
 	case reflect.Interface:
-		if resolved == nil {
-			out.Set(reflect.Zero(out.Type()))
-		} else if tag == yaml_TIMESTAMP_TAG {
+		if tag == yaml_TIMESTAMP_TAG {
 			// It looks like a timestamp but for backward compatibility
 			// reasons we set it as a string, so that code that unmarshals
 			// timestamp-like values into interface{} will continue to

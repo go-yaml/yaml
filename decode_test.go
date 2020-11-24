@@ -1092,6 +1092,31 @@ func (s *S) TestUnmarshalerRetry(c *C) {
 	c.Assert(su, DeepEquals, sliceUnmarshaler([]int{1}))
 }
 
+type wrapUnmarshaler struct {
+	value interface{}
+}
+
+func (wu *wrapUnmarshaler) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	return unmarshal(&wu.value)
+}
+
+func (s *S) TestUnmarshalerCalledOnQuotedNull(c *C) {
+	var data []*wrapUnmarshaler
+	err := yaml.Unmarshal([]byte(`
+- "null"
+- "~"
+- null
+- ~
+`), &data)
+	c.Assert(err, IsNil)
+	c.Assert(data, DeepEquals, []*wrapUnmarshaler{
+		&wrapUnmarshaler{"null"},
+		&wrapUnmarshaler{"~"},
+		nil,
+		nil,
+	})
+}
+
 // From http://yaml.org/type/merge.html
 var mergeTests = `
 anchors:

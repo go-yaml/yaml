@@ -20,11 +20,19 @@ supported since they're a poor design and are gone in YAML 1.2.
 Installation and usage
 ----------------------
 
+### Using GoPkg.in
+
 The import path for the package is *gopkg.in/yaml.v2*.
 
 To install it, run:
 
     go get gopkg.in/yaml.v2
+
+### Using gx-go
+
+Use the following command to import using `gx-go`:
+
+    gx import QmaYU5SBFQkj98ys5tQiPKyPgG8p5AHNAECtLurANk4HuW
 
 API documentation
 -----------------
@@ -77,27 +85,27 @@ type T struct {
 
 func main() {
         t := T{}
-    
+
         err := yaml.Unmarshal([]byte(data), &t)
         if err != nil {
                 log.Fatalf("error: %v", err)
         }
         fmt.Printf("--- t:\n%v\n\n", t)
-    
+
         d, err := yaml.Marshal(&t)
         if err != nil {
                 log.Fatalf("error: %v", err)
         }
         fmt.Printf("--- t dump:\n%s\n\n", string(d))
-    
+
         m := make(map[interface{}]interface{})
-    
+
         err = yaml.Unmarshal([]byte(data), &m)
         if err != nil {
                 log.Fatalf("error: %v", err)
         }
         fmt.Printf("--- m:\n%v\n\n", m)
-    
+
         d, err = yaml.Marshal(&m)
         if err != nil {
                 log.Fatalf("error: %v", err)
@@ -130,4 +138,3 @@ b:
   - 3
   - 4
 ```
-

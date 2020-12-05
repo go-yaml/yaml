@@ -1,0 +1,16 @@
+{
+  "author": "rosalinekarr",
+  "bugs": {
+    "url": "https://github.com/go-yaml/yaml/issues"
+  },
+  "gx": {
+    "dvcsimport": "github.com/rosalinekarr/yaml"
+  },
+  "gxVersion": "0.12.1",
+  "language": "go",
+  "license": "",
+  "name": "yaml",
+  "releaseCmd": "git commit -a -m \"gx publish $VERSION\"",
+  "version": "2.2.1"
+}
+

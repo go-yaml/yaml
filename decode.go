@@ -654,7 +654,7 @@ func (d *decoder) mapping(n *node, out reflect.Value) (good bool) {
 		d.mapType = outt
 	}
 
-	if out.IsNil() {
+	if out.CanAddr() {
 		out.Set(reflect.MakeMap(outt))
 	}
 	l := len(n.children)

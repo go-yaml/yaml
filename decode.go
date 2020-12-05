@@ -230,9 +230,9 @@ type decoder struct {
 	terrors []string
 	strict  bool
 
-	decodeCount int
-	aliasCount  int
-	aliasDepth  int
+	decodeCount uint
+	aliasCount  uint
+	aliasDepth  uint
 }
 
 var (
@@ -331,7 +331,7 @@ const (
 	alias_ratio_range = float64(alias_ratio_range_high - alias_ratio_range_low)
 )
 
-func allowedAliasRatio(decodeCount int) float64 {
+func allowedAliasRatio(decodeCount uint) float64 {
 	switch {
 	case decodeCount <= alias_ratio_range_low:
 		// allow 99% to come from alias expansion for small-to-medium documents

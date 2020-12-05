@@ -33,6 +33,8 @@ func (j jsonNumberT) String() string {
 	return string(j)
 }
 
+type privateInterface interface{}
+
 var marshalIntTest = 123
 
 var marshalTests = []struct {
@@ -282,6 +284,17 @@ var marshalTests = []struct {
 			B int "-"
 		}{1, 2},
 		"a: 1\n",
+	},
+
+	// Inlined interface
+	{
+		&struct {
+			A int
+			B struct {
+				privateInterface
+			}
+		}{A: 1},
+		"a: 1\nb:\n  privateinterface: null\n",
 	},
 
 	// Struct inlining

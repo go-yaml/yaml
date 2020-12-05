@@ -428,7 +428,9 @@ func (d *decoder) scalar(n *node, out reflect.Value) bool {
 		if out.Kind() == reflect.Map && !out.CanAddr() {
 			resetMap(out)
 		} else {
-			out.Set(reflect.Zero(out.Type()))
+			if out.CanSet() {
+				out.Set(reflect.Zero(out.Type()))
+			}
 		}
 		return true
 	}

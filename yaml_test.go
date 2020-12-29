@@ -1,14 +1,29 @@
 package yaml_test
 
 import (
+	"fmt"
+	"strings"
+
 	"gopkg.in/yaml.v3"
 	. "gopkg.in/check.v1"
 )
 
 
+func walkTree(indent int, node *yaml.Node) {
+	fmt.Printf("%s{%d %d %#v:%#v anchor:%#v head:%#v line:%#v foot:%#v %d:%d}\n", strings.Repeat("  ", indent), node.Kind, node.Style, node.Tag, node.Value, node.Anchor, node.HeadComment, node.LineComment, node.FootComment, node.Line, node.Column)
+	for _, item := range node.Content {
+		walkTree(indent + 1, item)
+	}
+	if node.Alias != nil {
+		walkTree(indent + 1, node.Alias)
+	}
+}
+
+
 func testCycle(c *C, input string, expectedOutput string) {
 	node := yaml.Node{}
 	err := yaml.Unmarshal([]byte(input), &node)
+	walkTree(0, &node)
 	c.Assert(err, IsNil)
 	out, err := yaml.Marshal(&node)
 	c.Assert(err, IsNil)

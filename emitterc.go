@@ -359,6 +359,9 @@ func yaml_emitter_emit_stream_start(emitter *yaml_emitter_t, event *yaml_event_t
 func yaml_emitter_emit_document_start(emitter *yaml_emitter_t, event *yaml_event_t, first bool) bool {
 
 	if event.typ == yaml_DOCUMENT_START_EVENT {
+		// The next element has been parsed because yaml_emitter_need_more_events() demands
+		// one more element for yaml_DOCUMENT_START_EVENT (accumulate == 1)
+		isEmpty := emitter.events[emitter.events_head + 1].typ == yaml_DOCUMENT_END_EVENT
 
 		if event.version_directive != nil {
 			if !yaml_emitter_analyze_version_directive(emitter, event.version_directive) {
@@ -450,12 +453,15 @@ func yaml_emitter_emit_document_start(emitter *yaml_emitter_t, event *yaml_event
 			if !yaml_emitter_process_head_comment(emitter) {
 				return false
 			}
-			if !put_break(emitter) {
+			if !isEmpty && !put_break(emitter) {
 				return false
 			}
 		}
 
 		emitter.state = yaml_EMIT_DOCUMENT_CONTENT_STATE
+		if isEmpty {
+			emitter.state = yaml_EMIT_DOCUMENT_END_STATE
+		}
 		return true
 	}
 

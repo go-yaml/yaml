@@ -905,6 +905,165 @@ func (s *S) TestDecoder(c *C) {
 	}
 }
 
+var decoderNodeTests = []struct {
+	data  string
+	nodes []*yaml.Node
+}{
+	{
+		"# foo\n---\nkey: value\n",
+		[]*yaml.Node{
+			{
+				Kind:        yaml.DocumentNode,
+				Line:        1,
+				Column:      1,
+				HeadComment: "# foo",
+			}, {
+				Kind:   yaml.DocumentNode,
+				Line:   2,
+				Column: 1,
+				Content: []*yaml.Node{{
+					Kind:   yaml.MappingNode,
+					Tag:    "!!map",
+					Line:   3,
+					Column: 1,
+					Content: []*yaml.Node{{
+						Kind:   yaml.ScalarNode,
+						Value:  "key",
+						Tag:    "!!str",
+						Line:   3,
+						Column: 1,
+					}, {
+						Kind:   yaml.ScalarNode,
+						Value:  "value",
+						Tag:    "!!str",
+						Line:   3,
+						Column: 6,
+					}},
+				}},
+			},
+		},
+	},
+	{
+		"# foo\n---\n# bar\nkey: value\n",
+		[]*yaml.Node{
+			{
+				Kind:        yaml.DocumentNode,
+				Line:        1,
+				Column:      1,
+				HeadComment: "# foo",
+			}, {
+				Kind:   yaml.DocumentNode,
+				Line:   2,
+				Column: 1,
+				Content: []*yaml.Node{{
+					Kind:   yaml.MappingNode,
+					Tag:    "!!map",
+					Line:   4,
+					Column: 1,
+					Content: []*yaml.Node{{
+						Kind:        yaml.ScalarNode,
+						Value:       "key",
+						Tag:         "!!str",
+						Line:        4,
+						Column:      1,
+						HeadComment: "# bar",
+					}, {
+						Kind:   yaml.ScalarNode,
+						Value:  "value",
+						Tag:    "!!str",
+						Line:   4,
+						Column: 6,
+					}},
+				}},
+			},
+		},
+	},
+	{
+		"key: value\n\n# foo\n---\nkey: value\n",
+		[]*yaml.Node{
+			{
+				Kind:        yaml.DocumentNode,
+				Line:        1,
+				Column:      1,
+				FootComment: "# foo",
+				Content: []*yaml.Node{{
+					Kind:   yaml.MappingNode,
+					Tag:    "!!map",
+					Line:   1,
+					Column: 1,
+					Content: []*yaml.Node{{
+						Kind:   yaml.ScalarNode,
+						Value:  "key",
+						Tag:    "!!str",
+						Line:   1,
+						Column: 1,
+					}, {
+						Kind:   yaml.ScalarNode,
+						Value:  "value",
+						Tag:    "!!str",
+						Line:   1,
+						Column: 6,
+					}},
+				}},
+			}, {
+				Kind:   yaml.DocumentNode,
+				Line:   4,
+				Column: 1,
+				Content: []*yaml.Node{{
+					Kind:   yaml.MappingNode,
+					Tag:    "!!map",
+					Line:   5,
+					Column: 1,
+					Content: []*yaml.Node{{
+						Kind:   yaml.ScalarNode,
+						Value:  "key",
+						Tag:    "!!str",
+						Line:   5,
+						Column: 1,
+					}, {
+						Kind:   yaml.ScalarNode,
+						Value:  "value",
+						Tag:    "!!str",
+						Line:   5,
+						Column: 6,
+					}},
+				}},
+			},
+		},
+	},
+}
+
+/*
+func walkTree(indent int, node *yaml.Node) {
+	fmt.Printf("%s{%d %d %#v:%#v anchor:%#v head:%#v line:%#v foot:%#v %d:%d}\n", strings.Repeat("  ", indent), node.Kind, node.Style, node.Tag, node.Value, node.Anchor, node.HeadComment, node.LineComment, node.FootComment, node.Line, node.Column)
+	for _, item := range node.Content {
+		walkTree(indent + 1, item)
+	}
+	if node.Alias != nil {
+		walkTree(indent + 1, node.Alias)
+	}
+}
+*/
+
+func (s *S) TestDecoderNodes(c *C) {
+	for i, item := range decoderNodeTests {
+		c.Logf("test %d: %q", i, item.data)
+		var nodes []*yaml.Node
+		d := yaml.NewDecoder(bytes.NewReader([]byte(item.data)))
+		for true {
+			node := &yaml.Node{}
+			err := d.Decode(node)
+			if err == io.EOF {
+				break
+			}
+			c.Assert(err, IsNil)
+			nodes = append(nodes, node)
+			// walkTree(0, node)
+		}
+		c.Assert(nodes, DeepEquals, item.nodes)
+	}
+}
+
 type errReader struct{}
 
 func (errReader) Read([]byte) (int, error) {

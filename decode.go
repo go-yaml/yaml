@@ -159,6 +159,13 @@ func (p *parser) parse() *Node {
 		return p.document()
 	case yaml_STREAM_END_EVENT:
 		// Happens when attempting to decode an empty buffer.
+		if len(p.event.head_comment) > 0 {
+			// The buffer is empty, but there is a comment.
+			// Create a document node which contains this comment.
+			n := p.node(DocumentNode, "", "", "")
+			p.event.head_comment = nil
+			return n
+		}
 		return nil
 	case yaml_TAIL_COMMENT_EVENT:
 		panic("internal error: unexpected tail comment event (please report)")
@@ -202,6 +209,13 @@ func (p *parser) parseChild(parent *Node) *Node {
 func (p *parser) document() *Node {
 	n := p.node(DocumentNode, "", "", "")
 	p.doc = n
+	if !p.event.implicit && len(p.event.head_comment) > 0 {
+		// This comment belongs to **before** the document event
+		n.Line = 1
+		n.Column = 1
+		p.event.head_comment = nil
+		return n
+	}
 	p.expect(yaml_DOCUMENT_START_EVENT)
 	p.parseChild(n)
 	if p.peek() == yaml_DOCUMENT_END_EVENT {

@@ -45,8 +45,41 @@ var nodeTests = []struct {
 			}},
 		},
 	}, {
-		"[encode]null\n",
-		yaml.Node{},
+		"null\n",
+		yaml.Node{
+			Kind:   yaml.DocumentNode,
+			Line:   1,
+			Column: 1,
+			Content: []*yaml.Node{{
+				Kind:   yaml.ScalarNode,
+				Tag:    "!!null",
+				Value:  "null",
+				Line:   1,
+				Column: 1,
+			}},
+		},
+	}, {
+		"[decode]\n",
+		yaml.Node{
+			Kind:   0,
+			Line:   0,
+			Column: 0,
+			Content: []*yaml.Node(nil),
+		},
+	}, {
+		"[decode]---\n",
+		yaml.Node{
+			Kind:   yaml.DocumentNode,
+			Line:   1,
+			Column: 1,
+			Content: []*yaml.Node{{
+				Kind:   yaml.ScalarNode,
+				Tag:    "!!null",
+				Value:  "",
+				Line:   2,
+				Column: 1,
+			}},
+		},
 	}, {
 		"foo\n",
 		yaml.Node{
@@ -2546,6 +2579,58 @@ var nodeTests = []struct {
 						HeadComment: "# HB1\n# HB2",
 						LineComment: "# IB",
 						FootComment: "# FB1\n# FB2",
+					},
+				},
+			}},
+		},
+	}, {
+		"# foo\n",
+		yaml.Node{
+			Kind:        yaml.DocumentNode,
+			Line:        2,
+			Column:      1,
+			HeadComment: "# foo",
+			Content: []*yaml.Node(nil),
+		},
+	}, {
+		"# beginning\na:\n  ## foo\n  ##\n  b:\n",
+		yaml.Node{
+			Kind:        yaml.DocumentNode,
+			Line:        2,
+			Column:      1,
+			Content: []*yaml.Node{{
+				Kind:   yaml.MappingNode,
+				Tag:    "!!map",
+				Line:   2,
+				Column: 1,
+				Content: []*yaml.Node{
+					{
+						Kind:        yaml.ScalarNode,
+						Tag:         "!!str",
+						Line:        2,
+						Column:      1,
+						Value:       "a",
+						HeadComment: "# beginning",
+					}, {
+						Kind:        yaml.MappingNode,
+						Tag:         "!!map",
+						Line:        5,
+						Column:      3,
+						Content: []*yaml.Node{
+							{
+								Kind:        yaml.ScalarNode,
+								Tag:         "!!str",
+								Line:        5,
+								Column:      3,
+								Value:       "b",
+								HeadComment: "## foo\n##",
+							}, {
+								Kind:        yaml.ScalarNode,
+								Tag:         "!!null",
+								Line:        5,
+								Column:      5,
+							},
+						},
 					},
 				},
 			}},

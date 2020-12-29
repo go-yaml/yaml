@@ -47,11 +47,27 @@ d:
 }
 
 
+func (s *S) TestCommentMoving2(c *C) {
+	testIdempotent(c, `a:
+    b:
+        # comment followed by newline
+
+        c: d
+`)
+}
+
+
 func (s *S) TestCommentParsing(c *C) {
 	testIdempotent(c, `# beginning
 a:
     ## foo
     ##
     b:
+`)
+}
+
+
+func (s *S) TestCommentEmptyDoc(c *C) {
+	testIdempotent(c, `# foo
 `)
 }

@@ -890,6 +890,14 @@ func yaml_parser_parse_block_mapping_value(parser *yaml_parser_t, event *yaml_ev
 	if token.typ == yaml_VALUE_TOKEN {
 		mark := token.end_mark
 		skip_token(parser)
+		// Move foot comment to head comment
+		if len(parser.foot_comment) > 0 {
+			if len(parser.head_comment) > 0 {
+				parser.head_comment = append(parser.head_comment, '\n')
+			}
+			parser.head_comment = append(parser.head_comment, parser.foot_comment...)
+			parser.foot_comment = nil
+		}
 		token = peek_token(parser)
 		if token == nil {
 			return false

@@ -63,10 +63,15 @@ d:
 
 
 func (s *S) TestCommentMoving2(c *C) {
-	testIdempotent(c, `a:
+	// The newline is supposed to go away, but the comment should stay above `c: d`
+	testCycle(c, `a:
     b:
         # comment followed by newline
 
+        c: d
+`, `a:
+    b:
+        # comment followed by newline
         c: d
 `)
 }

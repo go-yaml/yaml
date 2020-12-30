@@ -202,6 +202,15 @@ func (p *parser) parseChild(parent *Node) *Node {
 }
 
 func (p *parser) document() *Node {
+	if !p.event.implicit && len(p.event.head_comment) > 0 {
+		// This comment belongs to **before** the document event
+		n := p.node(DocumentNode, "", "", "")
+		// (1, 1) is not fully correct, but close enough
+		n.Line = 1
+		n.Column = 1
+		p.event.head_comment = nil
+		return n
+	}
 	n := p.node(DocumentNode, "", "", "")
 	p.doc = n
 	p.expect(yaml_DOCUMENT_START_EVENT)

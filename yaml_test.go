@@ -1,7 +1,9 @@
 package yaml_test
 
 import (
+	"bytes"
 	"fmt"
+	"io"
 	"strings"
 
 	"gopkg.in/yaml.v3"
@@ -21,6 +23,7 @@ func walkTree(indent int, node *yaml.Node) {
 
 
 func testCycle(c *C, input string, expectedOutput string) {
+	fmt.Printf("New single-doc input:\n")
 	node := yaml.Node{}
 	err := yaml.Unmarshal([]byte(input), &node)
 	walkTree(0, &node)
@@ -43,6 +46,43 @@ func testCycle(c *C, input string, expectedOutput string) {
 
 func testIdempotent(c *C, data string) {
 	testCycle(c, data, data)
+}
+
+
+func testMDCycle(c *C, input string, expectedOutput string) {
+	fmt.Printf("New multi-doc input:\n")
+	var nodes []*yaml.Node
+	d := yaml.NewDecoder(bytes.NewReader([]byte(input)))
+	for true {
+		node := &yaml.Node{}
+		err := d.Decode(node)
+		if err == io.EOF {
+			break
+		}
+		c.Assert(err, IsNil)
+		nodes = append(nodes, node)
+		walkTree(0, node)
+	}
+    var b bytes.Buffer
+	e := yaml.NewEncoder(io.Writer(&b))
+	e.SetIndent(4)
+	for _, node := range nodes {
+		err := e.Encode(node)
+		c.Assert(err, IsNil)
+	}
+	e.Close()
+	out := b.Bytes()
+	c.Assert(string(out), DeepEquals, expectedOutput)
+	if len(expectedOutput) == 0 {
+		c.Assert(out, DeepEquals, []byte(nil))
+	} else {
+		c.Assert(out, DeepEquals, []byte(expectedOutput))
+	}
+}
+
+
+func testMDIdempotent(c *C, data string) {
+	testMDCycle(c, data, data)
 }
 
 
@@ -109,5 +149,20 @@ func (s *S) TestEmptyDocument(c *C) {
 `, ``)
 	testCycle(c, `---
 `, `
+`)
+}
+
+
+func (s *S) TestCommentDocSkip(c *C) {
+	testMDIdempotent(c, `key: value
+
+# foo
+---
+key: value
+`)
+	testMDIdempotent(c, `# foo
+
+---
+key: value
 `)
 }

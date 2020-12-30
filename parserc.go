@@ -305,6 +305,7 @@ func yaml_parser_parse_document_start(parser *yaml_parser_t, event *yaml_event_t
 			typ:        yaml_DOCUMENT_START_EVENT,
 			start_mark: token.start_mark,
 			end_mark:   token.end_mark,
+			implicit:   true,
 
 			head_comment: head_comment,
 		}
@@ -338,6 +339,7 @@ func yaml_parser_parse_document_start(parser *yaml_parser_t, event *yaml_event_t
 			tag_directives:    tag_directives,
 			implicit:          false,
 		}
+		yaml_parser_set_event_comments(parser, event)
 		skip_token(parser)
 
 	} else {

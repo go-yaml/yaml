@@ -120,7 +120,7 @@ func (dec *Decoder) Decode(v interface{}) (err error) {
 	d := newDecoder()
 	d.knownFields = dec.knownFields
 	defer handleErr(&err)
-	node := dec.parser.parse()
+	node := dec.parser.parse(true)
 	if node == nil {
 		return io.EOF
 	}
@@ -158,7 +158,7 @@ func unmarshal(in []byte, out interface{}, strict bool) (err error) {
 	d := newDecoder()
 	p := newParser(in)
 	defer p.destroy()
-	node := p.parse()
+	node := p.parse(true)
 	if node != nil {
 		v := reflect.ValueOf(out)
 		if v.Kind() == reflect.Ptr && !v.IsNil() {
@@ -265,7 +265,7 @@ func (n *Node) Encode(v interface{}) (err error) {
 	p := newParser(e.out)
 	p.textless = true
 	defer p.destroy()
-	doc := p.parse()
+	doc := p.parse(true)
 	*n = *doc.Content[0]
 	return nil
 }

@@ -348,6 +348,7 @@ func yaml_parser_parse_document_start(parser *yaml_parser_t, event *yaml_event_t
 			start_mark: token.start_mark,
 			end_mark:   token.end_mark,
 		}
+		yaml_parser_set_event_comments(parser, event)
 		skip_token(parser)
 	}
 

@@ -141,7 +141,7 @@ func (p *parser) anchor(n *Node, anchor []byte) {
 	}
 }
 
-func (p *parser) parse() *Node {
+func (p *parser) parse(toplevel bool) *Node {
 	p.init()
 	switch p.peek() {
 	case yaml_SCALAR_EVENT:
@@ -156,6 +156,11 @@ func (p *parser) parse() *Node {
 		return p.document()
 	case yaml_STREAM_END_EVENT:
 		// Happens when attempting to decode an empty buffer.
+		if toplevel && len(p.event.head_comment) > 0 {
+			n := p.node(DocumentNode, "", "", "")
+			p.event.head_comment = nil
+			return n
+		}
 		return nil
 	case yaml_TAIL_COMMENT_EVENT:
 		panic("internal error: unexpected tail comment event (please report)")
@@ -191,7 +196,7 @@ func (p *parser) node(kind Kind, defaultTag, tag, value string) *Node {
 }
 
 func (p *parser) parseChild(parent *Node) *Node {
-	child := p.parse()
+	child := p.parse(false)
 	parent.Content = append(parent.Content, child)
 	return child
 }

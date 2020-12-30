@@ -25,10 +25,19 @@ func testCycle(c *C, input string, expectedOutput string) {
 	err := yaml.Unmarshal([]byte(input), &node)
 	walkTree(0, &node)
 	c.Assert(err, IsNil)
-	out, err := yaml.Marshal(&node)
-	c.Assert(err, IsNil)
+	var out []byte
+	if node.IsZero() {
+		out = []byte(nil)
+	} else {
+		out, err = yaml.Marshal(&node)
+		c.Assert(err, IsNil)
+	}
 	c.Assert(string(out), DeepEquals, expectedOutput)
-	c.Assert(out, DeepEquals, []byte(expectedOutput))
+	if len(expectedOutput) == 0 {
+		c.Assert(out, DeepEquals, []byte(nil))
+	} else {
+		c.Assert(out, DeepEquals, []byte(expectedOutput))
+	}
 }
 
 
@@ -89,5 +98,16 @@ a:
 
 func (s *S) TestCommentEmptyDoc(c *C) {
 	testIdempotent(c, `# foo
+
+`)
+}
+
+
+func (s *S) TestEmptyDocument(c *C) {
+	testIdempotent(c, ``)
+	testCycle(c, `
+`, ``)
+	testCycle(c, `---
+`, `
 `)
 }

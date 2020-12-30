@@ -138,7 +138,6 @@ a:
 
 func (s *S) TestCommentEmptyDoc(c *C) {
 	testIdempotent(c, `# foo
-
 `)
 }
 
@@ -161,8 +160,12 @@ func (s *S) TestCommentDocSkip(c *C) {
 key: value
 `)
 	testMDIdempotent(c, `# foo
-
 ---
+key: value
+`)
+	testMDIdempotent(c, `# foo
+---
+# bar
 key: value
 `)
 }

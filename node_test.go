@@ -45,8 +45,41 @@ var nodeTests = []struct {
 			}},
 		},
 	}, {
-		"[encode]null\n",
-		yaml.Node{},
+		"null\n",
+		yaml.Node{
+			Kind:   yaml.DocumentNode,
+			Line:   1,
+			Column: 1,
+			Content: []*yaml.Node{{
+				Kind:   yaml.ScalarNode,
+				Tag:    "!!null",
+				Value:  "null",
+				Line:   1,
+				Column: 1,
+			}},
+		},
+	}, {
+		"[decode]\n",
+		yaml.Node{
+			Kind:   0,
+			Line:   0,
+			Column: 0,
+			Content: []*yaml.Node(nil),
+		},
+	}, {
+		"[decode]---\n",
+		yaml.Node{
+			Kind:   yaml.DocumentNode,
+			Line:   1,
+			Column: 1,
+			Content: []*yaml.Node{{
+				Kind:   yaml.ScalarNode,
+				Tag:    "!!null",
+				Value:  "",
+				Line:   2,
+				Column: 1,
+			}},
+		},
 	}, {
 		"foo\n",
 		yaml.Node{
@@ -2335,6 +2368,235 @@ var nodeTests = []struct {
 						HeadComment: "# HB1\n# HB2",
 						LineComment: "# IB",
 						FootComment: "# FB1\n# FB2",
+					},
+				},
+			}},
+		},
+	}, {
+		"# foo\n",
+		yaml.Node{
+			Kind:        yaml.DocumentNode,
+			Line:        2,
+			Column:      1,
+			HeadComment: "# foo",
+			Content: []*yaml.Node(nil),
+		},
+	}, {
+		"# beginning\na:\n  ## foo\n  ##\n  b:\n",
+		yaml.Node{
+			Kind:        yaml.DocumentNode,
+			Line:        2,
+			Column:      1,
+			Content: []*yaml.Node{{
+				Kind:   yaml.MappingNode,
+				Tag:    "!!map",
+				Line:   2,
+				Column: 1,
+				Content: []*yaml.Node{
+					{
+						Kind:        yaml.ScalarNode,
+						Tag:         "!!str",
+						Line:        2,
+						Column:      1,
+						Value:       "a",
+						HeadComment: "# beginning",
+					}, {
+						Kind:        yaml.MappingNode,
+						Tag:         "!!map",
+						Line:        5,
+						Column:      3,
+						Content: []*yaml.Node{
+							{
+								Kind:        yaml.ScalarNode,
+								Tag:         "!!str",
+								Line:        5,
+								Column:      3,
+								Value:       "b",
+								HeadComment: "## foo\n##",
+							}, {
+								Kind:        yaml.ScalarNode,
+								Tag:         "!!null",
+								Line:        5,
+								Column:      5,
+							},
+						},
+					},
+				},
+			}},
+		},
+	}, {
+		// When re-encoding, the newline is gone. Without the newline, the bug
+		// which moves the comment to the wrong place was not happening.
+		"[decode]a:\n  b:\n    # comment followed by newline\n\n    c: d\n",
+		yaml.Node{
+			Kind:        yaml.DocumentNode,
+			Line:        1,
+			Column:      1,
+			Content: []*yaml.Node{{
+				Kind:   yaml.MappingNode,
+				Tag:    "!!map",
+				Line:   1,
+				Column: 1,
+				Content: []*yaml.Node{
+					{
+						Kind:        yaml.ScalarNode,
+						Tag:         "!!str",
+						Line:        1,
+						Column:      1,
+						Value:       "a",
+					}, {
+						Kind:        yaml.MappingNode,
+						Tag:         "!!map",
+						Line:        2,
+						Column:      3,
+						Content: []*yaml.Node{
+							{
+								Kind:        yaml.ScalarNode,
+								Tag:         "!!str",
+								Line:        2,
+								Column:      3,
+								Value:       "b",
+							}, {
+								Kind:        yaml.MappingNode,
+								Tag:         "!!map",
+								Line:        5,
+								Column:      5,
+								Content: []*yaml.Node{
+									{
+										Kind:        yaml.ScalarNode,
+										Tag:         "!!str",
+										Line:        5,
+										Column:      5,
+										Value:       "c",
+										HeadComment: "# comment followed by newline",
+									}, {
+										Kind:        yaml.ScalarNode,
+										Tag:         "!!str",
+										Line:        5,
+										Column:      8,
+										Value:       "d",
+									},
+								},
+							},
+						},
+					},
+				},
+			}},
+		},
+	}, {
+		"# begin\na:\n  # foo\n  # bar\n  b:\n  # baz\n  c:\n    foo: bar\n    # asdf\n  # bang\n" +
+			"d:\n  # a\n  # b\n  - 1\n  # c\n  - - 123\n    # f\n  # d\n  - 2\n  # e\n",
+		yaml.Node{
+			Kind:        yaml.DocumentNode,
+			Line:        2,
+			Column:      1,
+			Content: []*yaml.Node{{
+				Kind:   yaml.MappingNode,
+				Tag:    "!!map",
+				Line:   2,
+				Column: 1,
+				Content: []*yaml.Node{
+					{
+						Kind:        yaml.ScalarNode,
+						Tag:         "!!str",
+						Line:        2,
+						Column:      1,
+						Value:       "a",
+						HeadComment: "# begin",
+					}, {
+						Kind:        yaml.MappingNode,
+						Tag:         "!!map",
+						Line:        5,
+						Column:      3,
+						Content: []*yaml.Node{
+							{
+								Kind:        yaml.ScalarNode,
+								Tag:         "!!str",
+								Line:        5,
+								Column:      3,
+								Value:       "b",
+								HeadComment: "# foo\n# bar",
+							}, {
+								Kind:        yaml.ScalarNode,
+								Tag:         "!!null",
+								Line:        5,
+								Column:      5,
+							}, {
+								Kind:        yaml.ScalarNode,
+								Tag:         "!!str",
+								Line:        7,
+								Column:      3,
+								Value:       "c",
+								HeadComment: "# baz",
+								FootComment: "# bang",
+							}, {
+								Kind:        yaml.MappingNode,
+								Tag:         "!!map",
+								Line:        8,
+								Column:      5,
+								Content: []*yaml.Node{
+									{
+										Kind:        yaml.ScalarNode,
+										Tag:         "!!str",
+										Line:        8,
+										Column:      5,
+										Value:       "foo",
+										FootComment: "# asdf",
+									}, {
+										Kind:        yaml.ScalarNode,
+										Tag:         "!!str",
+										Line:        8,
+										Column:      10,
+										Value:       "bar",
+									},
+								},
+							},
+						},
+					}, {
+						Kind:        yaml.ScalarNode,
+						Tag:         "!!str",
+						Line:        11,
+						Column:      1,
+						Value:       "d",
+					}, {
+						Kind:   yaml.SequenceNode,
+						Tag:    "!!seq",
+						Line:   14,
+						Column: 3,
+						Content: []*yaml.Node{
+							{
+								Kind:        yaml.ScalarNode,
+								Tag:         "!!int",
+								Line:        14,
+								Column:      5,
+								Value:       "1",
+								HeadComment: "# a\n# b",
+							}, {
+								Kind:        yaml.SequenceNode,
+								Tag:         "!!seq",
+								Line:        16,
+								Column:      5,
+								HeadComment: "# c",
+								Content: []*yaml.Node{
+									{
+										Kind:        yaml.ScalarNode,
+										Tag:         "!!int",
+										Line:        16,
+										Column:      7,
+										Value:       "123",
+										FootComment: "# f",
+									},
+								},
+							}, {
+								Kind:        yaml.ScalarNode,
+								Tag:         "!!int",
+								Line:        19,
+								Column:      5,
+								Value:       "2",
+								HeadComment: "# d",
+								FootComment: "# e",
+							},
+						},
 					},
 				},
 			}},

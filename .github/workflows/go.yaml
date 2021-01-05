@@ -20,6 +20,7 @@ jobs:
         - "1.13"
         - "1.14"
         - "1.15"
+        - "1.16.0-beta1"
         - "tip"
     env:
       GOPATH: ${{ github.workspace }}/go
@@ -33,6 +34,7 @@ jobs:
       uses: actions/setup-go@v2
       with:
         go-version: ${{ matrix.go }}
+        stable: false
     - name: Set up Go ${{ matrix.go }}
       if: matrix.go == 'tip'
       run: |

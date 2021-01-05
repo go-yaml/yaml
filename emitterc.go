@@ -451,7 +451,6 @@ func yaml_emitter_emit_document_start(emitter *yaml_emitter_t, event *yaml_event
 			if !yaml_emitter_process_head_comment(emitter) {
 				return false
 			}
-			// Do not add newline if the document is empty
 			if !isEmpty && !put_break(emitter) {
 				return false
 			}

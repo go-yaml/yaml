@@ -137,18 +137,14 @@ a:
 
 
 func (s *S) TestCommentEmptyDoc(c *C) {
-	testIdempotent(c, `# foo
-`)
+	testIdempotent(c, "# foo\n")
 }
 
 
 func (s *S) TestEmptyDocument(c *C) {
-	testIdempotent(c, ``)
-	testCycle(c, `
-`, ``)
-	testCycle(c, `---
-`, `
-`)
+	testIdempotent(c, "")
+	testCycle(c, "\n", "")
+	testCycle(c, "---\n", "\n")
 }
 
 

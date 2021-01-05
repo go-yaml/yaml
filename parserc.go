@@ -893,7 +893,17 @@ func yaml_parser_parse_block_mapping_value(parser *yaml_parser_t, event *yaml_ev
 	if token.typ == yaml_VALUE_TOKEN {
 		mark := token.end_mark
 		skip_token(parser)
-		// Move foot comment to head comment
+		// Move foot comment to head comment. This prevents that in some cases, comments
+		// in maps are moved to the wrong place. In the following map:
+		//
+		//     a:
+		//       b:
+		//         # comment followed by newline
+		//
+		//         c: d
+		//
+		// (the newline between the comment and the next line is essential!)
+		// the comment ends up as the foot comment of `c`, which is obviously wrong.
 		if len(parser.foot_comment) > 0 {
 			if len(parser.head_comment) > 0 {
 				parser.head_comment = append(parser.head_comment, '\n')

@@ -1650,6 +1650,49 @@ var nodeTests = []struct {
 			},
 		},
 	}, {
+		// Same as above, but with two newlines before kb.
+		"[decode]# HA1\nka:\n  # HB1\n\n  kb: vb\n# FA1\n",
+		yaml.Node{
+			Kind:   yaml.DocumentNode,
+			Line:   2,
+			Column: 1,
+			Content: []*yaml.Node{{
+				Kind:   yaml.MappingNode,
+				Tag:    "!!map",
+				Line:   2,
+				Column: 1,
+				Content: []*yaml.Node{{
+					Kind:        yaml.ScalarNode,
+					Tag:         "!!str",
+					Value:       "ka",
+					HeadComment: "# HA1",
+					FootComment: "# FA1",
+					Line:        2,
+					Column:      1,
+				}, {
+					Kind:   yaml.MappingNode,
+					Tag:    "!!map",
+					Line:   5,
+					Column: 3,
+					Content: []*yaml.Node{{
+						Kind:        yaml.ScalarNode,
+						Tag:         "!!str",
+						Value:       "kb",
+						HeadComment: "# HB1\n",
+						Line:        5,
+						Column:      3,
+					}, {
+						Kind:   yaml.ScalarNode,
+						Tag:    "!!str",
+						Value:  "vb",
+						Line:   5,
+						Column: 7,
+					}},
+				}},
+			},
+			},
+		},
+	}, {
 		// Same as above, but with two newlines at the end. Decode-only for that.
 		"[decode]# HA1\nka:\n  # HB1\n  kb: vb\n  # FB1\n# FA1\n\n",
 		yaml.Node{
@@ -2117,6 +2160,44 @@ var nodeTests = []struct {
 			}},
 		},
 	}, {
+		// Same as above, but with extra newlines before FB1 and FB2
+		"[decode]# DH1\n\n# SH1\n[\n  # HA1\n  la, # IA\n  # FA1\n\n  # HB1\n  lb, # IB\n\n\n  # FB1\n\n# FB2\n]\n# SF1\n\n# DF1\n",
+		yaml.Node{
+			Kind:        yaml.DocumentNode,
+			Line:        4,
+			Column:      1,
+			HeadComment: "# DH1",
+			FootComment: "# DF1",
+			Content: []*yaml.Node{{
+				Kind:        yaml.SequenceNode,
+				Tag:         "!!seq",
+				Style:       yaml.FlowStyle,
+				Line:        4,
+				Column:      1,
+				HeadComment: "# SH1",
+				FootComment: "# SF1",
+				Content: []*yaml.Node{{
+					Kind:        yaml.ScalarNode,
+					Tag:         "!!str",
+					Line:        6,
+					Column:      3,
+					Value:       "la",
+					HeadComment: "# HA1",
+					LineComment: "# IA",
+					FootComment: "# FA1",
+				}, {
+					Kind:        yaml.ScalarNode,
+					Tag:         "!!str",
+					Line:        10,
+					Column:      3,
+					Value:       "lb",
+					HeadComment: "# HB1",
+					LineComment: "# IB",
+					FootComment: "# FB1\n\n# FB2",
+				}},
+			}},
+		},
+	}, {
 		"# DH1\n\n# SH1\n[\n  # HA1\n  la,\n  # FA1\n\n  # HB1\n  lb,\n  # FB1\n]\n# SF1\n\n# DF1\n",
 		yaml.Node{
 			Kind:        yaml.DocumentNode,
@@ -2376,7 +2457,7 @@ func (s *S) TestNodeRoundtrip(c *C) {
 				fprintComments(&buf, &node, "    ")
 				c.Logf("  obtained comments:\n%s", buf.Bytes())
 			}
-			c.Assert(node, DeepEquals, item.node)
+			c.Assert(&node, DeepEquals, &item.node)
 		}
 		if encode {
 			node := deepCopyNode(&item.node, nil)

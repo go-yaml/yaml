@@ -397,17 +397,20 @@ func (d *decoder) callObsoleteUnmarshaler(n *Node, u obsoleteUnmarshaler) (good 
 // unmarshalling was already done by UnmarshalYAML, and if so whether
 // its types unmarshalled appropriately.
 //
-// If n holds a null value, prepare returns before doing anything.
+// If n holds a null value, prepare will not initialize any values, but will
+// call unmarshallers, in order to allow resetting default values to null.
 func (d *decoder) prepare(n *Node, out reflect.Value) (newout reflect.Value, unmarshaled, good bool) {
-	if n.ShortTag() == nullTag || n.Kind == 0 && n.IsZero() {
-		return out, false, false
-	}
+	orig := out
 	again := true
 	for again {
 		again = false
 		if out.Kind() == reflect.Ptr {
 			if out.IsNil() {
-				out.Set(reflect.New(out.Type().Elem()))
+				// Only if the value we have is not null, to avoid setting null fields
+				// to their default value.
+				if n.ShortTag() != nullTag && n.Kind != 0 && !n.IsZero() {
+					out.Set(reflect.New(out.Type().Elem()))
+				}
 			}
 			out = out.Elem()
 			again = true
@@ -423,6 +426,10 @@ func (d *decoder) prepare(n *Node, out reflect.Value) (newout reflect.Value, unm
 				return out, true, good
 			}
 		}
+	}
+	// For null values restore the reference to the original pointer.
+	if n.ShortTag() == nullTag || n.Kind == 0 || n.IsZero() {
+		out = orig
 	}
 	return out, false, false
 }

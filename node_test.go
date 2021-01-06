@@ -1559,8 +1559,7 @@ var nodeTests = []struct {
 						Column: 7,
 					}},
 				}},
-			},
-			},
+			}},
 		},
 	}, {
 		// Same as above, but with newline at the end.
@@ -1603,8 +1602,7 @@ var nodeTests = []struct {
 						Column: 7,
 					}},
 				}},
-			},
-			},
+			}},
 		},
 	}, {
 		// Same as above, but without FB1.
@@ -1646,51 +1644,7 @@ var nodeTests = []struct {
 						Column: 7,
 					}},
 				}},
-			},
-			},
-		},
-	}, {
-		// Same as above, but with two newlines before kb.
-		"[decode]# HA1\nka:\n  # HB1\n\n  kb: vb\n# FA1\n",
-		yaml.Node{
-			Kind:   yaml.DocumentNode,
-			Line:   2,
-			Column: 1,
-			Content: []*yaml.Node{{
-				Kind:   yaml.MappingNode,
-				Tag:    "!!map",
-				Line:   2,
-				Column: 1,
-				Content: []*yaml.Node{{
-					Kind:        yaml.ScalarNode,
-					Tag:         "!!str",
-					Value:       "ka",
-					HeadComment: "# HA1",
-					FootComment: "# FA1",
-					Line:        2,
-					Column:      1,
-				}, {
-					Kind:   yaml.MappingNode,
-					Tag:    "!!map",
-					Line:   5,
-					Column: 3,
-					Content: []*yaml.Node{{
-						Kind:        yaml.ScalarNode,
-						Tag:         "!!str",
-						Value:       "kb",
-						HeadComment: "# HB1\n",
-						Line:        5,
-						Column:      3,
-					}, {
-						Kind:   yaml.ScalarNode,
-						Tag:    "!!str",
-						Value:  "vb",
-						Line:   5,
-						Column: 7,
-					}},
-				}},
-			},
-			},
+			}},
 		},
 	}, {
 		// Same as above, but with two newlines at the end. Decode-only for that.
@@ -1733,8 +1687,49 @@ var nodeTests = []struct {
 						Column: 7,
 					}},
 				}},
-			},
-			},
+			}},
+		},
+	}, {
+		// Similar to above, but make HB1 look more like a footer of ka.
+		"[decode]# HA1\nka:\n# HB1\n\n  kb: vb\n# FA1\n",
+		yaml.Node{
+			Kind:   yaml.DocumentNode,
+			Line:   2,
+			Column: 1,
+			Content: []*yaml.Node{{
+				Kind:   yaml.MappingNode,
+				Tag:    "!!map",
+				Line:   2,
+				Column: 1,
+				Content: []*yaml.Node{{
+					Kind:        yaml.ScalarNode,
+					Tag:         "!!str",
+					Value:       "ka",
+					HeadComment: "# HA1",
+					FootComment: "# FA1",
+					Line:        2,
+					Column:      1,
+				}, {
+					Kind:   yaml.MappingNode,
+					Tag:    "!!map",
+					Line:   5,
+					Column: 3,
+					Content: []*yaml.Node{{
+						Kind:        yaml.ScalarNode,
+						Tag:         "!!str",
+						Value:       "kb",
+						HeadComment: "# HB1\n",
+						Line:        5,
+						Column:      3,
+					}, {
+						Kind:   yaml.ScalarNode,
+						Tag:    "!!str",
+						Value:  "vb",
+						Line:   5,
+						Column: 7,
+					}},
+				}},
+			}},
 		},
 	}, {
 		"ka:\n  kb: vb\n# FA1\n\nkc: vc\n",

@@ -1334,6 +1334,51 @@ func (s *S) TestObsoleteUnmarshalerRetry(c *C) {
 	c.Assert(su, DeepEquals, obsoleteSliceUnmarshaler([]int{1}))
 }
 
+type SomeValue string
+
+func (e *SomeValue) UnmarshalYAML(node *yaml.Node) error {
+	if node.Tag == "!!null" {
+		*e = SomeValue("")
+	} else {
+		*e = SomeValue(node.Value)
+	}
+	return nil
+}
+
+type unmarshalerCalledEmpty struct {
+	Value SomeValue
+}
+
+func (s *S) TestUnmarshalerCalledEmpty(c *C) {
+	ce := unmarshalerCalledEmpty{Value: SomeValue("default")}
+	err := yaml.Unmarshal([]byte("value:"), &ce)
+	c.Assert(err, IsNil)
+	c.Assert(ce.Value, Equals, SomeValue(""))
+}
+
+type SomeObsoleteValue string
+
+func (e *SomeObsoleteValue) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	var out string
+	err := unmarshal(&out)
+	if err != nil {
+		return err
+	}
+	*e = SomeObsoleteValue(out)
+	return nil
+}
+
+type obsoleteUnmarshalerCalledEmpty struct {
+	Value SomeObsoleteValue
+}
+
+func (s *S) TestObsoleteUnmarshalerCalledEmpty(c *C) {
+	ce := obsoleteUnmarshalerCalledEmpty{Value: SomeObsoleteValue("default")}
+	err := yaml.Unmarshal([]byte("value:"), &ce)
+	c.Assert(err, IsNil)
+	c.Assert(ce.Value, Equals, SomeObsoleteValue(""))
+}
+
 // From http://yaml.org/type/merge.html
 var mergeTests = `
 anchors:

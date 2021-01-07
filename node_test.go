@@ -2688,6 +2688,9 @@ func (s *S) TestNodeZeroEncodeDecode(c *C) {
 	c.Assert(n.Decode(&v), IsNil)
 	c.Assert(v, IsNil)
 
+	// ... and even when looking for its tag.
+	c.Assert(n.ShortTag(), Equals, "!!null")
+
 	// Kind zero is still unknown, though.
 	n.Line = 1
 	_, err = yaml.Marshal(&n)

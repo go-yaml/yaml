@@ -505,7 +505,7 @@ var unmarshalTests = []struct {
 		map[string]*string{"foo": nil},
 	}, {
 		"foo: null",
-		map[string]string{},
+		map[string]string{"foo": ""},
 	}, {
 		"foo: null",
 		map[string]interface{}{"foo": nil},
@@ -517,7 +517,7 @@ var unmarshalTests = []struct {
 		map[string]*string{"foo": nil},
 	}, {
 		"foo: ~",
-		map[string]string{},
+		map[string]string{"foo": ""},
 	}, {
 		"foo: ~",
 		map[string]interface{}{"foo": nil},
@@ -1436,29 +1436,51 @@ func (s *S) TestMergeStruct(c *C) {
 	}
 }
 
-var unmarshalNullTests = []func() interface{}{
+var unmarshalNullTests = []struct{ input string; pristine, expected func() interface{} }{{
+	"null",
 	func() interface{} { var v interface{}; v = "v"; return &v },
+	func() interface{} { var v interface{}; v = nil; return &v },
+}, {
+	"null",
 	func() interface{} { var s = "s"; return &s },
+	func() interface{} { var s = "s"; return &s },
+}, {
+	"null",
 	func() interface{} { var s = "s"; sptr := &s; return &sptr },
+	func() interface{} { var sptr *string; return &sptr },
+}, {
+	"null",
 	func() interface{} { var i = 1; return &i },
+	func() interface{} { var i = 1; return &i },
+}, {
+	"null",
 	func() interface{} { var i = 1; iptr := &i; return &iptr },
-	func() interface{} { m := map[string]int{"s": 1}; return &m },
-	func() interface{} { m := map[string]int{"s": 1}; return m },
-}
+	func() interface{} { var iptr *int; return &iptr },
+}, {
+	"null",
+	func() interface{} { var m = map[string]int{"s": 1}; return &m },
+	func() interface{} { var m map[string]int; return &m },
+}, {
+	"null",
+	func() interface{} { var m = map[string]int{"s": 1}; return m },
+	func() interface{} { var m = map[string]int{"s": 1}; return m },
+}, {
+	"s2: null\ns3: null",
+	func() interface{} { var m = map[string]int{"s1": 1, "s2": 2}; return m },
+	func() interface{} { var m = map[string]int{"s1": 1, "s2": 2, "s3": 0}; return m },
+}, {
+	"s2: null\ns3: null",
+	func() interface{} { var m = map[string]interface{}{"s1": 1, "s2": 2}; return m },
+	func() interface{} { var m = map[string]interface{}{"s1": 1, "s2": nil, "s3": nil}; return m },
+}}
 
 func (s *S) TestUnmarshalNull(c *C) {
 	for _, test := range unmarshalNullTests {
-		pristine := test()
-		decoded := test()
-		zero := reflect.Zero(reflect.TypeOf(decoded).Elem()).Interface()
-		err := yaml.Unmarshal([]byte("null"), decoded)
+		pristine := test.pristine()
+		expected := test.expected()
+		err := yaml.Unmarshal([]byte(test.input), pristine)
 		c.Assert(err, IsNil)
-		switch pristine.(type) {
-		case *interface{}, **string, **int, *map[string]int:
-			c.Assert(reflect.ValueOf(decoded).Elem().Interface(), DeepEquals, zero)
-		default:
-			c.Assert(reflect.ValueOf(decoded).Interface(), DeepEquals, pristine)
-		}
+		c.Assert(pristine, DeepEquals, expected)
 	}
 }
 

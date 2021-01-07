@@ -2260,10 +2260,9 @@ func yaml_parser_scan_block_scalar(parser *yaml_parser_t, token *yaml_token_t, l
 		}
 	}
 	if parser.buffer[parser.buffer_pos] == '#' {
-		// TODO Test this and then re-enable it.
-		//if !yaml_parser_scan_line_comment(parser, start_mark) {
-		//	return false
-		//}
+		if !yaml_parser_scan_line_comment(parser, start_mark) {
+			return false
+		}
 		for !is_breakz(parser.buffer, parser.buffer_pos) {
 			skip(parser)
 			if parser.unread < 1 && !yaml_parser_update_buffer(parser, 1) {

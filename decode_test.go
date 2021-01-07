@@ -1334,26 +1334,55 @@ func (s *S) TestObsoleteUnmarshalerRetry(c *C) {
 	c.Assert(su, DeepEquals, obsoleteSliceUnmarshaler([]int{1}))
 }
 
-type SomeValue string
+type SomeValue struct {
+	Value string
+	Tag string
+}
 
 func (e *SomeValue) UnmarshalYAML(node *yaml.Node) error {
-	if node.Tag == "!!null" {
-		*e = SomeValue("")
-	} else {
-		*e = SomeValue(node.Value)
-	}
+	e.Value = node.Value
+	e.Tag = node.Tag
 	return nil
 }
 
-type unmarshalerCalledEmpty struct {
+type unmarshalerCallTester struct {
 	Value SomeValue
+	Ptr *SomeValue
+}
+
+func (s *S) TestUnmarshalerCalledString(c *C) {
+	ce := unmarshalerCallTester{Value: SomeValue{"default", ""}}
+	err := yaml.Unmarshal([]byte("value: test\nptr: test"), &ce)
+	c.Assert(err, IsNil)
+	c.Assert(ce.Value.Tag, Equals, "!!str")
+	c.Assert(ce.Value.Value, Equals, "test")
+	c.Assert(ce.Ptr.Tag, Equals, "!!str")
+	c.Assert(ce.Ptr.Value, Equals, "test")
 }
 
 func (s *S) TestUnmarshalerCalledEmpty(c *C) {
-	ce := unmarshalerCalledEmpty{Value: SomeValue("default")}
-	err := yaml.Unmarshal([]byte("value:"), &ce)
+	ce := unmarshalerCallTester{Value: SomeValue{"default", ""}}
+	err := yaml.Unmarshal([]byte("value:\nptr:"), &ce)
 	c.Assert(err, IsNil)
-	c.Assert(ce.Value, Equals, SomeValue(""))
+	c.Assert(ce.Value.Tag, Equals, "!!null")
+	c.Assert(ce.Value.Value, Equals, "")
+	c.Assert(ce.Ptr, IsNil)
+
+	ce = unmarshalerCallTester{Ptr: &SomeValue{"default", ""}}
+	err = yaml.Unmarshal([]byte("ptr:"), &ce)
+	c.Assert(err, IsNil)
+	// Value already set to something, so UnmarshalYAML is called.
+	c.Assert(ce.Ptr.Tag, Equals, "!!null")
+	c.Assert(ce.Ptr.Value, Equals, "")
+}
+
+func (s *S) TestUnmarshalerCalledCanonical(c *C) {
+	ce := unmarshalerCallTester{Value: SomeValue{"default", ""}}
+	err := yaml.Unmarshal([]byte("value: ~\nptr: ~"), &ce)
+	c.Assert(err, IsNil)
+	c.Assert(ce.Value.Tag, Equals, "!!null")
+	c.Assert(ce.Value.Value, Equals, "~")
+	c.Assert(ce.Ptr, IsNil)
 }
 
 type SomeObsoleteValue string

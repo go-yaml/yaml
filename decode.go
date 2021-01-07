@@ -408,9 +408,10 @@ func (d *decoder) prepare(n *Node, out reflect.Value) (newout reflect.Value, unm
 			if out.IsNil() {
 				// Only if the value we have is not null, to avoid setting null fields
 				// to their default value.
-				if n.ShortTag() != nullTag && n.Kind != 0 && !n.IsZero() {
-					out.Set(reflect.New(out.Type().Elem()))
+				if n.ShortTag() == nullTag {
+					return out, false, false
 				}
+				out.Set(reflect.New(out.Type().Elem()))
 			}
 			out = out.Elem()
 			again = true
@@ -428,7 +429,7 @@ func (d *decoder) prepare(n *Node, out reflect.Value) (newout reflect.Value, unm
 		}
 	}
 	// For null values restore the reference to the original pointer.
-	if n.ShortTag() == nullTag || n.Kind == 0 || n.IsZero() {
+	if n.ShortTag() == nullTag {
 		out = orig
 	}
 	return out, false, false
@@ -815,8 +816,10 @@ func (d *decoder) mapping(n *Node, out reflect.Value) (good bool) {
 		}
 	}
 
+	mapIsNew := false
 	if out.IsNil() {
 		out.Set(reflect.MakeMap(outt))
+		mapIsNew = true
 	}
 	for i := 0; i < l; i += 2 {
 		if isMerge(n.Content[i]) {
@@ -833,7 +836,7 @@ func (d *decoder) mapping(n *Node, out reflect.Value) (good bool) {
 				failf("invalid map key: %#v", k.Interface())
 			}
 			e := reflect.New(et).Elem()
-			if d.unmarshal(n.Content[i+1], e) {
+			if d.unmarshal(n.Content[i+1], e) || n.Content[i+1].ShortTag() == nullTag && (mapIsNew || !out.MapIndex(k).IsValid()) {
 				out.SetMapIndex(k, e)
 			}
 		}

@@ -448,6 +448,14 @@ var marshalTests = []struct {
 			},
 		},
 		"value: 'foo'\n",
+	}, {
+		yaml.Node{
+			Kind:  yaml.ScalarNode,
+			Tag:   "!!str",
+			Value: "foo",
+			Style: yaml.SingleQuotedStyle,
+		},
+		"'foo'\n",
 	},
 
 	// Enforced tagging with shorthand notation (issue #616).

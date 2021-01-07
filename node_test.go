@@ -18,12 +18,12 @@ package yaml_test
 import (
 	"bytes"
 	"fmt"
+	"io"
 	"os"
+	"strings"
 
 	. "gopkg.in/check.v1"
 	"gopkg.in/yaml.v3"
-	"io"
-	"strings"
 )
 
 var nodeTests = []struct {
@@ -547,6 +547,78 @@ var nodeTests = []struct {
 					Column: 3,
 				}},
 			}},
+		},
+	}, {
+		"a: # IA\n  |-\n  hello\n  world\n",
+		yaml.Node{
+			Kind:   0x1,
+			Style:  0x0,
+			Line:   1,
+			Column: 1,
+			Content: []*yaml.Node{
+				{
+					Kind:   0x4,
+					Style:  0x0,
+					Tag:    "!!map",
+					Line:   1,
+					Column: 1,
+					Content: []*yaml.Node{
+						{
+							Kind:        0x8,
+							Style:       0x0,
+							Tag:         "!!str",
+							Value:       "a",
+							LineComment: "# IA",
+							Line:        1,
+							Column:      1,
+						},
+						{
+							Kind:   0x8,
+							Style:  0x8,
+							Tag:    "!!str",
+							Value:  "hello\nworld",
+							Line:   2,
+							Column: 3,
+						},
+					},
+				},
+			},
+		},
+	}, {
+		"a: # IA\n  |2-\n    hello\n  world\n",
+		yaml.Node{
+			Kind:   0x1,
+			Style:  0x0,
+			Line:   1,
+			Column: 1,
+			Content: []*yaml.Node{
+				{
+					Kind:   0x4,
+					Style:  0x0,
+					Tag:    "!!map",
+					Line:   1,
+					Column: 1,
+					Content: []*yaml.Node{
+						{
+							Kind:        0x8,
+							Style:       0x0,
+							Tag:         "!!str",
+							Value:       "a",
+							LineComment: "# IA",
+							Line:        1,
+							Column:      1,
+						},
+						{
+							Kind:   0x8,
+							Style:  0x8,
+							Tag:    "!!str",
+							Value:  "  hello\nworld",
+							Line:   2,
+							Column: 3,
+						},
+					},
+				},
+			},
 		},
 	}, {
 		"a:\n  # HM\n  - # HB1\n    # HB2\n    b: # IB\n      c # IC\n",

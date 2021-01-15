@@ -19,6 +19,7 @@ import (
 	"bytes"
 	"fmt"
 	"os"
+	"reflect"
 
 	. "gopkg.in/check.v1"
 	"gopkg.in/yaml.v3"
@@ -2846,6 +2847,83 @@ func (s *S) TestNodeOmitEmpty(c *C) {
 	v.B.Line = 1
 	_, err = yaml.Marshal(&v)
 	c.Assert(err, ErrorMatches, "yaml: cannot encode node with unknown kind 0")
+}
+
+var nodeDecodeWithOptionsTests = []struct {
+	opts yaml.DecodeOptions
+	node  yaml.Node
+	value interface{}
+	error string
+}{
+	{
+		opts: yaml.DecodeOptions{KnownFields: false},
+		node: yaml.Node{
+			Kind: yaml.MappingNode,
+			Tag:  "!!map",
+			Content: []*yaml.Node{{
+				Kind:  yaml.ScalarNode,
+				Value: "a",
+				Tag:   "!!str",
+			}, {
+				Kind:  yaml.ScalarNode,
+				Value: "1",
+				Tag:   "!!int",
+			}, {
+				Kind:  yaml.ScalarNode,
+				Value: "c",
+				Tag:   "!!str",
+			}, {
+				Kind:  yaml.ScalarNode,
+				Value: "2",
+				Tag:   "!!int",
+			}},
+		},
+		value: struct{ A int}{A: 1},
+	},
+	{
+		opts: yaml.DecodeOptions{KnownFields: true},
+		node: yaml.Node{
+			Kind: yaml.MappingNode,
+			Tag:  "!!map",
+			Content: []*yaml.Node{{
+				Kind:  yaml.ScalarNode,
+				Value: "a",
+				Tag:   "!!str",
+				Line: 1,
+			}, {
+				Kind:  yaml.ScalarNode,
+				Value: "1",
+				Tag:   "!!int",
+				Line: 1,
+			}, {
+				Kind:  yaml.ScalarNode,
+				Value: "c",
+				Tag:   "!!str",
+				Line: 2,
+			}, {
+				Kind:  yaml.ScalarNode,
+				Value: "2",
+				Tag:   "!!int",
+				Line: 2,
+			}},
+		},
+		value: struct{ A int }{A: 1},
+		error: `yaml: unmarshal errors:\n  line 2: field c not found in type struct { A int }`,
+	},
+}
+
+func (s *S) TestNodeDecodeWithOptions(c *C) {
+	for _, item := range nodeDecodeWithOptionsTests {
+		t := reflect.ValueOf(item.value).Type()
+		value := reflect.New(t)
+		err := item.node.DecodeWithOptions(value.Interface(), item.opts)
+		if item.error == "" {
+			c.Assert(err, IsNil)
+		} else {
+			c.Assert(err, ErrorMatches, item.error)
+		}
+		c.Assert(value.Elem().Interface(), DeepEquals, item.value)
+	}
 }
 
 func fprintComments(out io.Writer, node *yaml.Node, indent string) {

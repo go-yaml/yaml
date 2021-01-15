@@ -105,7 +105,7 @@ func NewDecoder(r io.Reader) *Decoder {
 	}
 }
 
-// KnownFields ensures that the keys in decoded mappings to
+// KnownFields ensures that the keys in decoded mappings
 // exist as fields in the struct being decoded into.
 func (dec *Decoder) KnownFields(enable bool) {
 	dec.knownFields = enable
@@ -140,7 +140,23 @@ func (dec *Decoder) Decode(v interface{}) (err error) {
 // See the documentation for Unmarshal for details about the
 // conversion of YAML into a Go value.
 func (n *Node) Decode(v interface{}) (err error) {
+	return n.DecodeWithOptions(v, DecodeOptions{})
+}
+
+// DecodeOptions specifies the options to use when decoding a node.
+type DecodeOptions struct {
+	// KnownFields ensures that the keys in decoded mappings
+	// exist as fields in the struct being decoded into.
+	KnownFields bool
+}
+
+// Decode decodes the node using the given options and stores its data into the value pointed to by v.
+//
+// See the documentation for Unmarshal for details about the
+// conversion of YAML into a Go value.
+func (n *Node) DecodeWithOptions(v interface{}, o DecodeOptions) (err error) {
 	d := newDecoder()
+	d.knownFields = o.KnownFields
 	defer handleErr(&err)
 	out := reflect.ValueOf(v)
 	if out.Kind() == reflect.Ptr && !out.IsNil() {

@@ -18,7 +18,6 @@ package yaml_test
 import (
 	"bytes"
 	"errors"
-	"fmt"
 	"io"
 	"math"
 	"reflect"
@@ -259,6 +258,28 @@ var unmarshalTests = []struct {
 	{
 		"a: {b: c, 1: d}",
 		map[interface{}]interface{}{"a": map[interface{}]interface{}{"b": "c", 1: "d"}},
+	},
+
+	// Merge maps with string/non-string keys
+	{
+		"a: &M {b: c}\nb: { << : *M }",
+		map[interface{}]interface{}{"a": map[string]interface{}{"b": "c"}, "b": map[string]interface{}{"b": "c"}},
+	},
+	{
+		"a: &M {b: c}\nb: { << : *M, d: e }",
+		map[interface{}]interface{}{"a": map[string]interface{}{"b": "c"}, "b": map[string]interface{}{"b": "c", "d": "e"}},
+	},
+	{
+		"a: &M {b: c}\nb: { << : *M, 1: e }",
+		map[interface{}]interface{}{"a": map[string]interface{}{"b": "c"}, "b": map[interface{}]interface{}{"b": "c", 1: "e"}},
+	},
+	{
+		"a: &M {b: c, 1: d}\nb: { << : *M }",
+		map[interface{}]interface{}{"a": map[interface{}]interface{}{"b": "c", 1: "d"}, "b": map[interface{}]interface{}{"b": "c", 1: "d"}},
+	},
+	{
+		"a: &M {b: c, 1: d}\nb: { << : *M, d: e }",
+		map[interface{}]interface{}{"a": map[interface{}]interface{}{"b": "c", 1: "d"}, "b": map[interface{}]interface{}{"b": "c", 1: "d", "d": "e"}},
 	},
 
 	// Structs and type conversions.
@@ -1391,16 +1412,11 @@ inlineSequenceMap:
 `
 
 func (s *S) TestMerge(c *C) {
-	var want = map[interface{}]interface{}{
+	var want = map[string]interface{}{
 		"x":     1,
 		"y":     2,
 		"r":     10,
 		"label": "center/big",
-	}
-
-	wantStringMap := make(map[string]interface{})
-	for k, v := range want {
-		wantStringMap[fmt.Sprintf("%v", k)] = v
 	}
 
 	var m map[interface{}]interface{}
@@ -1408,10 +1424,6 @@ func (s *S) TestMerge(c *C) {
 	c.Assert(err, IsNil)
 	for name, test := range m {
 		if name == "anchors" {
-			continue
-		}
-		if name == "plain" {
-			c.Assert(test, DeepEquals, wantStringMap, Commentf("test %q failed", name))
 			continue
 		}
 		c.Assert(test, DeepEquals, want, Commentf("test %q failed", name))

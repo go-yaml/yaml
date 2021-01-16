@@ -844,7 +844,18 @@ func isStringMap(n *Node) bool {
 	}
 	l := len(n.Content)
 	for i := 0; i < l; i += 2 {
-		if n.Content[i].ShortTag() != strTag {
+		switch n.Content[i].ShortTag() {
+		case strTag:
+			continue
+
+		case mergeTag:
+			alias := n.Content[i+1].Alias
+			if alias == nil || isStringMap(alias) {
+				continue
+			}
+			return false
+
+		default:
 			return false
 		}
 	}

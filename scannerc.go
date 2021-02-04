@@ -43,8 +43,8 @@ import (
 //      BLOCK-END                       # Indentation decrease.
 //      FLOW-SEQUENCE-START             # '['
 //      FLOW-SEQUENCE-END               # ']'
-//      BLOCK-SEQUENCE-START            # '{'
-//      BLOCK-SEQUENCE-END              # '}'
+//      FLOW-MAPPING-START              # '{'
+//      FLOW-MAPPING-END                # '}'
 //      BLOCK-ENTRY                     # '-'
 //      FLOW-ENTRY                      # ','
 //      KEY                             # '?' or nothing (simple keys).

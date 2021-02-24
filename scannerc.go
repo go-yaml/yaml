@@ -835,9 +835,11 @@ func yaml_simple_key_is_valid(parser *yaml_parser_t, simple_key *yaml_simple_key
 	if simple_key.mark.line < parser.mark.line || simple_key.mark.index+1024 < parser.mark.index {
 		// Check if the potential simple key to be removed is required.
 		if simple_key.required {
-			return false, yaml_parser_set_scanner_error(parser,
+			yaml_parser_set_scanner_error(parser,
 				"while scanning a simple key", simple_key.mark,
 				"could not find expected ':'")
+			parser.problem_mark.line = 0
+			return false, false
 		}
 		simple_key.possible = false
 		return false, true

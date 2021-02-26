@@ -20,7 +20,7 @@ jobs:
         - "1.13"
         - "1.14"
         - "1.15"
-        - "1.16.0-beta1"
+        - "1.16"
         - "tip"
     env:
       GOPATH: ${{ github.workspace }}/go

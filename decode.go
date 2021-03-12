@@ -296,10 +296,6 @@ func (p *parser) mapping() *Node {
 	}
 	n.LineComment = string(p.event.line_comment)
 	n.FootComment = string(p.event.foot_comment)
-	if n.Style&FlowStyle == 0 && n.FootComment != "" && len(n.Content) > 1 {
-		n.Content[len(n.Content)-2].FootComment = n.FootComment
-		n.FootComment = ""
-	}
 	p.expect(yaml_MAPPING_END_EVENT)
 	return n
 }

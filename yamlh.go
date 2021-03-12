@@ -602,8 +602,9 @@ type yaml_parser_t struct {
 	tail_comment []byte // Foot comment that happens at the end of a block.
 	stem_comment []byte // Comment in item preceding a nested structure (list inside list item, etc)
 
-	comments      []yaml_comment_t // The folded comments for all parsed tokens
-	comments_head int
+	comments            []yaml_comment_t // The folded comments for all parsed tokens
+	comments_head       int
+	next_block_comments []yaml_comment_t // The stack of comments that should be unwinded when the next MAPPING_END comes
 
 	// Scanner stuff
 
@@ -639,7 +640,6 @@ type yaml_parser_t struct {
 }
 
 type yaml_comment_t struct {
-
 	scan_mark  yaml_mark_t // Position where scanning for comments started
 	token_mark yaml_mark_t // Position after which tokens will be associated with this comment
 	start_mark yaml_mark_t // Position of '#' comment mark

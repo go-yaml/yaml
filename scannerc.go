@@ -2847,7 +2847,7 @@ func yaml_parser_scan_line_comment(parser *yaml_parser_t, token_mark yaml_mark_t
 			continue
 		}
 		if parser.buffer[parser.buffer_pos+peek] == '#' {
-			seen := parser.mark.index+peek
+			seen := parser.mark.index + peek
 			for {
 				if parser.unread < 1 && !yaml_parser_update_buffer(parser, 1) {
 					return false
@@ -2876,7 +2876,7 @@ func yaml_parser_scan_line_comment(parser *yaml_parser_t, token_mark yaml_mark_t
 		parser.comments = append(parser.comments, yaml_comment_t{
 			token_mark: token_mark,
 			start_mark: start_mark,
-			line: text,
+			line:       text,
 		})
 	}
 	return true
@@ -2901,6 +2901,7 @@ func yaml_parser_scan_comments(parser *yaml_parser_t, scan_mark yaml_mark_t) boo
 
 	var line = parser.mark.line
 	var column = parser.mark.column
+	var comment_indent int
 
 	var text []byte
 
@@ -2910,7 +2911,7 @@ func yaml_parser_scan_comments(parser *yaml_parser_t, scan_mark yaml_mark_t) boo
 	// the foot is the line below it.
 	var foot_line = -1
 	if scan_mark.line > 0 {
-		foot_line = parser.mark.line-parser.newlines+1
+		foot_line = parser.mark.line - parser.newlines + 1
 		if parser.newlines == 0 && parser.mark.column > 1 {
 			foot_line++
 		}
@@ -2941,13 +2942,16 @@ func yaml_parser_scan_comments(parser *yaml_parser_t, scan_mark yaml_mark_t) boo
 							// If dedented it's unrelated to the prior token.
 							token_mark = start_mark
 						}
-						parser.comments = append(parser.comments, yaml_comment_t{
-							scan_mark:  scan_mark,
-							token_mark: token_mark,
-							start_mark: start_mark,
-							end_mark:   yaml_mark_t{parser.mark.index + peek, line, column},
-							foot:       text,
-						})
+						parser.comments = append(parser.comments,
+							yaml_comment_t{
+								scan_mark:  scan_mark,
+								token_mark: token_mark,
+								start_mark: start_mark,
+								end_mark:   yaml_mark_t{parser.mark.index + peek, line, column},
+								foot:       text,
+							},
+						)
+
 						scan_mark = yaml_mark_t{parser.mark.index + peek, line, column}
 						token_mark = scan_mark
 						text = nil
@@ -2971,13 +2975,26 @@ func yaml_parser_scan_comments(parser *yaml_parser_t, scan_mark yaml_mark_t) boo
 		if len(text) > 0 && (close_flow || column-1 < next_indent && column != start_mark.column) {
 			// The comment at the different indentation is a foot of the
 			// preceding data rather than a head of the upcoming one.
-			parser.comments = append(parser.comments, yaml_comment_t{
-				scan_mark:  scan_mark,
-				token_mark: token_mark,
-				start_mark: start_mark,
-				end_mark:   yaml_mark_t{parser.mark.index + peek, line, column},
-				foot:       text,
-			})
+			if parser.marks[len(parser.marks)-1].column > comment_indent {
+				parser.next_block_comments = append(parser.next_block_comments,
+					yaml_comment_t{
+						scan_mark:  scan_mark,
+						token_mark: token.end_mark,
+						start_mark: start_mark,
+						end_mark:   yaml_mark_t{parser.mark.index + peek, line, column},
+						foot:       text,
+					},
+				)
+			} else {
+				parser.comments = append(parser.comments, yaml_comment_t{
+					scan_mark:  scan_mark,
+					token_mark: token_mark,
+					start_mark: start_mark,
+					end_mark:   yaml_mark_t{parser.mark.index + peek, line, column},
+					foot:       text,
+				})
+			}
+
 			scan_mark = yaml_mark_t{parser.mark.index + peek, line, column}
 			token_mark = scan_mark
 			text = nil
@@ -2996,7 +3013,7 @@ func yaml_parser_scan_comments(parser *yaml_parser_t, scan_mark yaml_mark_t) boo
 		recent_empty = false
 
 		// Consume until after the consumed comment line.
-		seen := parser.mark.index+peek
+		seen := parser.mark.index + peek
 		for {
 			if parser.unread < 1 && !yaml_parser_update_buffer(parser, 1) {
 				return false
@@ -3011,6 +3028,9 @@ func yaml_parser_scan_comments(parser *yaml_parser_t, scan_mark yaml_mark_t) boo
 				skip_line(parser)
 			} else if parser.mark.index >= seen {
 				text = read(parser, text)
+				if text[len(text)-1] == '#' {
+					comment_indent = parser.mark.column
+				}
 			} else {
 				skip(parser)
 			}

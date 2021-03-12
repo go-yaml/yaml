@@ -241,7 +241,7 @@ func yaml_emitter_increase_indent(emitter *yaml_emitter_t, flow, indentless bool
 			emitter.indent += 2
 		} else {
 			// Everything else aligns to the chosen indentation.
-			emitter.indent = emitter.best_indent*((emitter.indent+emitter.best_indent)/emitter.best_indent)
+			emitter.indent = emitter.best_indent * ((emitter.indent + emitter.best_indent) / emitter.best_indent)
 		}
 	}
 	return true
@@ -776,6 +776,10 @@ func yaml_emitter_emit_block_mapping_key(emitter *yaml_emitter_t, event *yaml_ev
 		emitter.indents = emitter.indents[:len(emitter.indents)-1]
 		emitter.state = emitter.states[len(emitter.states)-1]
 		emitter.states = emitter.states[:len(emitter.states)-1]
+
+		if !yaml_emitter_process_foot_comment(emitter) {
+			return false
+		}
 		return true
 	}
 	if !yaml_emitter_write_indent(emitter) {
@@ -813,6 +817,7 @@ func yaml_emitter_emit_block_mapping_value(emitter *yaml_emitter_t, event *yaml_
 			return false
 		}
 	}
+
 	if len(emitter.key_line_comment) > 0 {
 		// [Go] Line comments are generally associated with the value, but when there's
 		//      no value on the same line as a mapping key they end up attached to the

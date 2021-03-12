@@ -78,6 +78,40 @@ func peek_token(parser *yaml_parser_t) *yaml_token_t {
 // comments behind the position of the provided token into the respective
 // top-level comment slices in the parser.
 func yaml_parser_unfold_comments(parser *yaml_parser_t, token *yaml_token_t) {
+
+	if (token.typ == yaml_BLOCK_END_TOKEN ||
+		token.typ == yaml_FLOW_SEQUENCE_END_TOKEN ||
+		token.typ == yaml_STREAM_END_TOKEN ||
+		token.typ == yaml_DOCUMENT_END_TOKEN ||
+		token.typ == yaml_FLOW_MAPPING_END_TOKEN) && len(parser.next_block_comments) > 0 {
+		// special handling for block end comments
+		// fetch accumulated comments until they have the same or greater indent
+		var (
+			index  int
+			indent = -1
+		)
+
+		for index = 0; index < len(parser.next_block_comments); {
+			comment := parser.next_block_comments[index]
+			if indent == -1 {
+				indent = comment.scan_mark.column
+			} else if indent > comment.scan_mark.column {
+				break
+			}
+
+			if len(comment.foot) > 0 {
+				if len(parser.foot_comment) > 0 {
+					parser.foot_comment = append(parser.foot_comment, '\n')
+				}
+				parser.foot_comment = append(parser.foot_comment, comment.foot...)
+			}
+
+			index++
+		}
+
+		parser.next_block_comments = parser.next_block_comments[index:]
+	}
+
 	for parser.comments_head < len(parser.comments) && token.start_mark.index >= parser.comments[parser.comments_head].token_mark.index {
 		comment := &parser.comments[parser.comments_head]
 		if len(comment.head) > 0 {
@@ -724,6 +758,7 @@ func yaml_parser_parse_block_sequence_entry(parser *yaml_parser_t, event *yaml_e
 			end_mark:   token.end_mark,
 		}
 
+		yaml_parser_set_event_comments(parser, event)
 		skip_token(parser)
 		return true
 	}
@@ -1039,6 +1074,7 @@ func yaml_parser_parse_flow_sequence_entry_mapping_end(parser *yaml_parser_t, ev
 		start_mark: token.start_mark,
 		end_mark:   token.start_mark, // [Go] Shouldn't this be end_mark?
 	}
+	yaml_parser_set_event_comments(parser, event)
 	return true
 }
 

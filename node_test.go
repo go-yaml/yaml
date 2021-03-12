@@ -18,12 +18,12 @@ package yaml_test
 import (
 	"bytes"
 	"fmt"
+	"io"
 	"os"
+	"strings"
 
 	. "gopkg.in/check.v1"
 	"gopkg.in/yaml.v3"
-	"io"
-	"strings"
 )
 
 var nodeTests = []struct {
@@ -688,17 +688,17 @@ var nodeTests = []struct {
 					Line:        3,
 					Column:      4,
 				}, {
-					Kind:   yaml.ScalarNode,
-					Tag:    "!!str",
-					Value:  "c",
+					Kind:        yaml.ScalarNode,
+					Tag:         "!!str",
+					Value:       "c",
 					LineComment: "# IC",
-					Line:   5,
-					Column: 1,
+					Line:        5,
+					Column:      1,
 				}, {
-					Kind:        yaml.SequenceNode,
-					Tag:         "!!seq",
-					Line:        6,
-					Column:      3,
+					Kind:   yaml.SequenceNode,
+					Tag:    "!!seq",
+					Line:   6,
+					Column: 3,
 					Content: []*yaml.Node{{
 						Kind:   yaml.ScalarNode,
 						Tag:    "!!str",
@@ -707,17 +707,17 @@ var nodeTests = []struct {
 						Column: 5,
 					}},
 				}, {
-					Kind:   yaml.ScalarNode,
-					Tag:    "!!str",
-					Value:  "d",
+					Kind:        yaml.ScalarNode,
+					Tag:         "!!str",
+					Value:       "d",
 					LineComment: "# ID",
-					Line:   7,
-					Column: 1,
+					Line:        7,
+					Column:      1,
 				}, {
-					Kind:        yaml.MappingNode,
-					Tag:         "!!map",
-					Line:        8,
-					Column:      3,
+					Kind:   yaml.MappingNode,
+					Tag:    "!!map",
+					Line:   8,
+					Column: 3,
 					Content: []*yaml.Node{{
 						Kind:   yaml.ScalarNode,
 						Tag:    "!!str",
@@ -1344,6 +1344,81 @@ var nodeTests = []struct {
 			}},
 		},
 	}, {
+		"m:\n  m:\n    key: value\n  # foot\nn:\n  k: 1\n",
+		yaml.Node{
+			Kind:   yaml.DocumentNode,
+			Line:   1,
+			Column: 1,
+			Content: []*yaml.Node{{
+				Kind:   yaml.MappingNode,
+				Tag:    "!!map",
+				Line:   1,
+				Column: 1,
+				Content: []*yaml.Node{{
+					Kind:   yaml.ScalarNode,
+					Tag:    "!!str",
+					Line:   1,
+					Column: 1,
+					Value:  "m",
+				}, {
+					Kind:   yaml.MappingNode,
+					Tag:    "!!map",
+					Line:   2,
+					Column: 3,
+					Content: []*yaml.Node{{
+						Kind:        yaml.ScalarNode,
+						Tag:         "!!str",
+						Line:        2,
+						Column:      3,
+						Value:       "m",
+						FootComment: "# foot",
+					}, {
+						Kind:   yaml.MappingNode,
+						Tag:    "!!map",
+						Line:   3,
+						Column: 5,
+						Content: []*yaml.Node{{
+							Kind:   yaml.ScalarNode,
+							Tag:    "!!str",
+							Line:   3,
+							Column: 5,
+							Value:  "key",
+						}, {
+							Kind:   yaml.ScalarNode,
+							Tag:    "!!str",
+							Line:   3,
+							Column: 10,
+							Value:  "value",
+						}},
+					}},
+				}, {
+					Kind:   yaml.ScalarNode,
+					Tag:    "!!str",
+					Line:   5,
+					Column: 1,
+					Value:  "n",
+				}, {
+					Kind:   yaml.MappingNode,
+					Tag:    "!!map",
+					Line:   6,
+					Column: 3,
+					Content: []*yaml.Node{{
+						Kind:   yaml.ScalarNode,
+						Tag:    "!!str",
+						Line:   6,
+						Column: 3,
+						Value:  "k",
+					}, {
+						Kind:   yaml.ScalarNode,
+						Tag:    "!!int",
+						Line:   6,
+						Column: 6,
+						Value:  "1",
+					}},
+				}},
+			}},
+		},
+	}, {
 		"# DH1\n\n# HA1\nka:\n  # HB1\n  kb:\n    # HC1\n    # HC2\n    - lc # IC\n    # FC1\n    # FC2\n\n    # HD1\n    - ld # ID\n    # FD1\n\n# DF1\n",
 		yaml.Node{
 			Kind:        yaml.DocumentNode,
@@ -1576,16 +1651,16 @@ var nodeTests = []struct {
 			Line:        7,
 			Column:      1,
 			Content: []*yaml.Node{{
-				Kind:   yaml.MappingNode,
-				Tag:    "!!map",
-				Line:   7,
-				Column: 1,
+				Kind:        yaml.MappingNode,
+				Tag:         "!!map",
+				Line:        7,
+				Column:      1,
+				FootComment: "# FA1\n# FA2",
 				Content: []*yaml.Node{{
 					Kind:        yaml.ScalarNode,
 					Tag:         "!!str",
 					Value:       "ka",
 					HeadComment: "# HA1\n# HA2",
-					FootComment: "# FA1\n# FA2",
 					Line:        7,
 					Column:      1,
 				}, {
@@ -1661,16 +1736,16 @@ var nodeTests = []struct {
 			Line:   2,
 			Column: 1,
 			Content: []*yaml.Node{{
-				Kind:   yaml.MappingNode,
-				Tag:    "!!map",
-				Line:   2,
-				Column: 1,
+				Kind:        yaml.MappingNode,
+				Tag:         "!!map",
+				Line:        2,
+				Column:      1,
+				FootComment: "# FA1",
 				Content: []*yaml.Node{{
 					Kind:        yaml.ScalarNode,
 					Tag:         "!!str",
 					Value:       "ka",
 					HeadComment: "# HA1",
-					FootComment: "# FA1",
 					Line:        2,
 					Column:      1,
 				}, {
@@ -1704,16 +1779,16 @@ var nodeTests = []struct {
 			Line:   2,
 			Column: 1,
 			Content: []*yaml.Node{{
-				Kind:   yaml.MappingNode,
-				Tag:    "!!map",
-				Line:   2,
-				Column: 1,
+				Kind:        yaml.MappingNode,
+				Tag:         "!!map",
+				Line:        2,
+				Column:      1,
+				FootComment: "# FA1",
 				Content: []*yaml.Node{{
 					Kind:        yaml.ScalarNode,
 					Tag:         "!!str",
 					Value:       "ka",
 					HeadComment: "# HA1",
-					FootComment: "# FA1",
 					Line:        2,
 					Column:      1,
 				}, {
@@ -1747,16 +1822,16 @@ var nodeTests = []struct {
 			Line:   2,
 			Column: 1,
 			Content: []*yaml.Node{{
-				Kind:   yaml.MappingNode,
-				Tag:    "!!map",
-				Line:   2,
-				Column: 1,
+				Kind:        yaml.MappingNode,
+				Tag:         "!!map",
+				Line:        2,
+				Column:      1,
+				FootComment: "# FA1",
 				Content: []*yaml.Node{{
 					Kind:        yaml.ScalarNode,
 					Tag:         "!!str",
 					Value:       "ka",
 					HeadComment: "# HA1",
-					FootComment: "# FA1",
 					Line:        2,
 					Column:      1,
 				}, {
@@ -1789,16 +1864,16 @@ var nodeTests = []struct {
 			Line:   2,
 			Column: 1,
 			Content: []*yaml.Node{{
-				Kind:   yaml.MappingNode,
-				Tag:    "!!map",
-				Line:   2,
-				Column: 1,
+				Kind:        yaml.MappingNode,
+				Tag:         "!!map",
+				Line:        2,
+				Column:      1,
+				FootComment: "# FA1",
 				Content: []*yaml.Node{{
 					Kind:        yaml.ScalarNode,
 					Tag:         "!!str",
 					Value:       "ka",
 					HeadComment: "# HA1",
-					FootComment: "# FA1",
 					Line:        2,
 					Column:      1,
 				}, {
@@ -1832,16 +1907,16 @@ var nodeTests = []struct {
 			Line:   2,
 			Column: 1,
 			Content: []*yaml.Node{{
-				Kind:   yaml.MappingNode,
-				Tag:    "!!map",
-				Line:   2,
-				Column: 1,
+				Kind:        yaml.MappingNode,
+				Tag:         "!!map",
+				Line:        2,
+				Column:      1,
+				FootComment: "# FA1",
 				Content: []*yaml.Node{{
 					Kind:        yaml.ScalarNode,
 					Tag:         "!!str",
 					Value:       "ka",
 					HeadComment: "# HA1",
-					FootComment: "# FA1",
 					Line:        2,
 					Column:      1,
 				}, {

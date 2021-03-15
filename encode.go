@@ -136,6 +136,14 @@ func (e *encoder) marshal(tag string, in reflect.Value) {
 	case time.Duration:
 		e.stringv(tag, reflect.ValueOf(value.String()))
 		return
+	case RawYAML:
+		v, err := value.MarshalYAMLBytes()
+		if err != nil {
+			fail(err)
+		}
+
+		e.emitRaw(v, "", tag)
+		return
 	case Marshaler:
 		v, err := value.MarshalYAML()
 		if err != nil {
@@ -409,6 +417,11 @@ func (e *encoder) floatv(tag string, in reflect.Value) {
 
 func (e *encoder) nilv() {
 	e.emitScalar("null", "", "", yaml_PLAIN_SCALAR_STYLE, nil, nil, nil, nil)
+}
+
+func (e *encoder) emitRaw(value []byte, anchor, tag string) {
+	e.must(yaml_raw_event_initialize(&e.event, value))
+	e.emit()
 }
 
 func (e *encoder) emitScalar(value, anchor, tag string, style yaml_scalar_style_t, head, line, foot, tail []byte) {

@@ -53,6 +53,20 @@ const (
 
 type yaml_break_t int
 
+func (b yaml_break_t) bytes() []byte {
+	switch b {
+	case yaml_CR_BREAK:
+		return []byte("\r")
+	case yaml_LN_BREAK:
+		return []byte("\n")
+	case yaml_CRLN_BREAK:
+		return []byte("\r\n")
+	default:
+		panic("unknown line break setting")
+	}
+
+}
+
 // Line break types.
 const (
 	// Let the parser choose the break type.
@@ -261,6 +275,7 @@ const (
 	yaml_MAPPING_START_EVENT  // A MAPPING-START event.
 	yaml_MAPPING_END_EVENT    // A MAPPING-END event.
 	yaml_TAIL_COMMENT_EVENT
+	yaml_RAW_EVENT
 )
 
 var eventStrings = []string{
@@ -276,6 +291,7 @@ var eventStrings = []string{
 	yaml_MAPPING_START_EVENT:  "mapping start",
 	yaml_MAPPING_END_EVENT:    "mapping end",
 	yaml_TAIL_COMMENT_EVENT:   "tail comment",
+	yaml_RAW_EVENT:            "raw block",
 }
 
 func (e yaml_event_type_t) String() string {
@@ -639,7 +655,6 @@ type yaml_parser_t struct {
 }
 
 type yaml_comment_t struct {
-
 	scan_mark  yaml_mark_t // Position where scanning for comments started
 	token_mark yaml_mark_t // Position after which tokens will be associated with this comment
 	start_mark yaml_mark_t // Position of '#' comment mark

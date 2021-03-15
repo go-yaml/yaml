@@ -51,19 +51,10 @@ func put_break(emitter *yaml_emitter_t) bool {
 	if emitter.buffer_pos+5 >= len(emitter.buffer) && !yaml_emitter_flush(emitter) {
 		return false
 	}
-	switch emitter.line_break {
-	case yaml_CR_BREAK:
-		emitter.buffer[emitter.buffer_pos] = '\r'
-		emitter.buffer_pos += 1
-	case yaml_LN_BREAK:
-		emitter.buffer[emitter.buffer_pos] = '\n'
-		emitter.buffer_pos += 1
-	case yaml_CRLN_BREAK:
-		emitter.buffer[emitter.buffer_pos+0] = '\r'
-		emitter.buffer[emitter.buffer_pos+1] = '\n'
-		emitter.buffer_pos += 2
-	default:
-		panic("unknown line break setting")
+
+	for i, b := range emitter.line_break.bytes() {
+		emitter.buffer[emitter.buffer_pos+i] = b
+		emitter.buffer_pos++
 	}
 	if emitter.column == 0 {
 		emitter.space_above = true
@@ -241,7 +232,7 @@ func yaml_emitter_increase_indent(emitter *yaml_emitter_t, flow, indentless bool
 			emitter.indent += 2
 		} else {
 			// Everything else aligns to the chosen indentation.
-			emitter.indent = emitter.best_indent*((emitter.indent+emitter.best_indent)/emitter.best_indent)
+			emitter.indent = emitter.best_indent * ((emitter.indent + emitter.best_indent) / emitter.best_indent)
 		}
 	}
 	return true
@@ -865,13 +856,15 @@ func yaml_emitter_emit_node(emitter *yaml_emitter_t, event *yaml_event_t,
 		return yaml_emitter_emit_alias(emitter, event)
 	case yaml_SCALAR_EVENT:
 		return yaml_emitter_emit_scalar(emitter, event)
+	case yaml_RAW_EVENT:
+		return yaml_emitter_emit_raw(emitter, event)
 	case yaml_SEQUENCE_START_EVENT:
 		return yaml_emitter_emit_sequence_start(emitter, event)
 	case yaml_MAPPING_START_EVENT:
 		return yaml_emitter_emit_mapping_start(emitter, event)
 	default:
 		return yaml_emitter_set_emitter_error(emitter,
-			fmt.Sprintf("expected SCALAR, SEQUENCE-START, MAPPING-START, or ALIAS, but got %v", event.typ))
+			fmt.Sprintf("expected SCALAR, RAW, SEQUENCE-START, MAPPING-START, or ALIAS, but got %v", event.typ))
 	}
 }
 
@@ -880,6 +873,22 @@ func yaml_emitter_emit_alias(emitter *yaml_emitter_t, event *yaml_event_t) bool 
 	if !yaml_emitter_process_anchor(emitter) {
 		return false
 	}
+	emitter.state = emitter.states[len(emitter.states)-1]
+	emitter.states = emitter.states[:len(emitter.states)-1]
+	return true
+}
+
+func yaml_emitter_emit_raw(emitter *yaml_emitter_t, event *yaml_event_t) bool {
+	if !yaml_emitter_increase_indent(emitter, false, false) {
+		return false
+	}
+
+	if !yaml_emitter_write_raw(emitter, event.value) {
+		return false
+	}
+
+	emitter.indent = emitter.indents[len(emitter.indents)-1]
+	emitter.indents = emitter.indents[:len(emitter.indents)-1]
 	emitter.state = emitter.states[len(emitter.states)-1]
 	emitter.states = emitter.states[:len(emitter.states)-1]
 	return true
@@ -1535,6 +1544,25 @@ func yaml_emitter_write_anchor(emitter *yaml_emitter_t, value []byte) bool {
 	}
 	emitter.whitespace = false
 	emitter.indention = false
+	return true
+}
+
+func yaml_emitter_write_raw(emitter *yaml_emitter_t, value []byte) bool {
+	value = bytes.TrimSpace(value)
+	for _, line := range bytes.Split(value, emitter.line_break.bytes()) {
+		if !yaml_emitter_write_indent(emitter) {
+			return false
+		}
+
+		if !write_all(emitter, line) {
+			return false
+		}
+
+		if !put_break(emitter) {
+			return false
+		}
+	}
+
 	return true
 }
 

@@ -851,7 +851,34 @@ func isStringMap(n *Node) bool {
 	return true
 }
 
+// TODO(HK): Review after at the completition
+type StructPosition interface {
+	GetLine() int
+	GetColumn() int
+	GetFieldsIndex() []string
+}
+
+type structPosition struct {
+	Line        int
+	Column      int
+	FieldsIndex []string
+}
+
+func (s *structPosition) GetLine() int {
+	return s.Line
+}
+
+func (s *structPosition) GetColumn() int {
+	return s.Column
+}
+
+func (s *structPosition) GetFieldsIndex() []string {
+	return s.FieldsIndex
+}
+
 func (d *decoder) mappingStruct(n *Node, out reflect.Value) (good bool) {
+	fieldsIndex := make([]string, 0)
+
 	sinfo, err := getStructInfo(out.Type())
 	if err != nil {
 		panic(err)
@@ -900,6 +927,7 @@ func (d *decoder) mappingStruct(n *Node, out reflect.Value) (good bool) {
 				field = d.fieldByIndex(n, out, info.Inline)
 			}
 			d.unmarshal(n.Content[i+1], field)
+			fieldsIndex = append(fieldsIndex, name.String())
 		} else if sinfo.InlineMap != -1 {
 			if inlineMap.IsNil() {
 				inlineMap.Set(reflect.MakeMap(inlineMap.Type()))
@@ -911,6 +939,15 @@ func (d *decoder) mappingStruct(n *Node, out reflect.Value) (good bool) {
 			d.terrors = append(d.terrors, fmt.Sprintf("line %d: field %s not found in type %s", ni.Line, name.String(), out.Type()))
 		}
 	}
+
+	// TODO(HK): Add more context here. This change is hydrating `position` field with the node line number
+	if idxInfo, idxOk := sinfo.FieldsMap["position"]; idxOk {
+		idxField := out.Field(idxInfo.Num)
+		fValue := &structPosition{Line: n.Line, Column: n.Column, FieldsIndex: fieldsIndex}
+
+		idxField.Set(reflect.ValueOf(fValue))
+	}
+
 	return true
 }
 

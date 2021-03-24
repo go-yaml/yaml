@@ -38,7 +38,8 @@ type encoder struct {
 }
 
 func newEncoder() *encoder {
-	e := &encoder{}
+	// TODO(HK): Standarize the indent setting
+	e := &encoder{indent: 2}
 	yaml_emitter_initialize(&e.emitter)
 	yaml_emitter_set_output_string(&e.emitter, &e.out)
 	yaml_emitter_set_unicode(&e.emitter, true)
@@ -212,12 +213,28 @@ func (e *encoder) fieldByIndex(v reflect.Value, index []int) (field reflect.Valu
 }
 
 func (e *encoder) structv(tag string, in reflect.Value) {
+	var fieldsIndex []string
+
+	fIndex := in.FieldByNameFunc(func(f string) bool { return f == "Position" })
+	if fIndex.IsValid() {
+		fieldsIndex = fIndex.Elem().Interface().(StructPosition).GetFieldsIndex()
+
+		print(fieldsIndex)
+	}
+
 	sinfo, err := getStructInfo(in.Type())
 	if err != nil {
 		panic(err)
 	}
+
 	e.mappingv(tag, func() {
-		for _, info := range sinfo.FieldsList {
+		// TODO(HK)"
+		for _, fName := range fieldsIndex {
+			info, found := sinfo.FieldsMap[fName]
+			if !found {
+				continue
+			}
+
 			var value reflect.Value
 			if info.Inline == nil {
 				value = in.Field(info.Num)

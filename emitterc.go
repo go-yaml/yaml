@@ -241,7 +241,7 @@ func yaml_emitter_increase_indent(emitter *yaml_emitter_t, flow, indentless bool
 			emitter.indent += 2
 		} else {
 			// Everything else aligns to the chosen indentation.
-			emitter.indent = emitter.best_indent*((emitter.indent+emitter.best_indent)/emitter.best_indent)
+			emitter.indent = emitter.best_indent * ((emitter.indent + emitter.best_indent) / emitter.best_indent)
 		}
 	}
 	return true
@@ -1612,7 +1612,9 @@ func yaml_emitter_write_plain_scalar(emitter *yaml_emitter_t, value []byte, allo
 			return false
 		}
 	}
-
+	if string(value) == "rails" {
+		print("foo")
+	}
 	spaces := false
 	breaks := false
 	for i := 0; i < len(value); {
@@ -1627,7 +1629,6 @@ func yaml_emitter_write_plain_scalar(emitter *yaml_emitter_t, value []byte, allo
 					return false
 				}
 			}
-			spaces = true
 		} else if is_break(value, i) {
 			if !breaks && value[i] == '\n' {
 				if !put_break(emitter) {
@@ -1990,7 +1991,7 @@ func yaml_emitter_write_comment(emitter *yaml_emitter_t, comment []byte) bool {
 			if !write_break(emitter, comment, &i) {
 				return false
 			}
-			//emitter.indention = true
+			emitter.indention = true
 			breaks = true
 			pound = false
 		} else {
@@ -2010,9 +2011,9 @@ func yaml_emitter_write_comment(emitter *yaml_emitter_t, comment []byte) bool {
 			breaks = false
 		}
 	}
-	if !breaks && !put_break(emitter) {
-		return false
-	}
+	// if !breaks && !put_break(emitter) {
+	// 	return false
+	// }
 
 	emitter.whitespace = true
 	//emitter.indention = true

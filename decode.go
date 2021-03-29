@@ -855,13 +855,17 @@ func isStringMap(n *Node) bool {
 type StructPosition interface {
 	GetLine() int
 	GetColumn() int
-	GetFieldsIndex() []string
+	GetFieldsIndex() []fieldInfo
+	GetComments() ([][][]byte, [][][]byte, [][][]byte)
 }
 
 type structPosition struct {
-	Line        int
-	Column      int
-	FieldsIndex []string
+	Line         int
+	Column       int
+	FieldsIndex  []fieldInfo
+	HeadComments [][][]byte
+	LineComments [][][]byte
+	FootComments [][][]byte
 }
 
 func (s *structPosition) GetLine() int {
@@ -872,12 +876,19 @@ func (s *structPosition) GetColumn() int {
 	return s.Column
 }
 
-func (s *structPosition) GetFieldsIndex() []string {
+func (s *structPosition) GetFieldsIndex() []fieldInfo {
 	return s.FieldsIndex
 }
 
+func (s *structPosition) GetComments() ([][][]byte, [][][]byte, [][][]byte) {
+	return s.HeadComments, s.LineComments, s.FootComments
+}
+
 func (d *decoder) mappingStruct(n *Node, out reflect.Value) (good bool) {
-	fieldsIndex := make([]string, 0)
+	fieldsIndex := make([]fieldInfo, 0)
+	headComments := make([][][]byte, 0)
+	lineComments := make([][][]byte, 0)
+	footComments := make([][][]byte, 0)
 
 	sinfo, err := getStructInfo(out.Type())
 	if err != nil {
@@ -927,7 +938,10 @@ func (d *decoder) mappingStruct(n *Node, out reflect.Value) (good bool) {
 				field = d.fieldByIndex(n, out, info.Inline)
 			}
 			d.unmarshal(n.Content[i+1], field)
-			fieldsIndex = append(fieldsIndex, name.String())
+			fieldsIndex = append(fieldsIndex, info)
+			headComments = append(headComments, [][]byte{[]byte(ni.HeadComment), []byte(n.Content[i+1].HeadComment)})
+			lineComments = append(lineComments, [][]byte{[]byte(ni.LineComment), []byte(n.Content[i+1].LineComment)})
+			footComments = append(footComments, [][]byte{[]byte(ni.FootComment), []byte(n.Content[i+1].FootComment)})
 		} else if sinfo.InlineMap != -1 {
 			if inlineMap.IsNil() {
 				inlineMap.Set(reflect.MakeMap(inlineMap.Type()))
@@ -943,7 +957,14 @@ func (d *decoder) mappingStruct(n *Node, out reflect.Value) (good bool) {
 	// TODO(HK): Add more context here. This change is hydrating `position` field with the node line number
 	if idxInfo, idxOk := sinfo.FieldsMap["position"]; idxOk {
 		idxField := out.Field(idxInfo.Num)
-		fValue := &structPosition{Line: n.Line, Column: n.Column, FieldsIndex: fieldsIndex}
+		fValue := &structPosition{
+			Line:         n.Line,
+			Column:       n.Column,
+			FieldsIndex:  fieldsIndex,
+			HeadComments: headComments,
+			LineComments: lineComments,
+			FootComments: footComments,
+		}
 
 		idxField.Set(reflect.ValueOf(fValue))
 	}

@@ -218,10 +218,9 @@ func (e *encoder) structv(tag string, in reflect.Value, head, line, foot []byte)
 		panic(err)
 	}
 
-	var headComments [][][]byte
-	var lineComments [][][]byte
-	var footComments [][][]byte
 	fieldsIndex := sinfo.FieldsList
+
+	headComments, lineComments, footComments := makeEmptyComments(len(fieldsIndex))
 
 	fIndex := in.FieldByNameFunc(func(f string) bool { return f == "Position" })
 	if fIndex.IsValid() {
@@ -234,6 +233,7 @@ func (e *encoder) structv(tag string, in reflect.Value, head, line, foot []byte)
 
 	e.mappingv(tag, head, line, foot, func() {
 		// TODO(HK)"
+		processed := map[int]bool{}
 		for i, info := range fieldsIndex {
 			var value reflect.Value
 			if info.Inline == nil {
@@ -250,6 +250,32 @@ func (e *encoder) structv(tag string, in reflect.Value, head, line, foot []byte)
 			e.marshal("", reflect.ValueOf(info.Key), headComments[i][0], lineComments[i][0], footComments[i][0])
 			e.flow = info.Flow
 			e.marshal("", value, headComments[i][1], lineComments[i][1], footComments[i][1])
+			processed[info.Id] = true
+		}
+
+		for _, info := range sinfo.FieldsList {
+			if _, done := processed[info.Id]; done {
+				continue
+			}
+			if info.Key == "position" {
+				continue
+			}
+			var value reflect.Value
+			if info.Inline == nil {
+				value = in.Field(info.Num)
+			} else {
+				value = e.fieldByIndex(in, info.Inline)
+				if !value.IsValid() {
+					continue
+				}
+			}
+			if info.OmitEmpty && isZero(value) {
+				continue
+			}
+			e.marshal("", reflect.ValueOf(info.Key), nil, nil, nil)
+			e.flow = info.Flow
+			e.marshal("", value, nil, nil, nil)
+			processed[info.Id] = true
 		}
 		if sinfo.InlineMap >= 0 {
 			m := in.Field(sinfo.InlineMap)
@@ -598,4 +624,17 @@ func (e *encoder) node(node *Node, tail string) {
 	default:
 		failf("cannot encode node with unknown kind %d", node.Kind)
 	}
+}
+
+func makeEmptyComments(length int) ([][][]byte, [][][]byte, [][][]byte) {
+	head := make([][][]byte, length)
+	line := make([][][]byte, length)
+	foot := make([][][]byte, length)
+
+	for i, _ := range head {
+		head[i] = [][]byte{nil, nil}
+		line[i] = [][]byte{nil, nil}
+		foot[i] = [][]byte{nil, nil}
+	}
+	return head, line, foot
 }

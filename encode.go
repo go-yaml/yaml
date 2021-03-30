@@ -222,7 +222,7 @@ func (e *encoder) structv(tag string, in reflect.Value, head, line, foot []byte)
 	headComments, lineComments, footComments := makeEmptyComments(len(fieldsIndex))
 
 	if fIndex := getYamlMeta(in, fieldsIndex); fIndex.IsValid() {
-		structPos := fIndex.Elem().Interface().(StructPosition)
+		structPos := fIndex.Elem().Interface().(YamlMeta)
 		fieldsIndex = structPos.GetFieldsIndex()
 		headComments, lineComments, footComments = structPos.GetComments()
 	}

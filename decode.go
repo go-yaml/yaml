@@ -851,7 +851,33 @@ func isStringMap(n *Node) bool {
 	return true
 }
 
+// TODO(HK): Review after at the completition
+type StructMeta interface {
+	GetFieldsIndex() []fieldInfo
+	GetComments() ([][][]byte, [][][]byte, [][][]byte)
+}
+
+type structMeta struct {
+	FieldsIndex  []fieldInfo
+	HeadComments [][][]byte
+	LineComments [][][]byte
+	FootComments [][][]byte
+}
+
+func (s *structMeta) GetFieldsIndex() []fieldInfo {
+	return s.FieldsIndex
+}
+
+func (s *structMeta) GetComments() ([][][]byte, [][][]byte, [][][]byte) {
+	return s.HeadComments, s.LineComments, s.FootComments
+}
+
 func (d *decoder) mappingStruct(n *Node, out reflect.Value) (good bool) {
+	fieldsIndex := make([]fieldInfo, 0)
+	headComments := make([][][]byte, 0)
+	lineComments := make([][][]byte, 0)
+	footComments := make([][][]byte, 0)
+
 	sinfo, err := getStructInfo(out.Type())
 	if err != nil {
 		panic(err)
@@ -900,6 +926,10 @@ func (d *decoder) mappingStruct(n *Node, out reflect.Value) (good bool) {
 				field = d.fieldByIndex(n, out, info.Inline)
 			}
 			d.unmarshal(n.Content[i+1], field)
+			fieldsIndex = append(fieldsIndex, info)
+			headComments = append(headComments, [][]byte{[]byte(ni.HeadComment), []byte(n.Content[i+1].HeadComment)})
+			lineComments = append(lineComments, [][]byte{[]byte(ni.LineComment), []byte(n.Content[i+1].LineComment)})
+			footComments = append(footComments, [][]byte{[]byte(ni.FootComment), []byte(n.Content[i+1].FootComment)})
 		} else if sinfo.InlineMap != -1 {
 			if inlineMap.IsNil() {
 				inlineMap.Set(reflect.MakeMap(inlineMap.Type()))
@@ -911,6 +941,20 @@ func (d *decoder) mappingStruct(n *Node, out reflect.Value) (good bool) {
 			d.terrors = append(d.terrors, fmt.Sprintf("line %d: field %s not found in type %s", ni.Line, name.String(), out.Type()))
 		}
 	}
+
+	// TODO(HK): Add more context here. This change is hydrating `yaml_meta` field with the with field ordre and comments
+	if idxInfo, idxOk := sinfo.FieldsMap["yaml_meta"]; idxOk {
+		idxField := out.Field(idxInfo.Num)
+		fValue := structMeta{
+			FieldsIndex:  fieldsIndex,
+			HeadComments: headComments,
+			LineComments: lineComments,
+			FootComments: footComments,
+		}
+
+		idxField.Set(reflect.ValueOf(fValue))
+	}
+
 	return true
 }
 

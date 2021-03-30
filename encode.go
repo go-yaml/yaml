@@ -102,13 +102,13 @@ func (e *encoder) marshalDoc(tag string, in reflect.Value) {
 	} else {
 		yaml_document_start_event_initialize(&e.event, nil, nil, true)
 		e.emit()
-		e.marshal(tag, in)
+		e.marshal(tag, in, nil, nil, nil)
 		yaml_document_end_event_initialize(&e.event, true)
 		e.emit()
 	}
 }
 
-func (e *encoder) marshal(tag string, in reflect.Value) {
+func (e *encoder) marshal(tag string, in reflect.Value, head, line, foot []byte) {
 	tag = shortTag(tag)
 	if !in.IsValid() || in.Kind() == reflect.Ptr && in.IsNil() {
 		e.nilv()
@@ -128,13 +128,13 @@ func (e *encoder) marshal(tag string, in reflect.Value) {
 		e.nodev(in.Addr())
 		return
 	case time.Time:
-		e.timev(tag, in)
+		e.timev(tag, in, head, line, foot)
 		return
 	case *time.Time:
-		e.timev(tag, in.Elem())
+		e.timev(tag, in.Elem(), head, line, foot)
 		return
 	case time.Duration:
-		e.stringv(tag, reflect.ValueOf(value.String()))
+		e.stringv(tag, reflect.ValueOf(value.String()), head, line, foot)
 		return
 	case Marshaler:
 		v, err := value.MarshalYAML()
@@ -145,7 +145,7 @@ func (e *encoder) marshal(tag string, in reflect.Value) {
 			e.nilv()
 			return
 		}
-		e.marshal(tag, reflect.ValueOf(v))
+		e.marshal(tag, reflect.ValueOf(v), head, line, foot)
 		return
 	case encoding.TextMarshaler:
 		text, err := value.MarshalText()
@@ -159,37 +159,37 @@ func (e *encoder) marshal(tag string, in reflect.Value) {
 	}
 	switch in.Kind() {
 	case reflect.Interface:
-		e.marshal(tag, in.Elem())
+		e.marshal(tag, in.Elem(), head, line, foot)
 	case reflect.Map:
-		e.mapv(tag, in)
+		e.mapv(tag, in, head, line, foot)
 	case reflect.Ptr:
-		e.marshal(tag, in.Elem())
+		e.marshal(tag, in.Elem(), head, line, foot)
 	case reflect.Struct:
-		e.structv(tag, in)
+		e.structv(tag, in, head, line, foot)
 	case reflect.Slice, reflect.Array:
-		e.slicev(tag, in)
+		e.slicev(tag, in, head, line, foot)
 	case reflect.String:
-		e.stringv(tag, in)
+		e.stringv(tag, in, head, line, foot)
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-		e.intv(tag, in)
+		e.intv(tag, in, head, line, foot)
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
-		e.uintv(tag, in)
+		e.uintv(tag, in, head, line, foot)
 	case reflect.Float32, reflect.Float64:
-		e.floatv(tag, in)
+		e.floatv(tag, in, head, line, foot)
 	case reflect.Bool:
-		e.boolv(tag, in)
+		e.boolv(tag, in, head, line, foot)
 	default:
 		panic("cannot marshal type: " + in.Type().String())
 	}
 }
 
-func (e *encoder) mapv(tag string, in reflect.Value) {
-	e.mappingv(tag, func() {
+func (e *encoder) mapv(tag string, in reflect.Value, head, line, foot []byte) {
+	e.mappingv(tag, head, line, foot, func() {
 		keys := keyList(in.MapKeys())
 		sort.Sort(keys)
 		for _, k := range keys {
-			e.marshal("", k)
-			e.marshal("", in.MapIndex(k))
+			e.marshal("", k, nil, nil, nil)
+			e.marshal("", in.MapIndex(k), nil, nil, nil)
 		}
 	})
 }
@@ -211,13 +211,26 @@ func (e *encoder) fieldByIndex(v reflect.Value, index []int) (field reflect.Valu
 	return v
 }
 
-func (e *encoder) structv(tag string, in reflect.Value) {
+func (e *encoder) structv(tag string, in reflect.Value, head, line, foot []byte) {
 	sinfo, err := getStructInfo(in.Type())
 	if err != nil {
 		panic(err)
 	}
-	e.mappingv(tag, func() {
-		for _, info := range sinfo.FieldsList {
+
+	fieldsIndex := sinfo.FieldsList
+
+	headComments, lineComments, footComments := makeEmptyComments(len(fieldsIndex))
+
+	if fIndex := getYamlMeta(in, fieldsIndex); fIndex.IsValid() {
+		structPos := fIndex.Elem().Interface().(StructMeta)
+		fieldsIndex = structPos.GetFieldsIndex()
+		headComments, lineComments, footComments = structPos.GetComments()
+	}
+
+	e.mappingv(tag, head, line, foot, func() {
+		// TODO(HK)"
+		processed := map[int]bool{}
+		for i, info := range fieldsIndex {
 			var value reflect.Value
 			if info.Inline == nil {
 				value = in.Field(info.Num)
@@ -230,9 +243,35 @@ func (e *encoder) structv(tag string, in reflect.Value) {
 			if info.OmitEmpty && isZero(value) {
 				continue
 			}
-			e.marshal("", reflect.ValueOf(info.Key))
+			e.marshal("", reflect.ValueOf(info.Key), headComments[i][0], lineComments[i][0], footComments[i][0])
 			e.flow = info.Flow
-			e.marshal("", value)
+			e.marshal("", value, headComments[i][1], lineComments[i][1], footComments[i][1])
+			processed[info.Id] = true
+		}
+
+		for _, info := range sinfo.FieldsList {
+			if _, done := processed[info.Id]; done {
+				continue
+			}
+			if info.Key == "yaml_meta" {
+				continue
+			}
+			var value reflect.Value
+			if info.Inline == nil {
+				value = in.Field(info.Num)
+			} else {
+				value = e.fieldByIndex(in, info.Inline)
+				if !value.IsValid() {
+					continue
+				}
+			}
+			if info.OmitEmpty && isZero(value) {
+				continue
+			}
+			e.marshal("", reflect.ValueOf(info.Key), nil, nil, nil)
+			e.flow = info.Flow
+			e.marshal("", value, nil, nil, nil)
+			processed[info.Id] = true
 		}
 		if sinfo.InlineMap >= 0 {
 			m := in.Field(sinfo.InlineMap)
@@ -244,16 +283,16 @@ func (e *encoder) structv(tag string, in reflect.Value) {
 					if _, found := sinfo.FieldsMap[k.String()]; found {
 						panic(fmt.Sprintf("cannot have key %q in inlined map: conflicts with struct field", k.String()))
 					}
-					e.marshal("", k)
+					e.marshal("", k, nil, nil, nil)
 					e.flow = false
-					e.marshal("", m.MapIndex(k))
+					e.marshal("", m.MapIndex(k), nil, nil, nil)
 				}
 			}
 		}
 	})
 }
 
-func (e *encoder) mappingv(tag string, f func()) {
+func (e *encoder) mappingv(tag string, head, line, foot []byte, f func()) {
 	implicit := tag == ""
 	style := yaml_BLOCK_MAPPING_STYLE
 	if e.flow {
@@ -261,13 +300,16 @@ func (e *encoder) mappingv(tag string, f func()) {
 		style = yaml_FLOW_MAPPING_STYLE
 	}
 	yaml_mapping_start_event_initialize(&e.event, nil, []byte(tag), implicit, style)
+	e.event.head_comment = head
 	e.emit()
 	f()
 	yaml_mapping_end_event_initialize(&e.event)
+	e.event.line_comment = line
+	e.event.foot_comment = foot
 	e.emit()
 }
 
-func (e *encoder) slicev(tag string, in reflect.Value) {
+func (e *encoder) slicev(tag string, in reflect.Value, head, line, foot []byte) {
 	implicit := tag == ""
 	style := yaml_BLOCK_SEQUENCE_STYLE
 	if e.flow {
@@ -275,12 +317,15 @@ func (e *encoder) slicev(tag string, in reflect.Value) {
 		style = yaml_FLOW_SEQUENCE_STYLE
 	}
 	e.must(yaml_sequence_start_event_initialize(&e.event, nil, []byte(tag), implicit, style))
+	e.event.head_comment = head
 	e.emit()
 	n := in.Len()
 	for i := 0; i < n; i++ {
-		e.marshal("", in.Index(i))
+		e.marshal("", in.Index(i), nil, nil, nil)
 	}
 	e.must(yaml_sequence_end_event_initialize(&e.event))
+	e.event.line_comment = line
+	e.event.foot_comment = foot
 	e.emit()
 }
 
@@ -321,9 +366,10 @@ func isOldBool(s string) (result bool) {
 	}
 }
 
-func (e *encoder) stringv(tag string, in reflect.Value) {
+func (e *encoder) stringv(tag string, in reflect.Value, head, line, foot []byte) {
 	var style yaml_scalar_style_t
 	s := in.String()
+
 	canUsePlain := true
 	switch {
 	case !utf8.ValidString(s):
@@ -359,36 +405,36 @@ func (e *encoder) stringv(tag string, in reflect.Value) {
 	default:
 		style = yaml_DOUBLE_QUOTED_SCALAR_STYLE
 	}
-	e.emitScalar(s, "", tag, style, nil, nil, nil, nil)
+	e.emitScalar(s, "", tag, style, head, line, foot, nil)
 }
 
-func (e *encoder) boolv(tag string, in reflect.Value) {
+func (e *encoder) boolv(tag string, in reflect.Value, head, line, foot []byte) {
 	var s string
 	if in.Bool() {
 		s = "true"
 	} else {
 		s = "false"
 	}
-	e.emitScalar(s, "", tag, yaml_PLAIN_SCALAR_STYLE, nil, nil, nil, nil)
+	e.emitScalar(s, "", tag, yaml_PLAIN_SCALAR_STYLE, head, line, foot, nil)
 }
 
-func (e *encoder) intv(tag string, in reflect.Value) {
+func (e *encoder) intv(tag string, in reflect.Value, head, line, foot []byte) {
 	s := strconv.FormatInt(in.Int(), 10)
-	e.emitScalar(s, "", tag, yaml_PLAIN_SCALAR_STYLE, nil, nil, nil, nil)
+	e.emitScalar(s, "", tag, yaml_PLAIN_SCALAR_STYLE, head, line, foot, nil)
 }
 
-func (e *encoder) uintv(tag string, in reflect.Value) {
+func (e *encoder) uintv(tag string, in reflect.Value, head, line, foot []byte) {
 	s := strconv.FormatUint(in.Uint(), 10)
-	e.emitScalar(s, "", tag, yaml_PLAIN_SCALAR_STYLE, nil, nil, nil, nil)
+	e.emitScalar(s, "", tag, yaml_PLAIN_SCALAR_STYLE, head, line, foot, nil)
 }
 
-func (e *encoder) timev(tag string, in reflect.Value) {
+func (e *encoder) timev(tag string, in reflect.Value, head, line, foot []byte) {
 	t := in.Interface().(time.Time)
 	s := t.Format(time.RFC3339Nano)
-	e.emitScalar(s, "", tag, yaml_PLAIN_SCALAR_STYLE, nil, nil, nil, nil)
+	e.emitScalar(s, "", tag, yaml_PLAIN_SCALAR_STYLE, head, line, foot, nil)
 }
 
-func (e *encoder) floatv(tag string, in reflect.Value) {
+func (e *encoder) floatv(tag string, in reflect.Value, head, line, foot []byte) {
 	// Issue #352: When formatting, use the precision of the underlying value
 	precision := 64
 	if in.Kind() == reflect.Float32 {
@@ -404,7 +450,7 @@ func (e *encoder) floatv(tag string, in reflect.Value) {
 	case "NaN":
 		s = ".nan"
 	}
-	e.emitScalar(s, "", tag, yaml_PLAIN_SCALAR_STYLE, nil, nil, nil, nil)
+	e.emitScalar(s, "", tag, yaml_PLAIN_SCALAR_STYLE, head, line, foot, nil)
 }
 
 func (e *encoder) nilv() {
@@ -574,4 +620,27 @@ func (e *encoder) node(node *Node, tail string) {
 	default:
 		failf("cannot encode node with unknown kind %d", node.Kind)
 	}
+}
+
+func makeEmptyComments(length int) ([][][]byte, [][][]byte, [][][]byte) {
+	head := make([][][]byte, length)
+	line := make([][][]byte, length)
+	foot := make([][][]byte, length)
+
+	for i := range head {
+		head[i] = [][]byte{nil, nil}
+		line[i] = [][]byte{nil, nil}
+		foot[i] = [][]byte{nil, nil}
+	}
+	return head, line, foot
+}
+
+func getYamlMeta(in reflect.Value, fields []fieldInfo) reflect.Value {
+
+	for i, field := range fields {
+		if field.Key == "yaml_meta" {
+			return in.Field(i)
+		}
+	}
+	return reflect.Value{}
 }

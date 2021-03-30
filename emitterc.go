@@ -1627,6 +1627,7 @@ func yaml_emitter_write_plain_scalar(emitter *yaml_emitter_t, value []byte, allo
 				}
 			}
 		} else if is_break(value, i) {
+			spaces = true
 			if !breaks && value[i] == '\n' {
 				if !put_break(emitter) {
 					return false
@@ -1988,7 +1989,7 @@ func yaml_emitter_write_comment(emitter *yaml_emitter_t, comment []byte) bool {
 			if !write_break(emitter, comment, &i) {
 				return false
 			}
-			emitter.indention = true
+			//emitter.indention = true
 			breaks = true
 			pound = false
 		} else {

@@ -945,7 +945,7 @@ func (d *decoder) mappingStruct(n *Node, out reflect.Value) (good bool) {
 	// TODO(HK): Add more context here. This change is hydrating `yaml_meta` field with the with field ordre and comments
 	if idxInfo, idxOk := sinfo.FieldsMap["yaml_meta"]; idxOk {
 		idxField := out.Field(idxInfo.Num)
-		fValue := structMeta{
+		fValue := &structMeta{
 			FieldsIndex:  fieldsIndex,
 			HeadComments: headComments,
 			LineComments: lineComments,

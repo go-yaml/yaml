@@ -38,8 +38,7 @@ type encoder struct {
 }
 
 func newEncoder() *encoder {
-	// TODO(HK): Standarize the indent setting
-	e := &encoder{indent: 2}
+	e := &encoder{}
 	yaml_emitter_initialize(&e.emitter)
 	yaml_emitter_set_output_string(&e.emitter, &e.out)
 	yaml_emitter_set_unicode(&e.emitter, true)
@@ -222,13 +221,10 @@ func (e *encoder) structv(tag string, in reflect.Value, head, line, foot []byte)
 
 	headComments, lineComments, footComments := makeEmptyComments(len(fieldsIndex))
 
-	fIndex := in.FieldByNameFunc(func(f string) bool { return f == "Position" })
-	if fIndex.IsValid() {
+	if fIndex := getYamlMeta(in, fieldsIndex); fIndex.IsValid() {
 		structPos := fIndex.Elem().Interface().(StructPosition)
 		fieldsIndex = structPos.GetFieldsIndex()
 		headComments, lineComments, footComments = structPos.GetComments()
-		print(fieldsIndex)
-
 	}
 
 	e.mappingv(tag, head, line, foot, func() {
@@ -257,7 +253,7 @@ func (e *encoder) structv(tag string, in reflect.Value, head, line, foot []byte)
 			if _, done := processed[info.Id]; done {
 				continue
 			}
-			if info.Key == "position" {
+			if info.Key == "yaml_meta" {
 				continue
 			}
 			var value reflect.Value
@@ -631,10 +627,20 @@ func makeEmptyComments(length int) ([][][]byte, [][][]byte, [][][]byte) {
 	line := make([][][]byte, length)
 	foot := make([][][]byte, length)
 
-	for i, _ := range head {
+	for i := range head {
 		head[i] = [][]byte{nil, nil}
 		line[i] = [][]byte{nil, nil}
 		foot[i] = [][]byte{nil, nil}
 	}
 	return head, line, foot
+}
+
+func getYamlMeta(in reflect.Value, fields []fieldInfo) reflect.Value {
+
+	for i, field := range fields {
+		if field.Key == "yaml_meta" {
+			return in.Field(i)
+		}
+	}
+	return reflect.Value{}
 }

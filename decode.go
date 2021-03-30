@@ -852,23 +852,23 @@ func isStringMap(n *Node) bool {
 }
 
 // TODO(HK): Review after at the completition
-type YamlMeta interface {
+type StructMeta interface {
 	GetFieldsIndex() []fieldInfo
 	GetComments() ([][][]byte, [][][]byte, [][][]byte)
 }
 
-type yamlMeta struct {
+type structMeta struct {
 	FieldsIndex  []fieldInfo
 	HeadComments [][][]byte
 	LineComments [][][]byte
 	FootComments [][][]byte
 }
 
-func (s *yamlMeta) GetFieldsIndex() []fieldInfo {
+func (s *structMeta) GetFieldsIndex() []fieldInfo {
 	return s.FieldsIndex
 }
 
-func (s *yamlMeta) GetComments() ([][][]byte, [][][]byte, [][][]byte) {
+func (s *structMeta) GetComments() ([][][]byte, [][][]byte, [][][]byte) {
 	return s.HeadComments, s.LineComments, s.FootComments
 }
 
@@ -945,7 +945,7 @@ func (d *decoder) mappingStruct(n *Node, out reflect.Value) (good bool) {
 	// TODO(HK): Add more context here. This change is hydrating `yaml_meta` field with the with field ordre and comments
 	if idxInfo, idxOk := sinfo.FieldsMap["yaml_meta"]; idxOk {
 		idxField := out.Field(idxInfo.Num)
-		fValue := &yamlMeta{
+		fValue := structMeta{
 			FieldsIndex:  fieldsIndex,
 			HeadComments: headComments,
 			LineComments: lineComments,

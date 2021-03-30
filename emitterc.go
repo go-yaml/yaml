@@ -1626,8 +1626,8 @@ func yaml_emitter_write_plain_scalar(emitter *yaml_emitter_t, value []byte, allo
 					return false
 				}
 			}
-		} else if is_break(value, i) {
 			spaces = true
+		} else if is_break(value, i) {
 			if !breaks && value[i] == '\n' {
 				if !put_break(emitter) {
 					return false

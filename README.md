@@ -36,18 +36,18 @@ supported since they're a poor design and are gone in YAML 1.2.
 Installation and usage
 ----------------------
 
-The import path for the package is *github.com/taustgen/yaml.v3*.
+The import path for the package is *gopkg.in/yaml.v3*.
 
 To install it, run:
 
-    go get github.com/taustgen/yaml.v3
+    go get gopkg.in/yaml.v3
 
 API documentation
 -----------------
 
 If opened in a browser, the import path itself leads to the API documentation:
 
-  - [https://github.com/taustgen/yaml.v3](https://github.com/taustgen/yaml.v3)
+  - [https://gopkg.in/yaml.v3](https://gopkg.in/yaml.v3)
 
 API stability
 -------------
@@ -72,7 +72,7 @@ import (
         "fmt"
         "log"
 
-        "github.com/taustgen/yaml.v3"
+        "gopkg.in/yaml.v3"
 )
 
 var data = `

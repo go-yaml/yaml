@@ -1612,9 +1612,6 @@ func yaml_emitter_write_plain_scalar(emitter *yaml_emitter_t, value []byte, allo
 			return false
 		}
 	}
-	if string(value) == "rails" {
-		print("foo")
-	}
 	spaces := false
 	breaks := false
 	for i := 0; i < len(value); {
@@ -2011,9 +2008,9 @@ func yaml_emitter_write_comment(emitter *yaml_emitter_t, comment []byte) bool {
 			breaks = false
 		}
 	}
-	// if !breaks && !put_break(emitter) {
-	// 	return false
-	// }
+	if !breaks && !put_break(emitter) {
+		return false
+	}
 
 	emitter.whitespace = true
 	//emitter.indention = true

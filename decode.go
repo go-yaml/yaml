@@ -851,7 +851,7 @@ func isStringMap(n *Node) bool {
 	return true
 }
 
-// TODO(HK): Review after at the completition
+// StuctMeta can be added to a struct and  holds the comments and field ordering for that struct
 type StructMeta interface {
 	GetFieldsIndex() []fieldInfo
 	GetComments() ([][][]byte, [][][]byte, [][][]byte)
@@ -942,7 +942,7 @@ func (d *decoder) mappingStruct(n *Node, out reflect.Value) (good bool) {
 		}
 	}
 
-	// TODO(HK): Add more context here. This change is hydrating `yaml_meta` field with the with field ordre and comments
+	//  This change is populating `yaml_meta` field with the with field order and comments
 	if idxInfo, idxOk := sinfo.FieldsMap["yaml_meta"]; idxOk {
 		idxField := out.Field(idxInfo.Num)
 		fValue := &structMeta{

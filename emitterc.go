@@ -727,14 +727,17 @@ func yaml_emitter_emit_flow_mapping_value(emitter *yaml_emitter_t, event *yaml_e
 
 // Expect a block item node.
 func yaml_emitter_emit_block_sequence_item(emitter *yaml_emitter_t, event *yaml_event_t, first bool) bool {
-	if first {
+	if first && !emitter.sequenceUndent {
 		if !yaml_emitter_increase_indent(emitter, false, false) {
 			return false
 		}
 	}
 	if event.typ == yaml_SEQUENCE_END_EVENT {
-		emitter.indent = emitter.indents[len(emitter.indents)-1]
-		emitter.indents = emitter.indents[:len(emitter.indents)-1]
+		if !emitter.sequenceUndent {
+			emitter.indent = emitter.indents[len(emitter.indents)-1]
+			emitter.indents = emitter.indents[:len(emitter.indents)-1]
+		}
+
 		emitter.state = emitter.states[len(emitter.states)-1]
 		emitter.states = emitter.states[:len(emitter.states)-1]
 		return true

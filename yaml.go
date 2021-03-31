@@ -278,6 +278,11 @@ func (e *Encoder) SetIndent(spaces int) {
 	e.encoder.indent = spaces
 }
 
+//
+func (e *Encoder) SetSequenceUndent(sequenceUndent bool) {
+	e.encoder.emitter.sequenceUndent = sequenceUndent
+}
+
 // Close closes the encoder by writing any remaining data.
 // It does not write a stream terminating string "...".
 func (e *Encoder) Close() (err error) {

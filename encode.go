@@ -228,7 +228,6 @@ func (e *encoder) structv(tag string, in reflect.Value, head, line, foot []byte)
 	}
 
 	e.mappingv(tag, head, line, foot, func() {
-		// TODO(HK)"
 		processed := map[int]bool{}
 		for i, info := range fieldsIndex {
 			var value reflect.Value
@@ -273,6 +272,7 @@ func (e *encoder) structv(tag string, in reflect.Value, head, line, foot []byte)
 			e.marshal("", value, nil, nil, nil)
 			processed[info.Id] = true
 		}
+
 		if sinfo.InlineMap >= 0 {
 			m := in.Field(sinfo.InlineMap)
 			if m.Len() > 0 {

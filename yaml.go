@@ -278,7 +278,7 @@ func (e *Encoder) SetIndent(spaces int) {
 	e.encoder.indent = spaces
 }
 
-//
+// SetSequenceUndent changes the formatting of sequences so that the "-" is at the same indentation as the parent
 func (e *Encoder) SetSequenceUndent(sequenceUndent bool) {
 	e.encoder.emitter.sequenceUndent = sequenceUndent
 }
@@ -624,12 +624,12 @@ func getStructInfo(st reflect.Type) (*structInfo, error) {
 			continue
 		}
 
-		if tag != "" {
-			if tag == "yaml_meta" && field.Type.String() != "yaml.StructMeta" {
-				return nil, errors.New("yaml_meta must be of type yaml.StructMeta")
-			}
-			info.Key = tag
-		} else {
+		if tag == "yaml_meta" && field.Type.String() != "yaml.StructMeta" {
+			return nil, errors.New("yaml_meta must be of type yaml.StructMeta")
+		}
+
+		info.Key = tag
+		if info.Key == "" {
 			info.Key = strings.ToLower(field.Name)
 		}
 

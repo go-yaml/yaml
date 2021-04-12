@@ -624,8 +624,8 @@ func getStructInfo(st reflect.Type) (*structInfo, error) {
 			continue
 		}
 
-		if tag == "yaml_meta" && field.Type.String() != "yaml.StructMeta" {
-			return nil, errors.New("yaml_meta must be of type yaml.StructMeta")
+		if tag == yamlMeta && field.Type.String() != "yaml.StructMeta" {
+			return nil, errors.New(yamlMeta + " must be of type yaml.StructMeta")
 		}
 
 		info.Key = tag

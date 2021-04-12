@@ -851,7 +851,43 @@ func isStringMap(n *Node) bool {
 	return true
 }
 
+//
+
+// StuctMeta can be added to a struct and  holds the comments and field ordering for that struct
+type StructMeta interface {
+	// Returns the fields in proper order
+	GetFieldsIndex() []fieldInfo
+
+	// Returns the head line and foot comments for the field
+	GetComments() [][]comments
+}
+
+// structMeta implements the StructMeta interface
+type structMeta struct {
+	FieldsIndex []fieldInfo
+	Comments    [][]comments
+}
+
+// comments holds the 3 possible comments for a node.
+type comments struct {
+	head []byte
+	line []byte
+	foot []byte
+}
+
+const yamlMeta = "yaml_meta"
+
+func (s *structMeta) GetFieldsIndex() []fieldInfo {
+	return s.FieldsIndex
+}
+
+func (s *structMeta) GetComments() [][]comments {
+	return s.Comments
+}
+
 func (d *decoder) mappingStruct(n *Node, out reflect.Value) (good bool) {
+	fieldsIndex := make([]fieldInfo, 0)
+	com := make([][]comments, 0)
 	sinfo, err := getStructInfo(out.Type())
 	if err != nil {
 		panic(err)
@@ -900,6 +936,21 @@ func (d *decoder) mappingStruct(n *Node, out reflect.Value) (good bool) {
 				field = d.fieldByIndex(n, out, info.Inline)
 			}
 			d.unmarshal(n.Content[i+1], field)
+
+			keyComments := comments{
+				head: []byte(ni.HeadComment),
+				line: []byte(ni.LineComment),
+				foot: []byte(ni.FootComment),
+			}
+			valComments := comments{
+				head: []byte(n.Content[i+1].HeadComment),
+				line: []byte(n.Content[i+1].LineComment),
+				foot: []byte(n.Content[i+1].FootComment),
+			}
+
+			fieldsIndex = append(fieldsIndex, info)
+			com = append(com, []comments{keyComments, valComments})
+
 		} else if sinfo.InlineMap != -1 {
 			if inlineMap.IsNil() {
 				inlineMap.Set(reflect.MakeMap(inlineMap.Type()))
@@ -911,6 +962,18 @@ func (d *decoder) mappingStruct(n *Node, out reflect.Value) (good bool) {
 			d.terrors = append(d.terrors, fmt.Sprintf("line %d: field %s not found in type %s", ni.Line, name.String(), out.Type()))
 		}
 	}
+
+	//  This change is populating yamlMeta field with the with field order and comments
+	if idxInfo, idxOk := sinfo.FieldsMap[yamlMeta]; idxOk {
+		idxField := out.Field(idxInfo.Num)
+		fValue := &structMeta{
+			FieldsIndex: fieldsIndex,
+			Comments:    com,
+		}
+
+		idxField.Set(reflect.ValueOf(fValue))
+	}
+
 	return true
 }
 

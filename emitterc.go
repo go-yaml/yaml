@@ -241,7 +241,7 @@ func yaml_emitter_increase_indent(emitter *yaml_emitter_t, flow, indentless bool
 			emitter.indent += 2
 		} else {
 			// Everything else aligns to the chosen indentation.
-			emitter.indent = emitter.best_indent*((emitter.indent+emitter.best_indent)/emitter.best_indent)
+			emitter.indent = emitter.best_indent * ((emitter.indent + emitter.best_indent) / emitter.best_indent)
 		}
 	}
 	return true
@@ -727,14 +727,17 @@ func yaml_emitter_emit_flow_mapping_value(emitter *yaml_emitter_t, event *yaml_e
 
 // Expect a block item node.
 func yaml_emitter_emit_block_sequence_item(emitter *yaml_emitter_t, event *yaml_event_t, first bool) bool {
-	if first {
+	if first && !emitter.sequenceUndent {
 		if !yaml_emitter_increase_indent(emitter, false, false) {
 			return false
 		}
 	}
 	if event.typ == yaml_SEQUENCE_END_EVENT {
-		emitter.indent = emitter.indents[len(emitter.indents)-1]
-		emitter.indents = emitter.indents[:len(emitter.indents)-1]
+		if !emitter.sequenceUndent {
+			emitter.indent = emitter.indents[len(emitter.indents)-1]
+			emitter.indents = emitter.indents[:len(emitter.indents)-1]
+		}
+
 		emitter.state = emitter.states[len(emitter.states)-1]
 		emitter.states = emitter.states[:len(emitter.states)-1]
 		return true
@@ -1612,7 +1615,6 @@ func yaml_emitter_write_plain_scalar(emitter *yaml_emitter_t, value []byte, allo
 			return false
 		}
 	}
-
 	spaces := false
 	breaks := false
 	for i := 0; i < len(value); {

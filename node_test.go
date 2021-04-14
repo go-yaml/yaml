@@ -45,6 +45,9 @@ var nodeTests = []struct {
 			}},
 		},
 	}, {
+		"[encode]null\n",
+		yaml.Node{},
+	}, {
 		"foo\n",
 		yaml.Node{
 			Kind:   yaml.DocumentNode,
@@ -439,7 +442,7 @@ var nodeTests = []struct {
 			}},
 		},
 	}, {
-		"a:\n- b: c\n  d: e\n",
+		"a:\n  - b: c\n    d: e\n",
 		yaml.Node{
 			Kind:   yaml.DocumentNode,
 			Line:   1,
@@ -459,43 +462,43 @@ var nodeTests = []struct {
 					Kind:   yaml.SequenceNode,
 					Tag:    "!!seq",
 					Line:   2,
-					Column: 1,
+					Column: 3,
 					Content: []*yaml.Node{{
 						Kind:   yaml.MappingNode,
 						Tag:    "!!map",
 						Line:   2,
-						Column: 3,
+						Column: 5,
 						Content: []*yaml.Node{{
 							Kind:   yaml.ScalarNode,
 							Value:  "b",
 							Tag:    "!!str",
 							Line:   2,
-							Column: 3,
+							Column: 5,
 						}, {
 							Kind:   yaml.ScalarNode,
 							Value:  "c",
 							Tag:    "!!str",
 							Line:   2,
-							Column: 6,
+							Column: 8,
 						}, {
 							Kind:   yaml.ScalarNode,
 							Value:  "d",
 							Tag:    "!!str",
 							Line:   3,
-							Column: 3,
+							Column: 5,
 						}, {
 							Kind:   yaml.ScalarNode,
 							Value:  "e",
 							Tag:    "!!str",
 							Line:   3,
-							Column: 6,
+							Column: 8,
 						}},
 					}},
 				}},
 			}},
 		},
 	}, {
-		"a: # AI\n- b\nc:\n- d\n",
+		"a: # AI\n  - b\nc:\n  - d\n",
 		yaml.Node{
 			Kind:   yaml.DocumentNode,
 			Line:   1,
@@ -520,10 +523,10 @@ var nodeTests = []struct {
 						Tag:    "!!str",
 						Value:  "b",
 						Line:   2,
-						Column: 3,
+						Column: 5,
 					}},
 					Line:   2,
-					Column: 1,
+					Column: 3,
 				}, {
 					Kind:   yaml.ScalarNode,
 					Tag:    "!!str",
@@ -538,10 +541,244 @@ var nodeTests = []struct {
 						Tag:    "!!str",
 						Value:  "d",
 						Line:   4,
-						Column: 3,
+						Column: 5,
 					}},
 					Line:   4,
+					Column: 3,
+				}},
+			}},
+		},
+	}, {
+		"[decode]a:\n  # HM\n  - # HB1\n    # HB2\n    b: # IB\n      c # IC\n",
+		yaml.Node{
+			Kind:   yaml.DocumentNode,
+			Line:   1,
+			Column: 1,
+			Content: []*yaml.Node{{
+				Kind:   yaml.MappingNode,
+				Tag:    "!!map",
+				Line:   1,
+				Column: 1,
+				Content: []*yaml.Node{{
+					Kind:   yaml.ScalarNode,
+					Style:  0x0,
+					Tag:    "!!str",
+					Value:  "a",
+					Line:   1,
 					Column: 1,
+				}, {
+					Kind:   yaml.SequenceNode,
+					Tag:    "!!seq",
+					Line:   3,
+					Column: 3,
+					Content: []*yaml.Node{{
+						Kind:        yaml.MappingNode,
+						Tag:         "!!map",
+						HeadComment: "# HM",
+						Line:        5,
+						Column:      5,
+						Content: []*yaml.Node{{
+							Kind:        yaml.ScalarNode,
+							Tag:         "!!str",
+							Value:       "b",
+							HeadComment: "# HB1\n# HB2",
+							LineComment: "# IB",
+							Line:        5,
+							Column:      5,
+						}, {
+							Kind:        yaml.ScalarNode,
+							Tag:         "!!str",
+							Value:       "c",
+							LineComment: "# IC",
+							Line:        6,
+							Column:      7,
+						}},
+					}},
+				}},
+			}},
+		},
+	}, {
+		// When encoding the value above, it loses b's inline comment.
+		"[encode]a:\n  # HM\n  - # HB1\n    # HB2\n    b: c # IC\n",
+		yaml.Node{
+			Kind:   yaml.DocumentNode,
+			Line:   1,
+			Column: 1,
+			Content: []*yaml.Node{{
+				Kind:   yaml.MappingNode,
+				Tag:    "!!map",
+				Line:   1,
+				Column: 1,
+				Content: []*yaml.Node{{
+					Kind:   yaml.ScalarNode,
+					Style:  0x0,
+					Tag:    "!!str",
+					Value:  "a",
+					Line:   1,
+					Column: 1,
+				}, {
+					Kind:   yaml.SequenceNode,
+					Tag:    "!!seq",
+					Line:   3,
+					Column: 3,
+					Content: []*yaml.Node{{
+						Kind:        yaml.MappingNode,
+						Tag:         "!!map",
+						HeadComment: "# HM",
+						Line:        5,
+						Column:      5,
+						Content: []*yaml.Node{{
+							Kind:        yaml.ScalarNode,
+							Tag:         "!!str",
+							Value:       "b",
+							HeadComment: "# HB1\n# HB2",
+							LineComment: "# IB",
+							Line:        5,
+							Column:      5,
+						}, {
+							Kind:        yaml.ScalarNode,
+							Tag:         "!!str",
+							Value:       "c",
+							LineComment: "# IC",
+							Line:        6,
+							Column:      7,
+						}},
+					}},
+				}},
+			}},
+		},
+	}, {
+		// Multiple cases of comment inlining next to mapping keys.
+		"a: | # IA\n  str\nb: >- # IB\n  str\nc: # IC\n  - str\nd: # ID\n  str:\n",
+		yaml.Node{
+			Kind:   yaml.DocumentNode,
+			Line:   1,
+			Column: 1,
+			Content: []*yaml.Node{{
+				Kind:   yaml.MappingNode,
+				Tag:    "!!map",
+				Line:   1,
+				Column: 1,
+				Content: []*yaml.Node{{
+					Kind:   yaml.ScalarNode,
+					Tag:    "!!str",
+					Value:  "a",
+					Line:   1,
+					Column: 1,
+				}, {
+					Kind:        yaml.ScalarNode,
+					Style:       yaml.LiteralStyle,
+					Tag:         "!!str",
+					Value:       "str\n",
+					LineComment: "# IA",
+					Line:        1,
+					Column:      4,
+				}, {
+					Kind:   yaml.ScalarNode,
+					Tag:    "!!str",
+					Value:  "b",
+					Line:   3,
+					Column: 1,
+				}, {
+					Kind:        yaml.ScalarNode,
+					Style:       yaml.FoldedStyle,
+					Tag:         "!!str",
+					Value:       "str",
+					LineComment: "# IB",
+					Line:        3,
+					Column:      4,
+				}, {
+					Kind:   yaml.ScalarNode,
+					Tag:    "!!str",
+					Value:  "c",
+					LineComment: "# IC",
+					Line:   5,
+					Column: 1,
+				}, {
+					Kind:        yaml.SequenceNode,
+					Tag:         "!!seq",
+					Line:        6,
+					Column:      3,
+					Content: []*yaml.Node{{
+						Kind:   yaml.ScalarNode,
+						Tag:    "!!str",
+						Value:  "str",
+						Line:   6,
+						Column: 5,
+					}},
+				}, {
+					Kind:   yaml.ScalarNode,
+					Tag:    "!!str",
+					Value:  "d",
+					LineComment: "# ID",
+					Line:   7,
+					Column: 1,
+				}, {
+					Kind:        yaml.MappingNode,
+					Tag:         "!!map",
+					Line:        8,
+					Column:      3,
+					Content: []*yaml.Node{{
+						Kind:   yaml.ScalarNode,
+						Tag:    "!!str",
+						Value:  "str",
+						Line:   8,
+						Column: 3,
+					}, {
+						Kind:   yaml.ScalarNode,
+						Tag:    "!!null",
+						Line:   8,
+						Column: 7,
+					}},
+				}},
+			}},
+		},
+	}, {
+		// Indentless sequence.
+		"[decode]a:\n# HM\n- # HB1\n  # HB2\n  b: # IB\n    c # IC\n",
+		yaml.Node{
+			Kind:   yaml.DocumentNode,
+			Line:   1,
+			Column: 1,
+			Content: []*yaml.Node{{
+				Kind:   yaml.MappingNode,
+				Tag:    "!!map",
+				Line:   1,
+				Column: 1,
+				Content: []*yaml.Node{{
+					Kind:   yaml.ScalarNode,
+					Tag:    "!!str",
+					Value:  "a",
+					Line:   1,
+					Column: 1,
+				}, {
+					Kind:   yaml.SequenceNode,
+					Tag:    "!!seq",
+					Line:   3,
+					Column: 1,
+					Content: []*yaml.Node{{
+						Kind:        yaml.MappingNode,
+						Tag:         "!!map",
+						HeadComment: "# HM",
+						Line:        5,
+						Column:      3,
+						Content: []*yaml.Node{{
+							Kind:        yaml.ScalarNode,
+							Tag:         "!!str",
+							Value:       "b",
+							HeadComment: "# HB1\n# HB2",
+							LineComment: "# IB",
+							Line:        5,
+							Column:      3,
+						}, {
+							Kind:        yaml.ScalarNode,
+							Tag:         "!!str",
+							Value:       "c",
+							LineComment: "# IC",
+							Line:        6,
+							Column:      5,
+						}},
+					}},
 				}},
 			}},
 		},
@@ -766,6 +1003,23 @@ var nodeTests = []struct {
 		},
 	}, {
 
+		"# š\ntrue # š\n",
+		yaml.Node{
+			Kind:   yaml.DocumentNode,
+			Line:   2,
+			Column: 1,
+			Content: []*yaml.Node{{
+				Kind:        yaml.ScalarNode,
+				Value:       "true",
+				Tag:         "!!bool",
+				Line:        2,
+				Column:      1,
+				HeadComment: "# š",
+				LineComment: "# š",
+			}},
+		},
+	}, {
+
 		"[decode]\n# One\n\n# Two\n\n# Three\ntrue # Four\n# Five\n\n# Six\n\n# Seven\n",
 		yaml.Node{
 			Kind:        yaml.DocumentNode,
@@ -950,9 +1204,9 @@ var nodeTests = []struct {
 	}, {
 		"- la # IA\n- lb # IB\n- lc # IC\n",
 		yaml.Node{
-			Kind:        yaml.DocumentNode,
-			Line:        1,
-			Column:      1,
+			Kind:   yaml.DocumentNode,
+			Line:   1,
+			Column: 1,
 			Content: []*yaml.Node{{
 				Kind:   yaml.SequenceNode,
 				Tag:    "!!seq",
@@ -985,9 +1239,9 @@ var nodeTests = []struct {
 	}, {
 		"# DH1\n\n# HL1\n- - la\n  # HB1\n  - lb\n",
 		yaml.Node{
-			Kind:   yaml.DocumentNode,
-			Line:   4,
-			Column: 1,
+			Kind:        yaml.DocumentNode,
+			Line:        4,
+			Column:      1,
 			HeadComment: "# DH1",
 			Content: []*yaml.Node{{
 				Kind:   yaml.SequenceNode,
@@ -1020,9 +1274,9 @@ var nodeTests = []struct {
 	}, {
 		"# DH1\n\n# HL1\n- # HA1\n  - la\n  # HB1\n  - lb\n",
 		yaml.Node{
-			Kind:   yaml.DocumentNode,
-			Line:   4,
-			Column: 1,
+			Kind:        yaml.DocumentNode,
+			Line:        4,
+			Column:      1,
 			HeadComment: "# DH1",
 			Content: []*yaml.Node{{
 				Kind:   yaml.SequenceNode,
@@ -1036,11 +1290,11 @@ var nodeTests = []struct {
 					Column:      3,
 					HeadComment: "# HL1",
 					Content: []*yaml.Node{{
-						Kind:   yaml.ScalarNode,
-						Tag:    "!!str",
-						Line:   5,
-						Column: 5,
-						Value:  "la",
+						Kind:        yaml.ScalarNode,
+						Tag:         "!!str",
+						Line:        5,
+						Column:      5,
+						Value:       "la",
 						HeadComment: "# HA1",
 					}, {
 						Kind:        yaml.ScalarNode,
@@ -1056,9 +1310,9 @@ var nodeTests = []struct {
 	}, {
 		"[decode]# DH1\n\n# HL1\n- # HA1\n\n  - la\n  # HB1\n  - lb\n",
 		yaml.Node{
-			Kind:   yaml.DocumentNode,
-			Line:   4,
-			Column: 1,
+			Kind:        yaml.DocumentNode,
+			Line:        4,
+			Column:      1,
 			HeadComment: "# DH1",
 			Content: []*yaml.Node{{
 				Kind:   yaml.SequenceNode,
@@ -1070,13 +1324,14 @@ var nodeTests = []struct {
 					Tag:         "!!seq",
 					Line:        6,
 					Column:      3,
-					HeadComment: "# HL1\n# HA1",
+					HeadComment: "# HL1",
 					Content: []*yaml.Node{{
-						Kind:   yaml.ScalarNode,
-						Tag:    "!!str",
-						Line:   6,
-						Column: 5,
-						Value:  "la",
+						Kind:        yaml.ScalarNode,
+						Tag:         "!!str",
+						Line:        6,
+						Column:      5,
+						Value:       "la",
+						HeadComment: "# HA1\n",
 					}, {
 						Kind:        yaml.ScalarNode,
 						Tag:         "!!str",
@@ -1089,7 +1344,7 @@ var nodeTests = []struct {
 			}},
 		},
 	}, {
-		"# DH1\n\n# HA1\nka:\n  # HB1\n  kb:\n  # HC1\n  # HC2\n  - lc # IC\n  # FC1\n  # FC2\n\n  # HD1\n  - ld # ID\n  # FD1\n\n# DF1\n",
+		"# DH1\n\n# HA1\nka:\n  # HB1\n  kb:\n    # HC1\n    # HC2\n    - lc # IC\n    # FC1\n    # FC2\n\n    # HD1\n    - ld # ID\n    # FD1\n\n# DF1\n",
 		yaml.Node{
 			Kind:        yaml.DocumentNode,
 			Line:        4,
@@ -1123,13 +1378,13 @@ var nodeTests = []struct {
 					}, {
 						Kind:   yaml.SequenceNode,
 						Line:   9,
-						Column: 3,
+						Column: 5,
 						Tag:    "!!seq",
 						Content: []*yaml.Node{{
 							Kind:        yaml.ScalarNode,
 							Tag:         "!!str",
 							Line:        9,
-							Column:      5,
+							Column:      7,
 							Value:       "lc",
 							HeadComment: "# HC1\n# HC2",
 							LineComment: "# IC",
@@ -1138,7 +1393,7 @@ var nodeTests = []struct {
 							Kind:        yaml.ScalarNode,
 							Tag:         "!!str",
 							Line:        14,
-							Column:      5,
+							Column:      7,
 							Value:       "ld",
 							HeadComment: "# HD1",
 
@@ -1150,7 +1405,7 @@ var nodeTests = []struct {
 			}},
 		},
 	}, {
-		"# DH1\n\n# HA1\nka:\n  # HB1\n  kb:\n  # HC1\n  # HC2\n  - lc # IC\n  # FC1\n  # FC2\n\n  # HD1\n  - ld # ID\n  # FD1\nke: ve\n\n# DF1\n",
+		"# DH1\n\n# HA1\nka:\n  # HB1\n  kb:\n    # HC1\n    # HC2\n    - lc # IC\n    # FC1\n    # FC2\n\n    # HD1\n    - ld # ID\n    # FD1\nke: ve\n\n# DF1\n",
 		yaml.Node{
 			Kind:        yaml.DocumentNode,
 			Line:        4,
@@ -1184,13 +1439,13 @@ var nodeTests = []struct {
 					}, {
 						Kind:   yaml.SequenceNode,
 						Line:   9,
-						Column: 3,
+						Column: 5,
 						Tag:    "!!seq",
 						Content: []*yaml.Node{{
 							Kind:        yaml.ScalarNode,
 							Tag:         "!!str",
 							Line:        9,
-							Column:      5,
+							Column:      7,
 							Value:       "lc",
 							HeadComment: "# HC1\n# HC2",
 							LineComment: "# IC",
@@ -1199,7 +1454,7 @@ var nodeTests = []struct {
 							Kind:        yaml.ScalarNode,
 							Tag:         "!!str",
 							Line:        14,
-							Column:      5,
+							Column:      7,
 							Value:       "ld",
 							HeadComment: "# HD1",
 							LineComment: "# ID",
@@ -1439,8 +1694,7 @@ var nodeTests = []struct {
 						Column: 7,
 					}},
 				}},
-			},
-			},
+			}},
 		},
 	}, {
 		// Same as above, but with newline at the end.
@@ -1483,8 +1737,7 @@ var nodeTests = []struct {
 						Column: 7,
 					}},
 				}},
-			},
-			},
+			}},
 		},
 	}, {
 		// Same as above, but without FB1.
@@ -1526,8 +1779,7 @@ var nodeTests = []struct {
 						Column: 7,
 					}},
 				}},
-			},
-			},
+			}},
 		},
 	}, {
 		// Same as above, but with two newlines at the end. Decode-only for that.
@@ -1570,8 +1822,49 @@ var nodeTests = []struct {
 						Column: 7,
 					}},
 				}},
-			},
-			},
+			}},
+		},
+	}, {
+		// Similar to above, but make HB1 look more like a footer of ka.
+		"[decode]# HA1\nka:\n# HB1\n\n  kb: vb\n# FA1\n",
+		yaml.Node{
+			Kind:   yaml.DocumentNode,
+			Line:   2,
+			Column: 1,
+			Content: []*yaml.Node{{
+				Kind:   yaml.MappingNode,
+				Tag:    "!!map",
+				Line:   2,
+				Column: 1,
+				Content: []*yaml.Node{{
+					Kind:        yaml.ScalarNode,
+					Tag:         "!!str",
+					Value:       "ka",
+					HeadComment: "# HA1",
+					FootComment: "# FA1",
+					Line:        2,
+					Column:      1,
+				}, {
+					Kind:   yaml.MappingNode,
+					Tag:    "!!map",
+					Line:   5,
+					Column: 3,
+					Content: []*yaml.Node{{
+						Kind:        yaml.ScalarNode,
+						Tag:         "!!str",
+						Value:       "kb",
+						HeadComment: "# HB1\n",
+						Line:        5,
+						Column:      3,
+					}, {
+						Kind:   yaml.ScalarNode,
+						Tag:    "!!str",
+						Value:  "vb",
+						Line:   5,
+						Column: 7,
+					}},
+				}},
+			}},
 		},
 	}, {
 		"ka:\n  kb: vb\n# FA1\n\nkc: vc\n",
@@ -1997,6 +2290,44 @@ var nodeTests = []struct {
 			}},
 		},
 	}, {
+		// Same as above, but with extra newlines before FB1 and FB2
+		"[decode]# DH1\n\n# SH1\n[\n  # HA1\n  la, # IA\n  # FA1\n\n  # HB1\n  lb, # IB\n\n\n  # FB1\n\n# FB2\n]\n# SF1\n\n# DF1\n",
+		yaml.Node{
+			Kind:        yaml.DocumentNode,
+			Line:        4,
+			Column:      1,
+			HeadComment: "# DH1",
+			FootComment: "# DF1",
+			Content: []*yaml.Node{{
+				Kind:        yaml.SequenceNode,
+				Tag:         "!!seq",
+				Style:       yaml.FlowStyle,
+				Line:        4,
+				Column:      1,
+				HeadComment: "# SH1",
+				FootComment: "# SF1",
+				Content: []*yaml.Node{{
+					Kind:        yaml.ScalarNode,
+					Tag:         "!!str",
+					Line:        6,
+					Column:      3,
+					Value:       "la",
+					HeadComment: "# HA1",
+					LineComment: "# IA",
+					FootComment: "# FA1",
+				}, {
+					Kind:        yaml.ScalarNode,
+					Tag:         "!!str",
+					Line:        10,
+					Column:      3,
+					Value:       "lb",
+					HeadComment: "# HB1",
+					LineComment: "# IB",
+					FootComment: "# FB1\n\n# FB2",
+				}},
+			}},
+		},
+	}, {
 		"# DH1\n\n# SH1\n[\n  # HA1\n  la,\n  # FA1\n\n  # HB1\n  lb,\n  # FB1\n]\n# SF1\n\n# DF1\n",
 		yaml.Node{
 			Kind:        yaml.DocumentNode,
@@ -2256,7 +2587,7 @@ func (s *S) TestNodeRoundtrip(c *C) {
 				fprintComments(&buf, &node, "    ")
 				c.Logf("  obtained comments:\n%s", buf.Bytes())
 			}
-			c.Assert(node, DeepEquals, item.node)
+			c.Assert(&node, DeepEquals, &item.node)
 		}
 		if encode {
 			node := deepCopyNode(&item.node, nil)
@@ -2399,6 +2730,122 @@ func (s *S) TestSetString(c *C) {
 		c.Assert(err, IsNil)
 		c.Assert(str, Equals, item.str)
 	}
+}
+
+var nodeEncodeDecodeTests = []struct {
+	value interface{}
+	yaml  string
+	node  yaml.Node
+}{{
+	"something simple",
+	"something simple\n",
+	yaml.Node{
+		Kind:  yaml.ScalarNode,
+		Value: "something simple",
+		Tag:   "!!str",
+	},
+}, {
+	`"quoted value"`,
+	"'\"quoted value\"'\n",
+	yaml.Node{
+		Kind:  yaml.ScalarNode,
+		Style: yaml.SingleQuotedStyle,
+		Value: `"quoted value"`,
+		Tag:   "!!str",
+	},
+}, {
+	123,
+	"123",
+	yaml.Node{
+		Kind:  yaml.ScalarNode,
+		Value: `123`,
+		Tag:   "!!int",
+	},
+}, {
+	[]interface{}{1, 2},
+	"[1, 2]",
+	yaml.Node{
+		Kind: yaml.SequenceNode,
+		Tag:  "!!seq",
+		Content: []*yaml.Node{{
+			Kind:  yaml.ScalarNode,
+			Value: "1",
+			Tag:   "!!int",
+		}, {
+			Kind:  yaml.ScalarNode,
+			Value: "2",
+			Tag:   "!!int",
+		}},
+	},
+}, {
+	map[string]interface{}{"a": "b"},
+	"a: b",
+	yaml.Node{
+		Kind: yaml.MappingNode,
+		Tag:  "!!map",
+		Content: []*yaml.Node{{
+			Kind:  yaml.ScalarNode,
+			Value: "a",
+			Tag:   "!!str",
+		}, {
+			Kind:  yaml.ScalarNode,
+			Value: "b",
+			Tag:   "!!str",
+		}},
+	},
+}}
+
+func (s *S) TestNodeEncodeDecode(c *C) {
+	for i, item := range nodeEncodeDecodeTests {
+		c.Logf("Encode/Decode test value #%d: %#v", i, item.value)
+
+		var v interface{}
+		err := item.node.Decode(&v)
+		c.Assert(err, IsNil)
+		c.Assert(v, DeepEquals, item.value)
+
+		var n yaml.Node
+		err = n.Encode(item.value)
+		c.Assert(err, IsNil)
+		c.Assert(n, DeepEquals, item.node)
+	}
+}
+
+func (s *S) TestNodeZeroEncodeDecode(c *C) {
+	// Zero node value behaves as nil when encoding...
+	var n yaml.Node
+	data, err := yaml.Marshal(&n)
+	c.Assert(err, IsNil)
+	c.Assert(string(data), Equals, "null\n")
+
+	// ... and decoding.
+	var v *struct{} = &struct{}{}
+	c.Assert(n.Decode(&v), IsNil)
+	c.Assert(v, IsNil)
+
+	// ... and even when looking for its tag.
+	c.Assert(n.ShortTag(), Equals, "!!null")
+
+	// Kind zero is still unknown, though.
+	n.Line = 1
+	_, err = yaml.Marshal(&n)
+	c.Assert(err, ErrorMatches, "yaml: cannot encode node with unknown kind 0")
+	c.Assert(n.Decode(&v), ErrorMatches, "yaml: cannot decode node with unknown kind 0")
+}
+
+func (s *S) TestNodeOmitEmpty(c *C) {
+	var v struct {
+		A int
+		B yaml.Node ",omitempty"
+	}
+	v.A = 1
+	data, err := yaml.Marshal(&v)
+	c.Assert(err, IsNil)
+	c.Assert(string(data), Equals, "a: 1\n")
+
+	v.B.Line = 1
+	_, err = yaml.Marshal(&v)
+	c.Assert(err, ErrorMatches, "yaml: cannot encode node with unknown kind 0")
 }
 
 func fprintComments(out io.Writer, node *yaml.Node, indent string) {

@@ -816,7 +816,7 @@ func yaml_parser_fetch_next_token(parser *yaml_parser_t) bool {
 	// If we don't determine the token type so far, it is an error.
 	return yaml_parser_set_scanner_error(parser,
 		"while scanning for the next token", parser.mark,
-		"found character that cannot start any token")
+		fmt.Sprintf("character %q may not start a token", parser.buffer[parser.buffer_pos]))
 }
 
 func yaml_simple_key_is_valid(parser *yaml_parser_t, simple_key *yaml_simple_key_t) (valid, ok bool) {

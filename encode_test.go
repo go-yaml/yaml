@@ -656,6 +656,17 @@ func (s *S) TestSetIndent(c *C) {
 	c.Assert(buf.String(), Equals, "a:\n        b:\n                c: d\n")
 }
 
+func (s *S) TestSequenceUndent(c *C) {
+	var buf bytes.Buffer
+	enc := yaml.NewEncoder(&buf)
+	enc.SetSequenceUndent(true)
+	err := enc.Encode(map[string]interface{}{"a": []interface{}{"b", "c", "d"}})
+	c.Assert(err, Equals, nil)
+	err = enc.Close()
+	c.Assert(err, Equals, nil)
+	c.Assert(buf.String(), Equals, "a:\n- b\n- c\n- d\n")
+}
+
 func (s *S) TestSortedOutput(c *C) {
 	order := []interface{}{
 		false,

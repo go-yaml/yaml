@@ -30,6 +30,50 @@ var structMetaTests = []string{
 	"a: ant #ant\n# a\nb: #beeline\n    c: cockroach #cockroach\n    #c\n    #d\n    d: dragonfly\n    #dragonfly\n",
 }
 
+var structMetaNilTests = []struct {
+	expected string
+	test     testStruct
+}{
+	{
+		"b:\n    d: d\n    c: c\na: a\n",
+		testStruct{
+			A: "a",
+			B: smChildStruct{
+				C: "c",
+				D: "d",
+			},
+		},
+	},
+	{
+		"b:\n    d: d\n    c: c\na: a\n",
+		testStruct{
+			A: "a",
+			B: smChildStruct{
+				C: "c",
+				D: "d",
+			},
+			Meta: StructMeta(&structMeta{nil, nil}),
+		},
+	},
+	{
+		"b:\n    d: d\n    c: c\na: a\n",
+		testStruct{
+			A: "a",
+			B: smChildStruct{
+				C: "c",
+				D: "d",
+			},
+			Meta: StructMeta(&structMeta{
+				[]fieldInfo{{
+					Key: "a",
+					Num: 2,
+				}},
+				[][]comments{},
+			}),
+		},
+	},
+}
+
 func (s *S) TestStructMeta(c *C) {
 	for _, expected := range structMetaTests {
 		c.Logf("test %s.", expected)
@@ -41,5 +85,15 @@ func (s *S) TestStructMeta(c *C) {
 		actual, err := Marshal(test)
 		c.Assert(err, Equals, nil)
 		c.Assert(string(actual), Equals, expected)
+	}
+}
+
+func (s *S) TestStructMetaNil(c *C) {
+	for _, in := range structMetaNilTests {
+		c.Logf("test %s", in.expected)
+
+		actual, err := Marshal(in.test)
+		c.Assert(err, Equals, nil)
+		c.Assert(string(actual), Equals, in.expected)
 	}
 }

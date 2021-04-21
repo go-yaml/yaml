@@ -221,15 +221,23 @@ func (e *encoder) structv(tag string, in reflect.Value, comment comments) {
 
 	commentsArr := makeEmptyComments(len(fieldsIndex))
 
-	if fIndex := getYamlMeta(in, fieldsIndex); fIndex.IsValid() {
-		meta := fIndex.Elem().Interface().(StructMeta)
-		fieldsIndex = meta.GetFieldsIndex()
-		commentsArr = meta.GetComments()
+	// ensure valid non nil struct meta before using
+	if fIndex := getYamlMeta(in, fieldsIndex); (fIndex.IsValid() && fIndex.Elem() != reflect.Value{}) {
+		meta, ok := fIndex.Elem().Interface().(StructMeta)
+		metaFieldsIndex := meta.GetFieldsIndex()
+		metaCommentsArr := meta.GetComments()
+		if ok && len(metaFieldsIndex) == len(metaCommentsArr) {
+			fieldsIndex = metaFieldsIndex
+			commentsArr = metaCommentsArr
+		}
 	}
 
 	e.mappingv(tag, comment, func() {
 		processed := map[int]bool{}
 		for i, info := range fieldsIndex {
+			if info.Key == yamlMeta {
+				continue
+			}
 			var value reflect.Value
 			if info.Inline == nil {
 				value = in.Field(info.Num)

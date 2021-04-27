@@ -2,7 +2,6 @@ package yaml
 
 import (
 	"reflect"
-	"strings"
 	"unicode"
 )
 
@@ -63,12 +62,12 @@ func (l keyList) Less(i, j int) bool {
 				// shorter numbers are always smaller
 				return cmp < 0
 			}
-			if cmp := strings.Compare(string(ar[i+azeroes:i+adigits]), string(br[i+bzeroes:i+bdigits])); cmp != 0 {
+			if as, bs := string(ar[i+azeroes:i+adigits]), string(br[i+bzeroes:i+bdigits]); as != bs {
 				// with leading zeroes removed,
 				// equal-length numbers sort in the
 				// same order as their string
 				// representation
-				return cmp < 0
+				return as < bs
 			}
 			if cmp := azeroes - bzeroes; cmp != 0 {
 				return cmp < 0

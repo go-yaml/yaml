@@ -614,30 +614,56 @@ func (s *S) TestSortedOutput(c *C) {
 		"d7abc",
 		"d12",
 		"d12a",
+		"d77",
+		"f,0",
+		"f,00",
+		"f,000a",
+		"f,01",
+		"f,001",
+		"f,001a",
+		"f,0001a",
+		"f,\u0666a", // unicode.IsDigit('\u0666') is true (Arabic-Indic Digit Six)
+		"f,0\u0666a",
+		"f,\u0665\u0666a",
+		"f,1590a",
+		"f0",
+		"g9223372036854775807",
+		"g9223372036854775808", // overflow int64
+		"g09223372036854775808",
+		"g9223372036854775809",
+		"g9223372036854775809a",
+		"g18446744073709551615",
+		"g18446744073709551616", // overflow uint64
+		"g018446744073709551616",
 	}
-	m := make(map[interface{}]int)
-	for _, k := range order {
-		m[k] = 1
-	}
-	data, err := yaml.Marshal(m)
-	c.Assert(err, IsNil)
-	out := "\n" + string(data)
-	last := 0
-	for i, k := range order {
-		repr := fmt.Sprint(k)
-		if s, ok := k.(string); ok {
-			if _, err = strconv.ParseFloat(repr, 32); s == "" || err == nil {
-				repr = `"` + repr + `"`
+	for i := 0; i < 20; i++ {
+		// Do multiple trials to reliably catch
+		// nondeterministic sorting even if it is correct
+		// sometimes.
+		m := make(map[interface{}]int)
+		for _, k := range order {
+			m[k] = 1
+		}
+		data, err := yaml.Marshal(m)
+		c.Assert(err, IsNil)
+		out := "\n" + string(data)
+		last := 0
+		for i, k := range order {
+			repr := fmt.Sprint(k)
+			if s, ok := k.(string); ok {
+				if _, err = strconv.ParseFloat(repr, 32); s == "" || err == nil {
+					repr = `"` + repr + `"`
+				}
 			}
+			index := strings.Index(out, "\n"+repr+":")
+			if index == -1 {
+				c.Fatalf("%#v is not in the output: %#v", k, out)
+			}
+			if index < last {
+				c.Fatalf("%#v was generated before %#v: %q", k, order[i-1], out)
+			}
+			last = index
 		}
-		index := strings.Index(out, "\n"+repr+":")
-		if index == -1 {
-			c.Fatalf("%#v is not in the output: %#v", k, out)
-		}
-		if index < last {
-			c.Fatalf("%#v was generated before %#v: %q", k, order[i-1], out)
-		}
-		last = index
 	}
 }
 

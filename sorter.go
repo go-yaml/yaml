@@ -2,6 +2,7 @@ package yaml
 
 import (
 	"reflect"
+	"strings"
 	"unicode"
 )
 
@@ -38,41 +39,50 @@ func (l keyList) Less(i, j int) bool {
 	}
 	ar, br := []rune(a.String()), []rune(b.String())
 	for i := 0; i < len(ar) && i < len(br); i++ {
-		if ar[i] == br[i] {
+		var adigits, bdigits int
+		for j := i; j < len(ar) && unicode.IsDigit(ar[j]); j++ {
+			adigits++
+		}
+		for j := i; j < len(br) && unicode.IsDigit(br[j]); j++ {
+			bdigits++
+		}
+		if adigits > 0 && bdigits > 0 {
+			// if both a and b have a sequence of digits
+			// starting here, and they're not identical,
+			// sort them by the expressed number ("9" <
+			// "077") then by length ("01" < "001").
+			var azeroes, bzeroes int
+			for j := i; j < len(ar) && ar[j] == '0'; j++ {
+				azeroes++
+			}
+			for j := i; j < len(br) && br[j] == '0'; j++ {
+				bzeroes++
+			}
+			if cmp := (adigits - azeroes) - (bdigits - bzeroes); cmp != 0 {
+				// with leading zeroes removed,
+				// shorter numbers are always smaller
+				return cmp < 0
+			}
+			if cmp := strings.Compare(string(ar[i+azeroes:i+adigits]), string(br[i+bzeroes:i+bdigits])); cmp != 0 {
+				// with leading zeroes removed,
+				// equal-length numbers sort in the
+				// same order as their string
+				// representation
+				return cmp < 0
+			}
+			if cmp := azeroes - bzeroes; cmp != 0 {
+				return cmp < 0
+			}
+			// the next adigits==bdigits runes are equal
+			i += adigits - 1
 			continue
 		}
-		al := unicode.IsLetter(ar[i])
-		bl := unicode.IsLetter(br[i])
-		if al && bl {
-			return ar[i] < br[i]
-		}
-		if al || bl {
+		if al, bl := unicode.IsLetter(ar[i]), unicode.IsLetter(br[i]); al != bl {
 			return bl
 		}
-		var ai, bi int
-		var an, bn int64
-		if ar[i] == '0' || br[i] == '0' {
-			for j := i-1; j >= 0 && unicode.IsDigit(ar[j]); j-- {
-				if ar[j] != '0' {
-					an = 1
-					bn = 1
-					break
-				}
-			}
+		if ar[i] != br[i] {
+			return ar[i] < br[i]
 		}
-		for ai = i; ai < len(ar) && unicode.IsDigit(ar[ai]); ai++ {
-			an = an*10 + int64(ar[ai]-'0')
-		}
-		for bi = i; bi < len(br) && unicode.IsDigit(br[bi]); bi++ {
-			bn = bn*10 + int64(br[bi]-'0')
-		}
-		if an != bn {
-			return an < bn
-		}
-		if ai != bi {
-			return ai < bi
-		}
-		return ar[i] < br[i]
 	}
 	return len(ar) < len(br)
 }

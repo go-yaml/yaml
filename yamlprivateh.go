@@ -89,6 +89,7 @@ func is_printable(b []byte, i int) bool {
 		(b[i] > 0xC2 && b[i] < 0xED) ||
 		(b[i] == 0xED && b[i+1] < 0xA0) ||
 		(b[i] == 0xEE) ||
+		(b[i] == 0xf0) ||
 		(b[i] == 0xEF && // #xE000 <= . <= #xFFFD
 			!(b[i+1] == 0xBB && b[i+2] == 0xBF) && // && . != #xFEFF
 			!(b[i+1] == 0xBF && (b[i+2] == 0xBE || b[i+2] == 0xBF))))

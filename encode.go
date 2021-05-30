@@ -100,6 +100,22 @@ func (e *encoder) marshal(tag string, in reflect.Value) {
 		e.nilv()
 		return
 	}
+	// In case of embedded fields, let's get a poiter etc.
+	if in.CanAddr() {
+		m, ok := in.Addr().Interface().(Marshaler)
+		if ok {
+			v, err := m.MarshalYAML()
+			if err != nil {
+				fail(err)
+			}
+			if v == nil {
+				e.nilv()
+				return
+			}
+			in = reflect.ValueOf(v)
+		}
+	}
+
 	iface := in.Interface()
 	switch m := iface.(type) {
 	case jsonNumber:

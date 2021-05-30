@@ -1,4 +1,4 @@
-module gopkg.in/yaml.v2
+module github.com/sustrik/yaml
 
 go 1.15
 

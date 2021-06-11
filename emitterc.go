@@ -225,6 +225,15 @@ func yaml_emitter_append_tag_directive(emitter *yaml_emitter_t, value *yaml_tag_
 	return true
 }
 
+// Don't count the sequenceIndicator as part of sequence indentation.
+// This maintains sequence indentation consistency with gopkg.in/yaml.v2
+// (https://pkg.go.dev/gopkg.in/yaml.v2#readme-api-documentation)
+// and conforms to the YAML 1.2 spec comment
+//   > both the “-” indicator and the following spaces are considered
+//   > to be part of the indentation of the nested collection.
+// at https://yaml.org/spec/1.2/spec.html#id2772075
+const lenSequenceIndicator = len(`- `)
+
 // Increase the indentation level.
 func yaml_emitter_increase_indent(emitter *yaml_emitter_t, flow, indentless bool) bool {
 	emitter.indents = append(emitter.indents, emitter.indent)
@@ -235,13 +244,10 @@ func yaml_emitter_increase_indent(emitter *yaml_emitter_t, flow, indentless bool
 			emitter.indent = 0
 		}
 	} else if !indentless {
-		// [Go] This was changed so that indentations are more regular.
-		if emitter.states[len(emitter.states)-1] == yaml_EMIT_BLOCK_SEQUENCE_ITEM_STATE {
-			// The first indent inside a sequence will just skip the "- " indicator.
-			emitter.indent += 2
-		} else {
-			// Everything else aligns to the chosen indentation.
-			emitter.indent = emitter.best_indent*((emitter.indent+emitter.best_indent)/emitter.best_indent)
+		emitter.indent += emitter.best_indent
+		// If inside a block sequence item, discount the space taken by the indicator.
+		if emitter.best_indent > lenSequenceIndicator && emitter.states[len(emitter.states)-1] == yaml_EMIT_BLOCK_SEQUENCE_ITEM_STATE {
+			emitter.indent -= lenSequenceIndicator
 		}
 	}
 	return true
@@ -728,8 +734,12 @@ func yaml_emitter_emit_flow_mapping_value(emitter *yaml_emitter_t, event *yaml_e
 // Expect a block item node.
 func yaml_emitter_emit_block_sequence_item(emitter *yaml_emitter_t, event *yaml_event_t, first bool) bool {
 	if first {
+		originalIndent := emitter.indent
 		if !yaml_emitter_increase_indent(emitter, false, false) {
 			return false
+		}
+		if emitter.indent > originalIndent+lenSequenceIndicator {
+			emitter.indent -= lenSequenceIndicator
 		}
 	}
 	if event.typ == yaml_SEQUENCE_END_EVENT {

@@ -138,25 +138,25 @@ v: ""
 	}, {
 		map[string][]string{"v": []string{"A", "B"}}, `
 v:
-    - A
-    - B
+  - A
+  - B
 `,
 	}, {
 		map[string][]string{"v": []string{"A", "B\nC"}}, `
 v:
-    - A
-    - |-
-      B
-      C
+  - A
+  - |-
+    B
+    C
 `,
 	}, {
 		map[string][]interface{}{"v": []interface{}{"A", 1, map[string][]int{"B": []int{2, 3}}}}, `
 v:
-    - A
-    - 1
-    - B:
-        - 2
-        - 3
+  - A
+  - 1
+  - B:
+      - 2
+      - 3
 `,
 	}, {
 		map[string]interface{}{"a": map[interface{}]interface{}{"b": "c"}}, `
@@ -214,14 +214,14 @@ a: 1
 	}, {
 		&struct{ A []int }{[]int{1, 2}}, `
 a:
-    - 1
-    - 2
+  - 1
+  - 2
 `,
 	}, {
 		&struct{ A [2]int }{[2]int{1, 2}}, `
 a:
-    - 1
-    - 2
+  - 1
+  - 2
 `,
 	}, {
 		&struct {
@@ -530,8 +530,8 @@ true
 		map[string]interface{}{"a": map[string]interface{}{"b": []map[string]int{{"c": 1, "d": 2}}}}, `
 a:
     b:
-        - c: 1
-          d: 2
+      - c: 1
+        d: 2
 `,
 	},
 
@@ -713,7 +713,7 @@ var marshalerTests = []struct {
 	value interface{}
 }{
 	{"_:\n    hi: there\n", map[interface{}]interface{}{"hi": "there"}},
-	{"_:\n    - 1\n    - A\n", []interface{}{1, "A"}},
+	{"_:\n  - 1\n  - A\n", []interface{}{1, "A"}},
 	{"_: 10\n", 10},
 	{"_: null\n", nil},
 	{"_: BAR!\n", "BAR!"},
@@ -794,24 +794,24 @@ a:
     b:
         c: d
     e:
-        - 1
-        - 2
-        - 3
+      - 1
+      - 2
+      - 3
     f:
-        - g
-        - h
+      - g
+      - h
 `
 		indentEight = `
 a:
         b:
                 c: d
         e:
-                - 1
-                - 2
-                - 3
+              - 1
+              - 2
+              - 3
         f:
-                - g
-                - h
+              - g
+              - h
 `
 	)
 

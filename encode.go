@@ -29,12 +29,13 @@ import (
 )
 
 type encoder struct {
-	emitter  yaml_emitter_t
-	event    yaml_event_t
-	out      []byte
-	flow     bool
-	indent   int
-	doneInit bool
+	emitter           yaml_emitter_t
+	event             yaml_event_t
+	out               []byte
+	flow              bool
+	indent            int
+	sameLevelSequence bool
+	doneInit          bool
 }
 
 func newEncoder() *encoder {
@@ -60,6 +61,7 @@ func (e *encoder) init() {
 	if e.indent == 0 {
 		e.indent = 4
 	}
+	e.emitter.sameLevelSequence = e.sameLevelSequence
 	e.emitter.best_indent = e.indent
 	yaml_stream_start_event_initialize(&e.event, yaml_UTF8_ENCODING)
 	e.emit()

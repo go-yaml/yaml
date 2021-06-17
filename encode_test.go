@@ -656,6 +656,18 @@ func (s *S) TestSetIndent(c *C) {
 	c.Assert(buf.String(), Equals, "a:\n        b:\n                c: d\n")
 }
 
+// This test is providing coverage for SetIndentSequences function.
+// When we are setting that to false the sequences are not indented.
+func (s *S) TestSetIndentSequences(c *C) {
+	var buf bytes.Buffer
+	enc := yaml.NewEncoder(&buf)
+	enc.SetIndentSequences(false)
+
+	err := enc.Encode(map[string][]string{"a": {"b", "c"}})
+	c.Assert(err, Equals, nil)
+	c.Assert(buf.String(), Equals, "a:\n- b\n- c\n")
+}
+
 func (s *S) TestSortedOutput(c *C) {
 	order := []interface{}{
 		false,

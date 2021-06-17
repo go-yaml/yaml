@@ -241,7 +241,7 @@ func yaml_emitter_increase_indent(emitter *yaml_emitter_t, flow, indentless bool
 			emitter.indent += 2
 		} else {
 			// Everything else aligns to the chosen indentation.
-			emitter.indent = emitter.best_indent*((emitter.indent+emitter.best_indent)/emitter.best_indent)
+			emitter.indent = emitter.best_indent * ((emitter.indent + emitter.best_indent) / emitter.best_indent)
 		}
 	}
 	return true
@@ -728,7 +728,7 @@ func yaml_emitter_emit_flow_mapping_value(emitter *yaml_emitter_t, event *yaml_e
 // Expect a block item node.
 func yaml_emitter_emit_block_sequence_item(emitter *yaml_emitter_t, event *yaml_event_t, first bool) bool {
 	if first {
-		if !yaml_emitter_increase_indent(emitter, false, false) {
+		if !yaml_emitter_increase_indent(emitter, false, emitter.sameLevelSequence) {
 			return false
 		}
 	}

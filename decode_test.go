@@ -1644,6 +1644,76 @@ func (s *S) TestFuzzCrashers(c *C) {
 	}
 }
 
+var unmarshalDisableUniqueKeys = []struct {
+	known  bool
+	unique bool
+	data   string
+	value  interface{}
+	error  string
+}{{
+	unique: true,
+	data:   "a: 1\nb: 2\na: 3\n",
+	value:  struct{ A, B int }{A: 3, B: 2},
+	error:  `yaml: unmarshal errors:\n  line 3: mapping key "a" already defined at line 1`,
+}, {
+	unique: false,
+	data:   "a: 1\nb: 2\na: 3\n",
+	value:  struct{ A, B int }{A: 3, B: 2},
+	error:  "",
+}, {
+	unique: true,
+	data:   "c: 3\na: 1\nb: 2\nc: 4\n",
+	value: struct {
+		A       int
+		inlineB `yaml:",inline"`
+	}{
+		A: 1,
+		inlineB: inlineB{
+			B: 2,
+			inlineC: inlineC{
+				C: 4,
+			},
+		},
+	},
+	error: `yaml: unmarshal errors:\n  line 4: mapping key "c" already defined at line 1`,
+}, {
+	unique: false,
+	data:   "c: 3\na: 1\nb: 2\nc: 4\n",
+	value: struct {
+		A       int
+		inlineB `yaml:",inline"`
+	}{
+		A: 1,
+		inlineB: inlineB{
+			B: 2,
+			inlineC: inlineC{
+				C: 4,
+			},
+		},
+	},
+	error: "",
+}}
+
+func (s *S) TestDisableUniqueKeys(c *C) {
+	for i, item := range unmarshalDisableUniqueKeys {
+		c.Logf("test %d: %q", i, item.data)
+		t := reflect.ValueOf(item.value).Type()
+		value := reflect.New(t)
+		dec := yaml.NewDecoder(bytes.NewBuffer([]byte(item.data)))
+		dec.KnownFields(item.known)
+		if !item.unique {
+			dec.DisableUniqueKeys(true)
+		}
+		err := dec.Decode(value.Interface())
+		if !item.unique {
+			c.Assert(err, Equals, nil)
+			c.Assert(value.Elem().Interface(), DeepEquals, item.value)
+		} else {
+			c.Assert(err, ErrorMatches, item.error)
+		}
+	}
+}
+
 //var data []byte
 //func init() {
 //	var err error

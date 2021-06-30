@@ -324,11 +324,12 @@ type TypeError struct {
 }
 
 func (e *TypeError) Error() string {
-	msgs := make([]string, 0, len(e.Errors))
+	var b strings.Builder
+	b.WriteString("yaml: unmarshal errors:")
 	for _, err := range e.Errors {
-		msgs = append(msgs, fmt.Sprintf("line %d: %s", err.Line, err.Message))
+		b.WriteString(fmt.Sprintf("\n  line %d: %s", err.Line, err.Message))
 	}
-	return fmt.Sprintf("yaml: unmarshal errors:\n  %s", strings.Join(msgs, "\n  "))
+	return b.String()
 }
 
 type Kind uint32

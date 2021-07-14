@@ -19,7 +19,7 @@ import (
 	"fmt"
 	"log"
 
-	"gopkg.in/vsapronov/yaml.v3"
+	"gopkg.in/specgen-io/yaml.v3"
 )
 
 // An example showing how to unmarshal embedded

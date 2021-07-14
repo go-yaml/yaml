@@ -1,4 +1,4 @@
-module gopkg.in/vsapronov/yaml.v3
+module gopkg.in/specgen-io/yaml.v3
 
 go 1.16
 

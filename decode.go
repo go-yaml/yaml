@@ -180,12 +180,12 @@ func (p *parser) node(kind Kind, defaultTag, tag, value string) *Node {
 		Value: value,
 		Style: style,
 	}
+	n.HeadComment = string(p.event.head_comment)
+	n.LineComment = string(p.event.line_comment)
+	n.FootComment = string(p.event.foot_comment)
 	if !p.textless {
 		n.Line = p.event.start_mark.line + 1
 		n.Column = p.event.start_mark.column + 1
-		n.HeadComment = string(p.event.head_comment)
-		n.LineComment = string(p.event.line_comment)
-		n.FootComment = string(p.event.foot_comment)
 	}
 	return n
 }

@@ -733,7 +733,6 @@ func (d *decoder) mappingStruct(n *node, out reflect.Value) (good bool) {
 	var elemType reflect.Type
 	if sinfo.InlineMap != -1 {
 		inlineMap = out.Field(sinfo.InlineMap)
-		inlineMap.Set(reflect.New(inlineMap.Type()).Elem())
 		elemType = inlineMap.Type().Elem()
 	}
 

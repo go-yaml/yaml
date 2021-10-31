@@ -129,8 +129,8 @@ func (dec *Decoder) Decode(v interface{}) (err error) {
 		out = out.Elem()
 	}
 	d.unmarshal(node, out)
-	if len(d.terrors) > 0 {
-		return &TypeError{d.terrors}
+	if len(d.terrors) > 0 || len(d.strictErrors) > 0 {
+		return &TypeError{d.terrors, d.strictErrors}
 	}
 	return nil
 }
@@ -147,8 +147,8 @@ func (n *Node) Decode(v interface{}) (err error) {
 		out = out.Elem()
 	}
 	d.unmarshal(n, out)
-	if len(d.terrors) > 0 {
-		return &TypeError{d.terrors}
+	if len(d.terrors) > 0 || len(d.strictErrors) > 0 {
+		return &TypeError{d.terrors, d.strictErrors}
 	}
 	return nil
 }
@@ -166,8 +166,8 @@ func unmarshal(in []byte, out interface{}, strict bool) (err error) {
 		}
 		d.unmarshal(node, v)
 	}
-	if len(d.terrors) > 0 {
-		return &TypeError{d.terrors}
+	if len(d.terrors) > 0 || len(d.strictErrors) > 0 {
+		return &TypeError{d.terrors, d.strictErrors}
 	}
 	return nil
 }
@@ -313,11 +313,12 @@ func failf(format string, args ...interface{}) {
 // types. When this error is returned, the value is still
 // unmarshaled partially.
 type TypeError struct {
-	Errors []string
+	Errors       []string
+	StrictErrors []string
 }
 
 func (e *TypeError) Error() string {
-	return fmt.Sprintf("yaml: unmarshal errors:\n  %s", strings.Join(e.Errors, "\n  "))
+	return fmt.Sprintf("yaml: unmarshal errors:\n  %s", strings.Join(append(e.Errors, e.StrictErrors...), "\n  "))
 }
 
 type Kind uint32

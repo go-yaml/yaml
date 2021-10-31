@@ -1110,8 +1110,8 @@ func (s *S) TestUnmarshalerWholeDocument(c *C) {
 }
 
 func (s *S) TestUnmarshalerTypeError(c *C) {
-	unmarshalerResult[2] = &yaml.TypeError{[]string{"foo"}}
-	unmarshalerResult[4] = &yaml.TypeError{[]string{"bar"}}
+	unmarshalerResult[2] = &yaml.TypeError{[]string{"foo"}, nil}
+	unmarshalerResult[4] = &yaml.TypeError{[]string{"bar"}, nil}
 	defer func() {
 		delete(unmarshalerResult, 2)
 		delete(unmarshalerResult, 4)
@@ -1141,8 +1141,8 @@ func (s *S) TestUnmarshalerTypeError(c *C) {
 }
 
 func (s *S) TestObsoleteUnmarshalerTypeError(c *C) {
-	unmarshalerResult[2] = &yaml.TypeError{[]string{"foo"}}
-	unmarshalerResult[4] = &yaml.TypeError{[]string{"bar"}}
+	unmarshalerResult[2] = &yaml.TypeError{[]string{"foo"}, nil}
+	unmarshalerResult[4] = &yaml.TypeError{[]string{"bar"}, nil}
 	defer func() {
 		delete(unmarshalerResult, 2)
 		delete(unmarshalerResult, 4)
@@ -1605,6 +1605,10 @@ func (s *S) TestUnmarshalKnownFields(c *C) {
 		dec.KnownFields(item.known)
 		err := dec.Decode(value.Interface())
 		c.Assert(err, ErrorMatches, item.error)
+		if !item.unique {
+			// If a strict error occurs, the decoding should still be successful
+			c.Assert(value.Elem().Interface(), DeepEquals, item.value)
+		}
 	}
 }
 

@@ -308,9 +308,10 @@ func (p *parser) mapping() *Node {
 // Decoder, unmarshals a node into a provided value.
 
 type decoder struct {
-	doc     *Node
-	aliases map[*Node]bool
-	terrors []string
+	doc          *Node
+	aliases      map[*Node]bool
+	terrors      []string
+	strictErrors []string
 
 	stringMapType  reflect.Type
 	generalMapType reflect.Type
@@ -361,6 +362,7 @@ func (d *decoder) callUnmarshaler(n *Node, u Unmarshaler) (good bool) {
 	err := u.UnmarshalYAML(n)
 	if e, ok := err.(*TypeError); ok {
 		d.terrors = append(d.terrors, e.Errors...)
+		d.strictErrors = append(d.strictErrors, e.StrictErrors...)
 		return false
 	}
 	if err != nil {
@@ -377,12 +379,13 @@ func (d *decoder) callObsoleteUnmarshaler(n *Node, u obsoleteUnmarshaler) (good 
 		if len(d.terrors) > terrlen {
 			issues := d.terrors[terrlen:]
 			d.terrors = d.terrors[:terrlen]
-			return &TypeError{issues}
+			return &TypeError{issues, nil}
 		}
 		return nil
 	})
 	if e, ok := err.(*TypeError); ok {
 		d.terrors = append(d.terrors, e.Errors...)
+		d.strictErrors = append(d.strictErrors, e.StrictErrors...)
 		return false
 	}
 	if err != nil {
@@ -908,7 +911,7 @@ func (d *decoder) mappingStruct(n *Node, out reflect.Value) (good bool) {
 			d.unmarshal(n.Content[i+1], value)
 			inlineMap.SetMapIndex(name, value)
 		} else if d.knownFields {
-			d.terrors = append(d.terrors, fmt.Sprintf("line %d: field %s not found in type %s", ni.Line, name.String(), out.Type()))
+			d.strictErrors = append(d.strictErrors, fmt.Sprintf("line %d: field %s not found in type %s", ni.Line, name.String(), out.Type()))
 		}
 	}
 	return true

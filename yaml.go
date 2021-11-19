@@ -220,6 +220,13 @@ func NewEncoder(w io.Writer) *Encoder {
 	}
 }
 
+// SetHook adds a marshaling hook into the Encoder. The function f will be
+// called for each node to be marshalled. f must return true if the hook
+// "handled" the node, in which case the output value will be used.
+func (e *Encoder) SetHook(hook func(in interface{}) (ok bool, out interface{}, err error)) {
+	e.encoder.hook = hook
+}
+
 // Encode writes the YAML encoding of v to the stream.
 // If multiple items are encoded to the stream, the
 // second and subsequent document will be preceded

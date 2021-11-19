@@ -641,6 +641,33 @@ func (s *S) TestSortedOutput(c *C) {
 	}
 }
 
+func (s *S) TestEncoderHook_Struct(c *C) {
+	type payload struct {
+		Value string `yaml:"value"`
+	}
+	type nested struct {
+		Payload payload `yaml:"payload"`
+	}
+	val := nested{Payload: payload{Value: "foobar"}}
+
+	var buf bytes.Buffer
+	e := yaml.NewEncoder(&buf)
+	e.SetHook(func(in interface{}) (ok bool, out interface{}, err error) {
+		switch in.(type) {
+		case payload:
+			return true, string("secret"), nil
+		default:
+			return false, nil, nil
+		}
+	})
+
+	err := e.Encode(val)
+	c.Assert(err, IsNil)
+
+	expect := "payload: secret\n"
+	c.Assert(string(buf.Bytes()), Equals, expect)
+}
+
 func newTime(t time.Time) *time.Time {
 	return &t
 }

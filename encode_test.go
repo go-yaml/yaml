@@ -625,35 +625,30 @@ func (s *S) TestSortedOutput(c *C) {
 	}
 }
 
-type secret string
-
-func (s secret) MarshalYAML() (interface{}, error) {
-	return "<secret>", nil
-}
-
-type account struct {
-	Username string `yaml:"username"`
-	Password secret `yaml:"password"`
-}
-
-func (s *S) TestEncoderHook(c *C) {
-	user := account{Username: "admin", Password: secret("supersecret")}
+func (s *S) TestEncoderHook_Struct(c *C) {
+	type payload struct {
+		Value string `yaml:"value"`
+	}
+	type nested struct {
+		Payload payload `yaml:"payload"`
+	}
+	val := nested{Payload: payload{Value: "foobar"}}
 
 	var buf bytes.Buffer
 	e := yaml.NewEncoder(&buf)
 	e.SetHook(func(in interface{}) (ok bool, out interface{}, err error) {
-		switch v := in.(type) {
-		case secret:
-			return true, string(v), nil
+		switch in.(type) {
+		case payload:
+			return true, string("secret"), nil
 		default:
 			return false, nil, nil
 		}
 	})
 
-	err := e.Encode(user)
+	err := e.Encode(val)
 	c.Assert(err, IsNil)
 
-	expect := "username: admin\npassword: supersecret\n"
+	expect := "payload: secret\n"
 	c.Assert(string(buf.Bytes()), Equals, expect)
 }
 

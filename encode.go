@@ -113,6 +113,7 @@ func (e *encoder) marshal(tag string, in reflect.Value) {
 				e.nilv()
 				return
 			}
+			in = reflect.ValueOf(out)
 			iface = out
 		}
 	}

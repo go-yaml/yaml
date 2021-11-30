@@ -764,13 +764,13 @@ func (tst *Tester) NextEvent() *string {
 		if !e.implicit {
 			str = "+DOC"
 		} else {
-			str = "+DOC---"
+			str = "+DOC ---"
 		}
 	case yaml_DOCUMENT_END_EVENT:
 		if e.implicit {
 			str = "-DOC"
 		} else {
-			str = "-DOC---"
+			str = "-DOC ..."
 		}
 	case yaml_MAPPING_START_EVENT:
 		str = "+MAP"

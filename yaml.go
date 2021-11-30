@@ -815,7 +815,7 @@ func (tst *Tester) NextEvent() *string {
 		}
 		str += escaped(e.value)
 	case yaml_ALIAS_EVENT:
-		str = "=ALI *" + string(e.value)
+		str = "=ALI *" + string(e.anchor)
 	default:
 		panic("internal error: Unexpected event: (please report): " + p.event.typ.String())
 	}

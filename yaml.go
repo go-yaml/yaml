@@ -761,7 +761,7 @@ func (tst *Tester) NextEvent() *string {
 		str = "-STR"
 		tst.got_strend = true
 	case yaml_DOCUMENT_START_EVENT:
-		if !e.implicit {
+		if e.implicit {
 			str = "+DOC"
 		} else {
 			str = "+DOC ---"

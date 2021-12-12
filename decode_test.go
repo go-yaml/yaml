@@ -26,7 +26,7 @@ import (
 	"time"
 
 	. "gopkg.in/check.v1"
-	"gopkg.in/yaml.v3"
+	"gopkg.in/specgen-io/yaml.v3"
 )
 
 var unmarshalIntTest = 123
@@ -767,7 +767,7 @@ var unmarshalTests = []struct {
 		M{"a": 123456e1},
 	}, {
 		"a: 123456E1\n",
-		M{"a": 123456E1},
+		M{"a": 123456e1},
 	},
 	// yaml-test-suite 3GZX: Spec Example 7.1. Alias Nodes
 	{
@@ -802,7 +802,6 @@ var unmarshalTests = []struct {
 			"c": []interface{}{"d", "e"},
 		},
 	},
-
 }
 
 type M map[string]interface{}
@@ -950,14 +949,14 @@ var unmarshalErrorTests = []struct {
 	{"a: 1\nb: 2\nc 2\nd: 3\n", "^yaml: line 3: could not find expected ':'$"},
 	{
 		"a: &a [00,00,00,00,00,00,00,00,00]\n" +
-		"b: &b [*a,*a,*a,*a,*a,*a,*a,*a,*a]\n" +
-		"c: &c [*b,*b,*b,*b,*b,*b,*b,*b,*b]\n" +
-		"d: &d [*c,*c,*c,*c,*c,*c,*c,*c,*c]\n" +
-		"e: &e [*d,*d,*d,*d,*d,*d,*d,*d,*d]\n" +
-		"f: &f [*e,*e,*e,*e,*e,*e,*e,*e,*e]\n" +
-		"g: &g [*f,*f,*f,*f,*f,*f,*f,*f,*f]\n" +
-		"h: &h [*g,*g,*g,*g,*g,*g,*g,*g,*g]\n" +
-		"i: &i [*h,*h,*h,*h,*h,*h,*h,*h,*h]\n",
+			"b: &b [*a,*a,*a,*a,*a,*a,*a,*a,*a]\n" +
+			"c: &c [*b,*b,*b,*b,*b,*b,*b,*b,*b]\n" +
+			"d: &d [*c,*c,*c,*c,*c,*c,*c,*c,*c]\n" +
+			"e: &e [*d,*d,*d,*d,*d,*d,*d,*d,*d]\n" +
+			"f: &f [*e,*e,*e,*e,*e,*e,*e,*e,*e]\n" +
+			"g: &g [*f,*f,*f,*f,*f,*f,*f,*f,*f]\n" +
+			"h: &h [*g,*g,*g,*g,*g,*g,*g,*g,*g]\n" +
+			"i: &i [*h,*h,*h,*h,*h,*h,*h,*h,*h]\n",
 		"yaml: document contains excessive aliasing",
 	},
 }
@@ -1436,7 +1435,10 @@ func (s *S) TestMergeStruct(c *C) {
 	}
 }
 
-var unmarshalNullTests = []struct{ input string; pristine, expected func() interface{} }{{
+var unmarshalNullTests = []struct {
+	input              string
+	pristine, expected func() interface{}
+}{{
 	"null",
 	func() interface{} { var v interface{}; v = "v"; return &v },
 	func() interface{} { var v interface{}; v = nil; return &v },
@@ -1487,7 +1489,7 @@ func (s *S) TestUnmarshalNull(c *C) {
 func (s *S) TestUnmarshalPreservesData(c *C) {
 	var v struct {
 		A, B int
-		C int `yaml:"-"`
+		C    int `yaml:"-"`
 	}
 	v.A = 42
 	v.C = 88
@@ -1584,6 +1586,28 @@ var unmarshalStrictTests = []struct {
 	error: `yaml: unmarshal errors:\n  line 4: mapping key "9" already defined at line 2`,
 }}
 
+func (s *S) TestDecodeKnownFields(c *C) {
+	for i, item := range unmarshalStrictTests {
+		c.Logf("test %d: %q", i, item.data)
+		// First test that normal Decode unmarshals to the expected value.
+		if !item.unique {
+			t := reflect.ValueOf(item.value).Type()
+			value := reflect.New(t)
+			dec := yaml.NewDecoder(bytes.NewBuffer([]byte(item.data)))
+			err := dec.Decode(value.Interface())
+			c.Assert(err, Equals, nil)
+			c.Assert(value.Elem().Interface(), DeepEquals, item.value)
+		}
+
+		// Then test that Decode fails on the same thing with KnownFields on.
+		t := reflect.ValueOf(item.value).Type()
+		value := reflect.New(t)
+		dec := yaml.NewDecoderWith(yaml.NewDecodeOptions().KnownFields(item.known), bytes.NewBuffer([]byte(item.data)))
+		err := dec.Decode(value.Interface())
+		c.Assert(err, ErrorMatches, item.error)
+	}
+}
+
 func (s *S) TestUnmarshalKnownFields(c *C) {
 	for i, item := range unmarshalStrictTests {
 		c.Logf("test %d: %q", i, item.data)
@@ -1596,12 +1620,10 @@ func (s *S) TestUnmarshalKnownFields(c *C) {
 			c.Assert(value.Elem().Interface(), DeepEquals, item.value)
 		}
 
-		// Then test that it fails on the same thing with KnownFields on.
+		// Then test that Unmarshal fails on the same thing with KnownFields on.
 		t := reflect.ValueOf(item.value).Type()
 		value := reflect.New(t)
-		dec := yaml.NewDecoder(bytes.NewBuffer([]byte(item.data)))
-		dec.KnownFields(item.known)
-		err := dec.Decode(value.Interface())
+		err := yaml.UnmarshalWith(yaml.NewDecodeOptions().KnownFields(true), []byte(item.data), value.Interface())
 		c.Assert(err, ErrorMatches, item.error)
 	}
 }

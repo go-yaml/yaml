@@ -27,7 +27,7 @@ import (
 	"os"
 
 	. "gopkg.in/check.v1"
-	"gopkg.in/yaml.v3"
+	"gopkg.in/specgen-io/yaml.v3"
 )
 
 var marshalIntTest = 123

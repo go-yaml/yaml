@@ -86,13 +86,17 @@ type Marshaler interface {
 // supported tag options.
 //
 func Unmarshal(in []byte, out interface{}) (err error) {
-	return unmarshal(in, out, false)
+	return unmarshal(nil, in, out)
+}
+
+func UnmarshalWith(options *DecodeOptions, in []byte, out interface{}) (err error) {
+	return unmarshal(options, in, out)
 }
 
 // A Decoder reads and decodes YAML values from an input stream.
 type Decoder struct {
-	parser      *parser
-	knownFields bool
+	parser  *parser
+	options *DecodeOptions
 }
 
 // NewDecoder returns a new decoder that reads from r.
@@ -101,14 +105,20 @@ type Decoder struct {
 // data from r beyond the YAML values requested.
 func NewDecoder(r io.Reader) *Decoder {
 	return &Decoder{
-		parser: newParserFromReader(r),
+		parser:  newParserFromReader(r),
+		options: NewDecodeOptions(),
 	}
 }
 
-// KnownFields ensures that the keys in decoded mappings to
-// exist as fields in the struct being decoded into.
-func (dec *Decoder) KnownFields(enable bool) {
-	dec.knownFields = enable
+// NewDecoderWith returns a new decoder that reads from r using options.
+//
+// The decoder introduces its own buffering and may read
+// data from r beyond the YAML values requested.
+func NewDecoderWith(options *DecodeOptions, r io.Reader) *Decoder {
+	return &Decoder{
+		parser:  newParserFromReader(r),
+		options: options,
+	}
 }
 
 // Decode reads the next YAML-encoded value from its input
@@ -117,8 +127,7 @@ func (dec *Decoder) KnownFields(enable bool) {
 // See the documentation for Unmarshal for details about the
 // conversion of YAML into a Go value.
 func (dec *Decoder) Decode(v interface{}) (err error) {
-	d := newDecoder()
-	d.knownFields = dec.knownFields
+	d := newDecoder(dec.options)
 	defer handleErr(&err)
 	node := dec.parser.parse()
 	if node == nil {
@@ -140,7 +149,18 @@ func (dec *Decoder) Decode(v interface{}) (err error) {
 // See the documentation for Unmarshal for details about the
 // conversion of YAML into a Go value.
 func (n *Node) Decode(v interface{}) (err error) {
-	d := newDecoder()
+	d := newDecoder(nil)
+	return n.decode(d, v)
+}
+
+// DecodeWith decodes the node and stores its data into the value pointed to by v.
+// It uses passed DecodeOptions to setup internal decoder.
+func (n *Node) DecodeWith(options *DecodeOptions, v interface{}) (err error) {
+	d := newDecoder(options)
+	return n.decode(d, v)
+}
+
+func (n *Node) decode(d *decoder, v interface{}) (err error) {
 	defer handleErr(&err)
 	out := reflect.ValueOf(v)
 	if out.Kind() == reflect.Ptr && !out.IsNil() {
@@ -153,9 +173,9 @@ func (n *Node) Decode(v interface{}) (err error) {
 	return nil
 }
 
-func unmarshal(in []byte, out interface{}, strict bool) (err error) {
+func unmarshal(options *DecodeOptions, in []byte, out interface{}) (err error) {
 	defer handleErr(&err)
-	d := newDecoder()
+	d := newDecoder(options)
 	p := newParser(in)
 	defer p.destroy()
 	node := p.parse()
@@ -363,7 +383,6 @@ const (
 //             Address yaml.Node
 //     }
 //     err := yaml.Unmarshal(data, &person)
-// 
 // Or by itself:
 //
 //     var person Node

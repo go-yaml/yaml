@@ -397,6 +397,82 @@ var marshalTests = []struct {
 		map[string]interface{}{"a": jsonNumberT("bogus")},
 		"a: bogus\n",
 	},
+
+	// Strings of integers should be quoted
+	{
+		map[string]string{"a": "0b101110"},
+		"a: \"0b101110\"\n",
+	},
+	{
+		map[string]string{"a": "-0b101110"},
+		"a: \"-0b101110\"\n",
+	},
+	{
+		map[string]string{"a": "0B101110"},
+		"a: \"0B101110\"\n",
+	},
+	{
+		map[string]string{"a": "077777"},
+		"a: \"077777\"\n",
+	},
+	{
+		map[string]string{"a": "-077777"},
+		"a: \"-077777\"\n",
+	},
+	{
+		map[string]string{"a": "0o77777"},
+		"a: \"0o77777\"\n",
+	},
+	{
+		map[string]string{"a": "-0o77777"},
+		"a: \"-0o77777\"\n",
+	},
+	{
+		map[string]string{"a": "999999"},
+		"a: \"999999\"\n",
+	},
+	{
+		map[string]string{"a": "-999999"},
+		"a: \"-999999\"\n",
+	},
+	{
+		map[string]string{"a": "0xffffffff"},
+		"a: \"0xffffffff\"\n",
+	},
+	{
+		map[string]string{"a": "-0xffffffff"},
+		"a: \"-0xffffffff\"\n",
+	},
+	{
+		map[string]string{"a": "0xFFFFFFFF"},
+		"a: \"0xFFFFFFFF\"\n",
+	},
+
+	// Strings of "giant" integers should be quoted
+	// (a "giant" integer doesn't fit into uint64)
+	{
+		map[string]string{"a": "0b11111111111111111111111111111111111111111111111" +
+			"11111111111111111111111111111111111111111111111111111111111111111111"},
+		"a: \"0b1111111111111111111111111111111111111111111111111" +
+			"111111111111111111111111111111111111111111111111111111111111111111" +
+			"\"\n",
+	},
+	{
+		map[string]string{"a": "07777777777777777777777777777777777777777777777777"},
+		"a: \"07777777777777777777777777777777777777777777777777\"\n",
+	},
+	{
+		map[string]string{"a": "0o777777777777777777777777777777777777777777777777"},
+		"a: \"0o777777777777777777777777777777777777777777777777\"\n",
+	},
+	{
+		map[string]string{"a": "9999999999999999999999999999999999999999999999999"},
+		"a: \"9999999999999999999999999999999999999999999999999\"\n",
+	},
+	{
+		map[string]string{"a": "0xffffffffffffffffffffffffffffffff"},
+		"a: \"0xffffffffffffffffffffffffffffffff\"\n",
+	},
 }
 
 func (s *S) TestLineWrapping(c *C) {
@@ -406,8 +482,8 @@ func (s *S) TestLineWrapping(c *C) {
 	data, err := yaml.Marshal(v)
 	c.Assert(err, IsNil)
 	c.Assert(string(data), Equals,
-		"a: 'abcdefghijklmnopqrstuvwxyz ABCDEFGHIJKLMNOPQRSTUVWXYZ 1234567890 abcdefghijklmnopqrstuvwxyz\n" +
-		"  ABCDEFGHIJKLMNOPQRSTUVWXYZ 1234567890 '\n")
+		"a: 'abcdefghijklmnopqrstuvwxyz ABCDEFGHIJKLMNOPQRSTUVWXYZ 1234567890 abcdefghijklmnopqrstuvwxyz\n"+
+			"  ABCDEFGHIJKLMNOPQRSTUVWXYZ 1234567890 '\n")
 
 	// The API does not allow this process to be reversed as it's intended
 	// for migration only. v3 drops this method and instead offers more

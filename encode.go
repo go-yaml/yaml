@@ -293,6 +293,18 @@ func isBase60Float(s string) (result bool) {
 	return base60float.MatchString(s)
 }
 
+func isBigInteger(s string) (result bool) {
+	_, err := strconv.ParseInt(s, 0, 64)
+	if err != nil {
+		if numErr, ok := err.(*strconv.NumError); ok {
+			if numErr.Err == strconv.ErrRange {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 // From http://yaml.org/type/float.html, except the regular expression there
 // is bogus. In practice parsers do not enforce the "\.[0-9_]*" suffix.
 var base60float = regexp.MustCompile(`^[-+]?[0-9][0-9_]*(?::[0-5]?[0-9])+(?:\.[0-9_]*)?$`)
@@ -318,7 +330,7 @@ func (e *encoder) stringv(tag string, in reflect.Value) {
 		// tag when encoded unquoted. If it doesn't,
 		// there's no need to quote it.
 		rtag, _ := resolve("", s)
-		canUsePlain = rtag == yaml_STR_TAG && !isBase60Float(s)
+		canUsePlain = rtag == yaml_STR_TAG && !isBase60Float(s) && !isBigInteger(s)
 	}
 	// Note: it's possible for user code to emit invalid YAML
 	// if they explicitly specify a tag and a string containing

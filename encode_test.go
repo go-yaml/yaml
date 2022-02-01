@@ -398,7 +398,58 @@ var marshalTests = []struct {
 		"a: bogus\n",
 	},
 
-	// Giant integers should be quoted
+	// Strings of integers should be quoted
+	{
+		map[string]string{"a": "0b101110"},
+		"a: \"0b101110\"\n",
+	},
+	{
+		map[string]string{"a": "-0b101110"},
+		"a: \"-0b101110\"\n",
+	},
+	{
+		map[string]string{"a": "0B101110"},
+		"a: \"0B101110\"\n",
+	},
+	{
+		map[string]string{"a": "077777"},
+		"a: \"077777\"\n",
+	},
+	{
+		map[string]string{"a": "-077777"},
+		"a: \"-077777\"\n",
+	},
+	{
+		map[string]string{"a": "0o77777"},
+		"a: \"0o77777\"\n",
+	},
+	{
+		map[string]string{"a": "-0o77777"},
+		"a: \"-0o77777\"\n",
+	},
+	{
+		map[string]string{"a": "999999"},
+		"a: \"999999\"\n",
+	},
+	{
+		map[string]string{"a": "-999999"},
+		"a: \"-999999\"\n",
+	},
+	{
+		map[string]string{"a": "0xffffffff"},
+		"a: \"0xffffffff\"\n",
+	},
+	{
+		map[string]string{"a": "-0xffffffff"},
+		"a: \"-0xffffffff\"\n",
+	},
+	{
+		map[string]string{"a": "0xFFFFFFFF"},
+		"a: \"0xFFFFFFFF\"\n",
+	},
+
+	// Strings of "giant" integers should be quoted
+	// (a "giant" integer doesn't fit into uint64)
 	{
 		map[string]string{"a": "0b11111111111111111111111111111111111111111111111" +
 			"11111111111111111111111111111111111111111111111111111111111111111111"},

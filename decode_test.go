@@ -767,7 +767,7 @@ var unmarshalTests = []struct {
 		M{"a": 123456e1},
 	}, {
 		"a: 123456E1\n",
-		M{"a": 123456E1},
+		M{"a": 123456e1},
 	},
 	// yaml-test-suite 3GZX: Spec Example 7.1. Alias Nodes
 	{
@@ -802,7 +802,6 @@ var unmarshalTests = []struct {
 			"c": []interface{}{"d", "e"},
 		},
 	},
-
 }
 
 type M map[string]interface{}
@@ -950,14 +949,14 @@ var unmarshalErrorTests = []struct {
 	{"a: 1\nb: 2\nc 2\nd: 3\n", "^yaml: line 3: could not find expected ':'$"},
 	{
 		"a: &a [00,00,00,00,00,00,00,00,00]\n" +
-		"b: &b [*a,*a,*a,*a,*a,*a,*a,*a,*a]\n" +
-		"c: &c [*b,*b,*b,*b,*b,*b,*b,*b,*b]\n" +
-		"d: &d [*c,*c,*c,*c,*c,*c,*c,*c,*c]\n" +
-		"e: &e [*d,*d,*d,*d,*d,*d,*d,*d,*d]\n" +
-		"f: &f [*e,*e,*e,*e,*e,*e,*e,*e,*e]\n" +
-		"g: &g [*f,*f,*f,*f,*f,*f,*f,*f,*f]\n" +
-		"h: &h [*g,*g,*g,*g,*g,*g,*g,*g,*g]\n" +
-		"i: &i [*h,*h,*h,*h,*h,*h,*h,*h,*h]\n",
+			"b: &b [*a,*a,*a,*a,*a,*a,*a,*a,*a]\n" +
+			"c: &c [*b,*b,*b,*b,*b,*b,*b,*b,*b]\n" +
+			"d: &d [*c,*c,*c,*c,*c,*c,*c,*c,*c]\n" +
+			"e: &e [*d,*d,*d,*d,*d,*d,*d,*d,*d]\n" +
+			"f: &f [*e,*e,*e,*e,*e,*e,*e,*e,*e]\n" +
+			"g: &g [*f,*f,*f,*f,*f,*f,*f,*f,*f]\n" +
+			"h: &h [*g,*g,*g,*g,*g,*g,*g,*g,*g]\n" +
+			"i: &i [*h,*h,*h,*h,*h,*h,*h,*h,*h]\n",
 		"yaml: document contains excessive aliasing",
 	},
 }
@@ -1436,7 +1435,47 @@ func (s *S) TestMergeStruct(c *C) {
 	}
 }
 
-var unmarshalNullTests = []struct{ input string; pristine, expected func() interface{} }{{
+var shallowMergeStructDecoderTest = `
+config: &config
+  key1: 1
+  map1:
+    mapkey1: 1
+    mapkey2: 2
+otherconfig:
+  <<: *config
+  map1:
+    mapkey1: 3
+`
+
+func (s *S) TestShallowMergeStructDecoder(c *C) {
+	type Map1 struct {
+		Mapkey1 int `yaml:"mapkey1"`
+		Mapkey2 int `yaml:"mapkey2"`
+	}
+
+	type Config struct {
+		Key1 int  `yaml:"key1"`
+		Map1 Map1 `yaml:"map1"`
+	}
+
+	type Top struct {
+		Config      Config `yaml:"config"`
+		Otherconfig Config `yaml:"otherconfig"`
+	}
+
+	var m Top
+	dec := yaml.NewDecoder(bytes.NewReader([]byte(shallowMergeStructDecoderTest)))
+	dec.ShallowMerge(true)
+	err := dec.Decode(&m)
+	c.Assert(err, IsNil)
+	want := Top{Config{1, Map1{1, 2}}, Config{1, Map1{3, 0}}}
+	c.Assert(m, Equals, want, Commentf("test %q failed", "TestShallowMergeStructDecoder: line 1453"))
+}
+
+var unmarshalNullTests = []struct {
+	input              string
+	pristine, expected func() interface{}
+}{{
 	"null",
 	func() interface{} { var v interface{}; v = "v"; return &v },
 	func() interface{} { var v interface{}; v = nil; return &v },
@@ -1487,7 +1526,7 @@ func (s *S) TestUnmarshalNull(c *C) {
 func (s *S) TestUnmarshalPreservesData(c *C) {
 	var v struct {
 		A, B int
-		C int `yaml:"-"`
+		C    int `yaml:"-"`
 	}
 	v.A = 42
 	v.C = 88

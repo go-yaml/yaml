@@ -315,11 +315,12 @@ type decoder struct {
 	stringMapType  reflect.Type
 	generalMapType reflect.Type
 
-	knownFields bool
-	uniqueKeys  bool
-	decodeCount int
-	aliasCount  int
-	aliasDepth  int
+	knownFields  bool
+	uniqueKeys   bool
+	shallowMerge bool
+	decodeCount  int
+	aliasCount   int
+	aliasDepth   int
 }
 
 var (
@@ -337,6 +338,7 @@ func newDecoder() *decoder {
 		stringMapType:  stringMapType,
 		generalMapType: generalMapType,
 		uniqueKeys:     true,
+		shallowMerge:   false,
 	}
 	d.aliases = make(map[*Node]bool)
 	return d
@@ -898,6 +900,12 @@ func (d *decoder) mappingStruct(n *Node, out reflect.Value) (good bool) {
 				field = out.Field(info.Num)
 			} else {
 				field = d.fieldByIndex(n, out, info.Inline)
+			}
+			if d.shallowMerge {
+				empty := reflect.Zero(field.Type())
+				if field != empty {
+					field.Set(empty)
+				}
 			}
 			d.unmarshal(n.Content[i+1], field)
 		} else if sinfo.InlineMap != -1 {

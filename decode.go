@@ -323,11 +323,12 @@ type decoder struct {
 }
 
 var (
+	sliceOfEmptyInterface []interface{}
 	nodeType       = reflect.TypeOf(Node{})
 	durationType   = reflect.TypeOf(time.Duration(0))
 	stringMapType  = reflect.TypeOf(map[string]interface{}{})
 	generalMapType = reflect.TypeOf(map[interface{}]interface{}{})
-	ifaceType      = generalMapType.Elem()
+	ifaceType      = reflect.TypeOf(sliceOfEmptyInterface).Elem()
 	timeType       = reflect.TypeOf(time.Time{})
 	ptrTimeType    = reflect.TypeOf(&time.Time{})
 )

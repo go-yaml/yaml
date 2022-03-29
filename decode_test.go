@@ -1391,7 +1391,7 @@ inlineSequenceMap:
 `
 
 func (s *S) TestMerge(c *C) {
-	var want = map[interface{}]interface{}{
+	var want = map[string]interface{}{
 		"x":     1,
 		"y":     2,
 		"r":     10,

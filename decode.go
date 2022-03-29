@@ -844,7 +844,37 @@ func isStringMap(n *Node) bool {
 	}
 	l := len(n.Content)
 	for i := 0; i < l; i += 2 {
-		if n.Content[i].ShortTag() != strTag {
+		if isMerge(n.Content[i]) {
+			nn := n.Content[i+1]
+			switch nn.Kind {
+			case MappingNode:
+				if !isStringMap(nn) {
+					return false
+				}
+			case AliasNode:
+				if nn.Alias != nil && !isStringMap(nn.Alias) {
+					return false
+				}
+			case SequenceNode:
+				l := len(nn.Content)
+				for i := 0; i < l; i++ {
+					switch nn.Content[i].Kind {
+					case AliasNode:
+						if nn.Content[i].Alias != nil && !isStringMap(nn.Content[i].Alias) {
+							return false
+						}
+					case MappingNode:
+						if !isStringMap(nn.Content[i]) {
+							return false
+						}
+					default:
+						return false
+					}
+				}
+			default:
+				return false
+			}
+		} else if n.Content[i].ShortTag() != strTag {
 			return false
 		}
 	}

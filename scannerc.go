@@ -2523,6 +2523,8 @@ func yaml_parser_scan_flow_scalar(parser *yaml_parser_t, token *yaml_token_t, si
 					s = append(s, '\'')
 				case '\\':
 					s = append(s, '\\')
+				case '/':
+					s = append(s, '/')
 				case 'N': // NEL (#x85)
 					s = append(s, '\xC2')
 					s = append(s, '\x85')

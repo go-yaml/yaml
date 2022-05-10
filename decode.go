@@ -162,6 +162,9 @@ func (p *parser) parse() *Node {
 		return nil
 	case yaml_TAIL_COMMENT_EVENT:
 		panic("internal error: unexpected tail comment event (please report)")
+	case yaml_NO_EVENT:
+		failf("unable to build a node from none event")
+		return nil
 	default:
 		panic("internal error: attempted to parse unknown event (please report): " + p.event.typ.String())
 	}

@@ -933,6 +933,8 @@ func (s *S) TestUnmarshalDurationInt(c *C) {
 var unmarshalErrorTests = []struct {
 	data, error string
 }{
+	{"! !00 \xf6", "yaml: unable to build a node from none event"},
+	{"! !!0 \xf7", "yaml: unable to build a node from none event"},
 	{"v: !!float 'error'", "yaml: cannot decode !!str `error` as a !!float"},
 	{"v: [A,", "yaml: line 1: did not find expected node content"},
 	{"v:\n- [A,", "yaml: line 2: did not find expected node content"},
@@ -1436,6 +1438,7 @@ func (s *S) TestMergeStruct(c *C) {
 	}
 }
 
+<<<<<<< HEAD
 var mergeTestsNested = `
 mergeouter1: &mergeouter1
     d: 40
@@ -1529,6 +1532,8 @@ func (s *S) TestMergeNestedStruct(c *C) {
 	c.Assert(testm["outer"], DeepEquals, wantm)
 }
 
+=======
+>>>>>>> bd18f34 (fix(decoder): panic raised on fuzzer inputs.)
 var unmarshalNullTests = []struct {
 	input              string
 	pristine, expected func() interface{}

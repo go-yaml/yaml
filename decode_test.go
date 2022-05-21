@@ -947,6 +947,7 @@ var unmarshalErrorTests = []struct {
 	{"%TAG !%79! tag:yaml.org,2002:\n---\nv: !%79!int '1'", "yaml: did not find expected whitespace"},
 	{"a:\n  1:\nb\n  2:", ".*could not find expected ':'"},
 	{"a: 1\nb: 2\nc 2\nd: 3\n", "^yaml: line 3: could not find expected ':'$"},
+	{"0: [:!00 \xef", "yaml: incomplete UTF-8 octet sequence"}, // Issue #666
 	{
 		"a: &a [00,00,00,00,00,00,00,00,00]\n" +
 			"b: &b [*a,*a,*a,*a,*a,*a,*a,*a,*a]\n" +

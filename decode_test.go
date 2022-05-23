@@ -935,6 +935,7 @@ var unmarshalErrorTests = []struct {
 }{
 	{"! !00 \xf6", "yaml: unable to build a node from none event"},
 	{"! !!0 \xf7", "yaml: unable to build a node from none event"},
+	{"0: [:!00 \xef", "yaml: unable to build a node from none event"},
 	{"v: !!float 'error'", "yaml: cannot decode !!str `error` as a !!float"},
 	{"v: [A,", "yaml: line 1: did not find expected node content"},
 	{"v:\n- [A,", "yaml: line 2: did not find expected node content"},
@@ -1438,7 +1439,6 @@ func (s *S) TestMergeStruct(c *C) {
 	}
 }
 
-<<<<<<< HEAD
 var mergeTestsNested = `
 mergeouter1: &mergeouter1
     d: 40
@@ -1484,7 +1484,7 @@ func (s *S) TestMergeNestedStruct(c *C) {
 	// 2) A simple implementation might attempt to handle the key skipping
 	//    directly by iterating over the merging map without recursion, but
 	//    there are more complex cases that require recursion.
-	// 
+	//
 	// Quick summary of the fields:
 	//
 	// - A must come from outer and not overriden
@@ -1500,7 +1500,7 @@ func (s *S) TestMergeNestedStruct(c *C) {
 		A, B, C int
 	}
 	type Outer struct {
-		D, E      int
+		D, E   int
 		Inner  Inner
 		Inline map[string]int `yaml:",inline"`
 	}
@@ -1518,10 +1518,10 @@ func (s *S) TestMergeNestedStruct(c *C) {
 	// Repeat test with a map.
 
 	var testm map[string]interface{}
-	var wantm = map[string]interface {} {
-		"f":     60,
+	var wantm = map[string]interface{}{
+		"f": 60,
 		"inner": map[string]interface{}{
-		    "a": 10,
+			"a": 10,
 		},
 		"d": 40,
 		"e": 50,
@@ -1532,8 +1532,6 @@ func (s *S) TestMergeNestedStruct(c *C) {
 	c.Assert(testm["outer"], DeepEquals, wantm)
 }
 
-=======
->>>>>>> bd18f34 (fix(decoder): panic raised on fuzzer inputs.)
 var unmarshalNullTests = []struct {
 	input              string
 	pristine, expected func() interface{}

@@ -54,7 +54,7 @@ type Marshaler interface {
 // Unmarshal decodes the first document found within the in byte slice
 // and assigns decoded values into the out value.
 //
-// Maps and pointers (to a struct, string, int, etc) are accepted as out
+// Maps and pointers (to a struct, string, int, etc.) are accepted as out
 // values. If an internal pointer within a struct is not initialized,
 // the yaml package will initialize it if necessary for unmarshalling
 // the provided data. The out parameter must not be nil.
@@ -174,7 +174,7 @@ func unmarshal(in []byte, out interface{}, strict bool) (err error) {
 
 // Marshal serializes the value provided into a YAML document. The structure
 // of the generated document will reflect the structure of the value itself.
-// Maps and pointers (to struct, string, int, etc) are accepted as the in value.
+// Maps and pointers (to struct, string, int, etc.) are accepted as the in value.
 //
 // Struct fields are only marshalled if they are exported (have an upper case
 // first letter), and are marshalled using the field name lowercased as the
@@ -213,7 +213,7 @@ func unmarshal(in []byte, out interface{}, strict bool) (err error) {
 //         B int
 //     }
 //     yaml.Marshal(&T{B: 2}) // Returns "b: 2\n"
-//     yaml.Marshal(&T{F: 1}} // Returns "a: 1\nb: 0\n"
+//     yaml.Marshal(&T{F: 1}) // Returns "a: 1\nb: 0\n"
 //
 func Marshal(in interface{}) (out []byte, err error) {
 	defer handleErr(&err)
@@ -276,6 +276,11 @@ func (e *Encoder) SetIndent(spaces int) {
 		panic("yaml: cannot indent to a negative number of spaces")
 	}
 	e.encoder.indent = spaces
+}
+
+// SetNilEncoding changes the encoding used for nil values.
+func (e *Encoder) SetNilEncoding(encoding NilEncoding) {
+	e.encoder.nilEncoding = encoding
 }
 
 // Close closes the encoder by writing any remaining data.
@@ -341,15 +346,42 @@ const (
 	FlowStyle
 )
 
+type NilEncoding uint32
+
+const (
+	LowerCaseNullNilEncoding NilEncoding = 1 << iota
+	PascalCaseNullNilEncoding
+	UpperCaseNullNilEncoding
+	TildeNilEncoding
+	EmptyNilEncoding
+)
+
+func (ne NilEncoding) String() string {
+	switch ne {
+	case LowerCaseNullNilEncoding:
+		return "null"
+	case PascalCaseNullNilEncoding:
+		return "Null"
+	case UpperCaseNullNilEncoding:
+		return "NULL"
+	case TildeNilEncoding:
+		return "~"
+	case EmptyNilEncoding:
+		return ""
+	default:
+		panic("invalid nil encoding")
+	}
+}
+
 // Node represents an element in the YAML document hierarchy. While documents
 // are typically encoded and decoded into higher level types, such as structs
 // and maps, Node is an intermediate representation that allows detailed
 // control over the content being decoded or encoded.
 //
 // It's worth noting that although Node offers access into details such as
-// line numbers, colums, and comments, the content when re-encoded will not
+// line numbers, columns, and comments, the content when re-encoded will not
 // have its original textual representation preserved. An effort is made to
-// render the data plesantly, and to preserve comments near the data they
+// render the data pleasantly, and to preserve comments near the data they
 // describe, though.
 //
 // Values that make use of the Node type interact with the yaml package in the
@@ -363,7 +395,7 @@ const (
 //             Address yaml.Node
 //     }
 //     err := yaml.Unmarshal(data, &person)
-// 
+//
 // Or by itself:
 //
 //     var person Node
@@ -373,9 +405,9 @@ type Node struct {
 	// Kind defines whether the node is a document, a mapping, a sequence,
 	// a scalar value, or an alias to another node. The specific data type of
 	// scalar nodes may be obtained via the ShortTag and LongTag methods.
-	Kind  Kind
+	Kind Kind
 
-	// Style allows customizing the apperance of the node in the tree.
+	// Style allows customizing the appearance of the node in the tree.
 	Style Style
 
 	// Tag holds the YAML tag defining the data type for the value.
@@ -387,7 +419,7 @@ type Node struct {
 	// the implicit tag diverges from the provided one.
 	Tag string
 
-	// Value holds the unescaped and unquoted represenation of the value.
+	// Value holds the unescaped and unquoted representation of the value.
 	Value string
 
 	// Anchor holds the anchor name for this node, which allows aliases to point to it.
@@ -420,7 +452,6 @@ func (n *Node) IsZero() bool {
 	return n.Kind == 0 && n.Style == 0 && n.Tag == "" && n.Value == "" && n.Anchor == "" && n.Alias == nil && n.Content == nil &&
 		n.HeadComment == "" && n.LineComment == "" && n.FootComment == "" && n.Line == 0 && n.Column == 0
 }
-
 
 // LongTag returns the long form of the tag that indicates the data type for
 // the node. If the Tag field isn't explicitly defined, one will be computed
@@ -494,7 +525,7 @@ type structInfo struct {
 	FieldsList []fieldInfo
 
 	// InlineMap is the number of the field in the struct that
-	// contains an ,inline map, or -1 if there's none.
+	// contains an inline map, or -1 if there's none.
 	InlineMap int
 
 	// InlineUnmarshalers holds indexes to inlined fields that

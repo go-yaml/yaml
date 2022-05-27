@@ -29,16 +29,17 @@ import (
 )
 
 type encoder struct {
-	emitter  yaml_emitter_t
-	event    yaml_event_t
-	out      []byte
-	flow     bool
-	indent   int
-	doneInit bool
+	emitter     yaml_emitter_t
+	event       yaml_event_t
+	out         []byte
+	flow        bool
+	indent      int
+	nilEncoding NilEncoding
+	doneInit    bool
 }
 
 func newEncoder() *encoder {
-	e := &encoder{}
+	e := &encoder{nilEncoding: LowerCaseNullNilEncoding}
 	yaml_emitter_initialize(&e.emitter)
 	yaml_emitter_set_output_string(&e.emitter, &e.out)
 	yaml_emitter_set_unicode(&e.emitter, true)
@@ -46,7 +47,7 @@ func newEncoder() *encoder {
 }
 
 func newEncoderWithWriter(w io.Writer) *encoder {
-	e := &encoder{}
+	e := &encoder{nilEncoding: LowerCaseNullNilEncoding}
 	yaml_emitter_initialize(&e.emitter)
 	yaml_emitter_set_output_writer(&e.emitter, w)
 	yaml_emitter_set_unicode(&e.emitter, true)
@@ -408,7 +409,7 @@ func (e *encoder) floatv(tag string, in reflect.Value) {
 }
 
 func (e *encoder) nilv() {
-	e.emitScalar("null", "", "", yaml_PLAIN_SCALAR_STYLE, nil, nil, nil, nil)
+	e.emitScalar(e.nilEncoding.String(), "", "", yaml_PLAIN_SCALAR_STYLE, nil, nil, nil, nil)
 }
 
 func (e *encoder) emitScalar(value, anchor, tag string, style yaml_scalar_style_t, head, line, foot, tail []byte) {

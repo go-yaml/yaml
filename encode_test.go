@@ -622,7 +622,7 @@ func (s *S) TestMarshaler(c *C) {
 		obj.Field.value = item.value
 		data, err := yaml.Marshal(obj)
 		c.Assert(err, IsNil)
-		c.Assert(string(data), Equals, string(item.data))
+		c.Assert(string(data), Equals, item.data)
 	}
 }
 
@@ -654,6 +654,45 @@ func (s *S) TestSetIndent(c *C) {
 	err = enc.Close()
 	c.Assert(err, Equals, nil)
 	c.Assert(buf.String(), Equals, "a:\n        b:\n                c: d\n")
+}
+
+func (s *S) TestSetNilEncoding(c *C) {
+	input := map[string]interface{}{"a": nil}
+	tests := []struct {
+		want     string
+		encoding yaml.NilEncoding
+	}{
+		{
+			encoding: yaml.LowerCaseNullNilEncoding,
+			want:     "a: null\n",
+		},
+		{
+			encoding: yaml.UpperCaseNullNilEncoding,
+			want:     "a: NULL\n",
+		},
+		{
+			encoding: yaml.PascalCaseNullNilEncoding,
+			want:     "a: Null\n",
+		},
+		{
+			encoding: yaml.TildeNilEncoding,
+			want:     "a: ~\n",
+		},
+		{
+			encoding: yaml.EmptyNilEncoding,
+			want:     "a:\n",
+		},
+	}
+	for _, test := range tests {
+		var buf bytes.Buffer
+		enc := yaml.NewEncoder(&buf)
+		enc.SetNilEncoding(test.encoding)
+		err := enc.Encode(input)
+		c.Assert(err, Equals, nil)
+		err = enc.Close()
+		c.Assert(err, Equals, nil)
+		c.Assert(buf.String(), Equals, test.want)
+	}
 }
 
 func (s *S) TestSortedOutput(c *C) {

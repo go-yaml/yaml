@@ -29,6 +29,8 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+type privateStruct struct{}
+
 var unmarshalIntTest = 123
 
 var unmarshalTests = []struct {
@@ -313,6 +315,26 @@ var unmarshalTests = []struct {
 		// Some limited backwards compatibility with the 1.1 spec.
 		"a: YES",
 		&struct{ A bool }{true},
+	},
+	// Inlined interface
+	{
+		"a: 1\nb:\n  privateinterface: null\n",
+		&struct {
+			A int
+			B struct {
+				privateInterface
+			}
+		}{A: 1},
+	},
+	// private struct
+	{
+		"a: 1\nb:\n  privatestruct: null\n",
+		&struct {
+			A int
+			B struct {
+				*privateStruct
+			}
+		}{A: 1},
 	},
 
 	// Some cross type conversions

@@ -86,13 +86,14 @@ type Marshaler interface {
 // supported tag options.
 //
 func Unmarshal(in []byte, out interface{}) (err error) {
-	return unmarshal(in, out, false)
+	return unmarshal(in, out)
 }
 
 // A Decoder reads and decodes YAML values from an input stream.
 type Decoder struct {
 	parser      *parser
 	knownFields bool
+	uniqueKeys  bool
 }
 
 // NewDecoder returns a new decoder that reads from r.
@@ -101,7 +102,8 @@ type Decoder struct {
 // data from r beyond the YAML values requested.
 func NewDecoder(r io.Reader) *Decoder {
 	return &Decoder{
-		parser: newParserFromReader(r),
+		parser:     newParserFromReader(r),
+		uniqueKeys: true,
 	}
 }
 
@@ -109,6 +111,12 @@ func NewDecoder(r io.Reader) *Decoder {
 // exist as fields in the struct being decoded into.
 func (dec *Decoder) KnownFields(enable bool) {
 	dec.knownFields = enable
+}
+
+// UniqueKeys enforces the keys in decoded mappings to exist
+// only once inside the given mapping.
+func (dec *Decoder) UniqueKeys(enable bool) {
+	dec.uniqueKeys = enable
 }
 
 // Decode reads the next YAML-encoded value from its input
@@ -119,6 +127,7 @@ func (dec *Decoder) KnownFields(enable bool) {
 func (dec *Decoder) Decode(v interface{}) (err error) {
 	d := newDecoder()
 	d.knownFields = dec.knownFields
+	d.uniqueKeys = dec.uniqueKeys
 	defer handleErr(&err)
 	node := dec.parser.parse()
 	if node == nil {
@@ -153,7 +162,7 @@ func (n *Node) Decode(v interface{}) (err error) {
 	return nil
 }
 
-func unmarshal(in []byte, out interface{}, strict bool) (err error) {
+func unmarshal(in []byte, out interface{}) (err error) {
 	defer handleErr(&err)
 	d := newDecoder()
 	p := newParser(in)
@@ -363,7 +372,7 @@ const (
 //             Address yaml.Node
 //     }
 //     err := yaml.Unmarshal(data, &person)
-// 
+//
 // Or by itself:
 //
 //     var person Node
@@ -373,7 +382,7 @@ type Node struct {
 	// Kind defines whether the node is a document, a mapping, a sequence,
 	// a scalar value, or an alias to another node. The specific data type of
 	// scalar nodes may be obtained via the ShortTag and LongTag methods.
-	Kind  Kind
+	Kind Kind
 
 	// Style allows customizing the apperance of the node in the tree.
 	Style Style
@@ -420,7 +429,6 @@ func (n *Node) IsZero() bool {
 	return n.Kind == 0 && n.Style == 0 && n.Tag == "" && n.Value == "" && n.Anchor == "" && n.Alias == nil && n.Content == nil &&
 		n.HeadComment == "" && n.LineComment == "" && n.FootComment == "" && n.Line == 0 && n.Column == 0
 }
-
 
 // LongTag returns the long form of the tag that indicates the data type for
 // the node. If the Tag field isn't explicitly defined, one will be computed

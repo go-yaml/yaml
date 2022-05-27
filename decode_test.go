@@ -1482,7 +1482,7 @@ func (s *S) TestMergeNestedStruct(c *C) {
 	// 2) A simple implementation might attempt to handle the key skipping
 	//    directly by iterating over the merging map without recursion, but
 	//    there are more complex cases that require recursion.
-	// 
+	//
 	// Quick summary of the fields:
 	//
 	// - A must come from outer and not overriden
@@ -1498,7 +1498,7 @@ func (s *S) TestMergeNestedStruct(c *C) {
 		A, B, C int
 	}
 	type Outer struct {
-		D, E      int
+		D, E   int
 		Inner  Inner
 		Inline map[string]int `yaml:",inline"`
 	}
@@ -1516,10 +1516,10 @@ func (s *S) TestMergeNestedStruct(c *C) {
 	// Repeat test with a map.
 
 	var testm map[string]interface{}
-	var wantm = map[string]interface {} {
-		"f":     60,
+	var wantm = map[string]interface{}{
+		"f": 60,
 		"inner": map[string]interface{}{
-		    "a": 10,
+			"a": 10,
 		},
 		"d": 40,
 		"e": 50,
@@ -1615,10 +1615,11 @@ var unmarshalStrictTests = []struct {
 	value  interface{}
 	error  string
 }{{
-	known: true,
-	data:  "a: 1\nc: 2\n",
-	value: struct{ A, B int }{A: 1},
-	error: `yaml: unmarshal errors:\n  line 2: field c not found in type struct { A int; B int }`,
+	known:  true,
+	unique: false,
+	data:   "a: 1\nc: 2\n",
+	value:  struct{ A, B int }{A: 1},
+	error:  `yaml: unmarshal errors:\n  line 2: field c not found in type struct { A int; B int }`,
 }, {
 	unique: true,
 	data:   "a: 1\nb: 2\na: 3\n",
@@ -1698,6 +1699,7 @@ func (s *S) TestUnmarshalKnownFields(c *C) {
 		value := reflect.New(t)
 		dec := yaml.NewDecoder(bytes.NewBuffer([]byte(item.data)))
 		dec.KnownFields(item.known)
+		dec.UniqueKeys(item.unique)
 		err := dec.Decode(value.Interface())
 		c.Assert(err, ErrorMatches, item.error)
 	}

@@ -213,7 +213,7 @@ func unmarshal(in []byte, out interface{}, strict bool) (err error) {
 //         B int
 //     }
 //     yaml.Marshal(&T{B: 2}) // Returns "b: 2\n"
-//     yaml.Marshal(&T{F: 1}} // Returns "a: 1\nb: 0\n"
+//     yaml.Marshal(&T{F: 1}) // Returns "a: 1\nb: 0\n"
 //
 func Marshal(in interface{}) (out []byte, err error) {
 	defer handleErr(&err)

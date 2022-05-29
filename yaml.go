@@ -696,3 +696,132 @@ func isZero(v reflect.Value) bool {
 	}
 	return false
 }
+
+func TestPanto(v int) {
+	fmt.Printf("TestPanto v=%d\n", v)
+}
+
+type Tester struct {
+	parser	*parser
+	got_strend bool
+}
+
+func NewTester(in []byte) *Tester {
+	return &Tester{
+		parser: newParser(in),
+	}
+}
+
+func NewTesterFromReader(r io.Reader) *Tester {
+	return &Tester{
+		parser: newParserFromReader(r),
+	}
+}
+
+func escaped(b []byte) string {
+	str := ""
+	for _, c := range b {
+		switch c {
+		case '\\':
+			str += "\\\\"
+		case 0:
+			str += "\\0"
+		case '\b':
+			str += "\\b"
+		case '\n':
+			str += "\\n"
+		case '\r':
+			str += "\\r"
+		case '\t':
+			str += "\\t"
+		default:
+			str += fmt.Sprintf("%c", c)
+		}
+	}
+	return str
+}
+
+func (tst *Tester) NextEvent() *string {
+
+	p := tst.parser
+	e := &p.event
+
+	if tst.got_strend {
+		return nil
+	}
+
+	str := ""
+	switch p.peek() {
+	case yaml_NO_EVENT:
+		return nil
+
+	case yaml_STREAM_START_EVENT:
+		str = "+STR"
+	case yaml_STREAM_END_EVENT:
+		str = "-STR"
+		tst.got_strend = true
+	case yaml_DOCUMENT_START_EVENT:
+		if e.implicit {
+			str = "+DOC"
+		} else {
+			str = "+DOC ---"
+		}
+	case yaml_DOCUMENT_END_EVENT:
+		if e.implicit {
+			str = "-DOC"
+		} else {
+			str = "-DOC ..."
+		}
+	case yaml_MAPPING_START_EVENT:
+		str = "+MAP"
+		if e.anchor != nil {
+			str += " &" + string(e.anchor)
+		}
+		if e.tag != nil {
+			str += " <" + string(e.tag) + ">"
+		}
+	case yaml_MAPPING_END_EVENT:
+		str = "-MAP"
+	case yaml_SEQUENCE_START_EVENT:
+		str = "+SEQ"
+		if e.anchor != nil {
+			str += " &" + string(e.anchor)
+		}
+		if e.tag != nil {
+			str += " <" + string(e.tag) + ">"
+		}
+	case yaml_SEQUENCE_END_EVENT:
+		str = "-SEQ"
+	case yaml_SCALAR_EVENT:
+		str = "=VAL"
+		if e.anchor != nil {
+			str += " &" + string(e.anchor)
+		}
+		if e.tag != nil {
+			str += " <" + string(e.tag) + ">"
+		}
+		style := e.scalar_style()
+		switch {
+		case (style & yaml_PLAIN_SCALAR_STYLE) != 0:
+			str += " :"
+		case (style & yaml_SINGLE_QUOTED_SCALAR_STYLE) != 0:
+			str += " '"
+		case (style & yaml_DOUBLE_QUOTED_SCALAR_STYLE) != 0:
+			str += " \""
+		case (style & yaml_LITERAL_SCALAR_STYLE) != 0:
+			str += " |"
+		case (style & yaml_FOLDED_SCALAR_STYLE) != 0:
+			str += " >"
+		}
+		str += escaped(e.value)
+	case yaml_ALIAS_EVENT:
+		str = "=ALI *" + string(e.anchor)
+	default:
+		panic("internal error: Unexpected event: (please report): " + p.event.typ.String())
+	}
+
+	yaml_event_delete(e)
+	e.typ = yaml_NO_EVENT
+
+	return &str
+}

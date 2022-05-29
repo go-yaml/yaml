@@ -347,9 +347,9 @@ const (
 // control over the content being decoded or encoded.
 //
 // It's worth noting that although Node offers access into details such as
-// line numbers, colums, and comments, the content when re-encoded will not
+// line numbers, columns, and comments, the content when re-encoded will not
 // have its original textual representation preserved. An effort is made to
-// render the data plesantly, and to preserve comments near the data they
+// render the data pleasantly, and to preserve comments near the data they
 // describe, though.
 //
 // Values that make use of the Node type interact with the yaml package in the
@@ -363,7 +363,7 @@ const (
 //             Address yaml.Node
 //     }
 //     err := yaml.Unmarshal(data, &person)
-// 
+//
 // Or by itself:
 //
 //     var person Node
@@ -373,9 +373,9 @@ type Node struct {
 	// Kind defines whether the node is a document, a mapping, a sequence,
 	// a scalar value, or an alias to another node. The specific data type of
 	// scalar nodes may be obtained via the ShortTag and LongTag methods.
-	Kind  Kind
+	Kind Kind
 
-	// Style allows customizing the apperance of the node in the tree.
+	// Style allows customizing the appearance of the node in the tree.
 	Style Style
 
 	// Tag holds the YAML tag defining the data type for the value.
@@ -387,7 +387,7 @@ type Node struct {
 	// the implicit tag diverges from the provided one.
 	Tag string
 
-	// Value holds the unescaped and unquoted represenation of the value.
+	// Value holds the unescaped and unquoted representation of the value.
 	Value string
 
 	// Anchor holds the anchor name for this node, which allows aliases to point to it.
@@ -420,7 +420,6 @@ func (n *Node) IsZero() bool {
 	return n.Kind == 0 && n.Style == 0 && n.Tag == "" && n.Value == "" && n.Anchor == "" && n.Alias == nil && n.Content == nil &&
 		n.HeadComment == "" && n.LineComment == "" && n.FootComment == "" && n.Line == 0 && n.Column == 0
 }
-
 
 // LongTag returns the long form of the tag that indicates the data type for
 // the node. If the Tag field isn't explicitly defined, one will be computed

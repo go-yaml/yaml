@@ -125,7 +125,7 @@ func main() {
 
 This example will generate the following output:
 
-```
+```yaml
 --- t:
 {Easy! {2 [3 4]}}
 

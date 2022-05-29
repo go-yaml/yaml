@@ -46,6 +46,9 @@ var marshalTests = []struct {
 		&struct{}{},
 		"{}\n",
 	}, {
+		map[string]string{"v": "🛑"},
+		"v: 🛑\n",
+	}, {
 		map[string]string{"v": "hi"},
 		"v: hi\n",
 	}, {
@@ -593,6 +596,7 @@ var marshalerTests = []struct {
 	data  string
 	value interface{}
 }{
+	{ "_: 🛑\n", "🛑" },
 	{"_:\n    hi: there\n", map[interface{}]interface{}{"hi": "there"}},
 	{"_:\n    - 1\n    - A\n", []interface{}{1, "A"}},
 	{"_: 10\n", 10},

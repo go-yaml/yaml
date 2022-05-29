@@ -1335,6 +1335,80 @@ func (s *S) TestObsoleteUnmarshalerRetry(c *C) {
 	c.Assert(su, DeepEquals, obsoleteSliceUnmarshaler([]int{1}))
 }
 
+type SomeValue struct {
+	Value string
+	Tag string
+}
+
+func (e *SomeValue) UnmarshalYAML(node *yaml.Node) error {
+	e.Value = node.Value
+	e.Tag = node.Tag
+	return nil
+}
+
+type unmarshalerCallTester struct {
+	Value SomeValue
+	Ptr *SomeValue
+}
+
+func (s *S) TestUnmarshalerCalledString(c *C) {
+	ce := unmarshalerCallTester{Value: SomeValue{"default", ""}}
+	err := yaml.Unmarshal([]byte("value: test\nptr: test"), &ce)
+	c.Assert(err, IsNil)
+	c.Assert(ce.Value.Tag, Equals, "!!str")
+	c.Assert(ce.Value.Value, Equals, "test")
+	c.Assert(ce.Ptr.Tag, Equals, "!!str")
+	c.Assert(ce.Ptr.Value, Equals, "test")
+}
+
+func (s *S) TestUnmarshalerCalledEmpty(c *C) {
+	ce := unmarshalerCallTester{Value: SomeValue{"default", ""}}
+	err := yaml.Unmarshal([]byte("value:\nptr:"), &ce)
+	c.Assert(err, IsNil)
+	c.Assert(ce.Value.Tag, Equals, "!!null")
+	c.Assert(ce.Value.Value, Equals, "")
+	c.Assert(ce.Ptr, IsNil)
+
+	ce = unmarshalerCallTester{Ptr: &SomeValue{"default", ""}}
+	err = yaml.Unmarshal([]byte("ptr:"), &ce)
+	c.Assert(err, IsNil)
+	// Value already set to something, so UnmarshalYAML is called.
+	c.Assert(ce.Ptr.Tag, Equals, "!!null")
+	c.Assert(ce.Ptr.Value, Equals, "")
+}
+
+func (s *S) TestUnmarshalerCalledCanonical(c *C) {
+	ce := unmarshalerCallTester{Value: SomeValue{"default", ""}}
+	err := yaml.Unmarshal([]byte("value: ~\nptr: ~"), &ce)
+	c.Assert(err, IsNil)
+	c.Assert(ce.Value.Tag, Equals, "!!null")
+	c.Assert(ce.Value.Value, Equals, "~")
+	c.Assert(ce.Ptr, IsNil)
+}
+
+type SomeObsoleteValue string
+
+func (e *SomeObsoleteValue) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	var out string
+	err := unmarshal(&out)
+	if err != nil {
+		return err
+	}
+	*e = SomeObsoleteValue(out)
+	return nil
+}
+
+type obsoleteUnmarshalerCalledEmpty struct {
+	Value SomeObsoleteValue
+}
+
+func (s *S) TestObsoleteUnmarshalerCalledEmpty(c *C) {
+	ce := obsoleteUnmarshalerCalledEmpty{Value: SomeObsoleteValue("default")}
+	err := yaml.Unmarshal([]byte("value:"), &ce)
+	c.Assert(err, IsNil)
+	c.Assert(ce.Value, Equals, SomeObsoleteValue(""))
+}
+
 // From http://yaml.org/type/merge.html
 var mergeTests = `
 anchors:

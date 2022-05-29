@@ -1769,3 +1769,72 @@ func (s *S) TestFuzzCrashers(c *C) {
 //		yaml.Marshal(&v)
 //	}
 //}
+
+type Figure struct {
+	Shape interface{}
+}
+
+type Circle struct {
+	Radius int
+}
+
+type Triangle struct {
+	Base int
+	Height int
+}
+
+type Figures struct {
+	Shapes []interface{}
+}
+
+func (s *S) TestCustomUserTagsInProperty(c *C) {
+	var figure Figure
+
+	factories := map[string]yaml.CustomTypeFactory {
+		"!circle": func() interface{} { return &Circle{} },
+	}
+
+	y :=
+`shape: !circle
+   radius: 5
+`
+	err := yaml.UnmarshalWithCustomTypes([]byte(y), &figure, factories)
+
+	circle, ok := figure.Shape.(*Circle)
+	c.Assert(ok, Equals, true)
+	c.Assert(circle.Radius, Equals, 5)
+
+	c.Assert(err, IsNil)
+}
+
+func (s *S) TestCustomUserTagsInSequence(c *C) {
+	var figures Figures
+
+	factories := map[string]yaml.CustomTypeFactory{
+		"!circle": func () interface{}{return &Circle{}},
+		"!triangle": func () interface{}{return &Triangle{}},
+	}
+
+	y :=
+`shapes:
+   - !circle
+      radius: 5
+   - !triangle
+      height: 3
+      base: 4
+`
+	err := yaml.UnmarshalWithCustomTypes([]byte(y), &figures, factories)
+
+	c.Assert(len(figures.Shapes), Equals, 2)
+
+	circle, ok := figures.Shapes[0].(*Circle)
+	c.Assert(ok, Equals, true)
+	c.Assert(circle.Radius, Equals, 5)
+
+	triangle, ok := figures.Shapes[1].(*Triangle)
+	c.Assert(ok, Equals, true)
+	c.Assert(triangle.Height, Equals, 3)
+	c.Assert(triangle.Base, Equals, 4)
+
+	c.Assert(err, IsNil)
+}

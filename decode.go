@@ -310,10 +310,14 @@ func (p *parser) mapping() *Node {
 // ----------------------------------------------------------------------------
 // Decoder, unmarshals a node into a provided value.
 
+type CustomTypeFactory func() interface{}
+
 type decoder struct {
 	doc     *Node
 	aliases map[*Node]bool
 	terrors []string
+
+	customTypeFactories map[string]CustomTypeFactory
 
 	stringMapType  reflect.Type
 	generalMapType reflect.Type
@@ -337,11 +341,12 @@ var (
 	ptrTimeType    = reflect.TypeOf(&time.Time{})
 )
 
-func newDecoder() *decoder {
+func newDecoder(customTypeFactories map[string]CustomTypeFactory) *decoder {
 	d := &decoder{
-		stringMapType:  stringMapType,
-		generalMapType: generalMapType,
-		uniqueKeys:     true,
+		stringMapType:       stringMapType,
+		generalMapType:      generalMapType,
+		uniqueKeys:          true,
+		customTypeFactories: customTypeFactories,
 	}
 	d.aliases = make(map[*Node]bool)
 	return d
@@ -788,6 +793,13 @@ func (d *decoder) mapping(n *Node, out reflect.Value) (good bool) {
 		// okay
 	case reflect.Interface:
 		iface := out
+		if factory, exists := d.customTypeFactories[n.Tag]; exists {
+			out = reflect.ValueOf(factory())
+			if d.mappingStruct(n, out.Elem()) {
+				iface.Set(out)
+				return true
+			}
+		}
 		if isStringMap(n) {
 			out = reflect.MakeMap(d.stringMapType)
 		} else {

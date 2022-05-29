@@ -4,10 +4,13 @@ on: [push, pull_request]
 jobs:
   test:
     name: Test
-    runs-on: ubuntu-20.04
     strategy:
       fail-fast: false
       matrix:
+        os:
+        - "ubuntu-20.04"
+        - "macos-10.15"
+        - "windows-2019"
         go:
         - "1.5"
         - "1.6"
@@ -20,8 +23,15 @@ jobs:
         - "1.13"
         - "1.14"
         - "1.15"
-        - "1.16.0-beta1"
+        - "1.16"
+        - "1.17.0-beta1"
         - "tip"
+        exclude:
+        - os: "macos-10.15"
+          go: "tip"
+        - os: "windows-2019"
+          go: "tip"
+    runs-on: ${{ matrix.os }}
     env:
       GOPATH: ${{ github.workspace }}/go
     steps:

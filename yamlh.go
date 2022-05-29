@@ -27,6 +27,9 @@ import (
 	"io"
 )
 
+// Tag used in struct info
+var YAML_STRUCT_TAG string = "yaml"
+
 // The version directive data.
 type yaml_version_directive_t struct {
 	major int8 // The major version number.

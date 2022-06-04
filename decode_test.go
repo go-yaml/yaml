@@ -802,6 +802,15 @@ var unmarshalTests = []struct {
 			"c": []interface{}{"d", "e"},
 		},
 	},
+
+	// Issue #797 - escaped slash
+	{
+		"a: \"\\/\"\nb: /",
+		map[string]interface{}{
+			"a": "/",
+			"b": "/",
+		},
+	},
 }
 
 type M map[string]interface{}

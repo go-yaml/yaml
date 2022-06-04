@@ -734,6 +734,15 @@ b:
 				"a": "a",
 			}},
 	},
+
+	// Issue #797 - escaped slash
+	{
+		"a: \"\\/\"\nb: /",
+		map[string]interface{}{
+			"a": "/",
+			"b": "/",
+		},
+	},
 }
 
 type M map[interface{}]interface{}

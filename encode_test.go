@@ -392,6 +392,13 @@ var marshalTests = []struct {
 		"a: \"2015-02-24T18:19:39Z\"\n",
 	},
 
+	// Ensure correct indentation.
+	// https://github.com/go-yaml/yaml/issues/643
+	{
+		[]string{" hello\nworld"},
+		"- |2-\n   hello\n  world\n",
+	},
+
 	// Ensure strings containing ": " are quoted (reported as PR #43, but not reproducible).
 	{
 		map[string]string{"a": "b: c"},

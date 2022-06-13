@@ -5,7 +5,7 @@ This project is covered by two different licenses: MIT and Apache.
 
 The following files were ported to Go from C files of libyaml, and thus
 are still covered by their original MIT license, with the additional
-copyright staring in 2011 when the project was ported over:
+copyright starting in 2011 when the project was ported over:
 
     apic.go emitterc.go parserc.go readerc.go scannerc.go
     writerc.go yamlh.go yamlprivateh.go

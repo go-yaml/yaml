@@ -7,4 +7,4 @@ build:
 	go build src/main.go
 
 test:
-	go test .
+	go test . -v

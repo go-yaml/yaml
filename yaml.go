@@ -25,7 +25,9 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"os"
 	"reflect"
+	"regexp"
 	"strings"
 	"sync"
 	"unicode/utf8"
@@ -49,6 +51,59 @@ type obsoleteUnmarshaler interface {
 // and returns with the provided error.
 type Marshaler interface {
 	MarshalYAML() (interface{}, error)
+}
+
+/**
+ * Polish input string/[]byte to string
+ *
+ * 1. Check in is string or []byte If byte, convert to string
+ *
+ * 2. Use regex find all string betweem "${" and  "}" as ENV_KEYs,
+ * 		split ENV_KEY by ":", left is ENV_KEY_NAME, right is ENV_KEY_DEFAULT
+ *
+ * 3. Get vaule by os.Getenv(ENV_KEY_NAME) as ENV_VALUEs
+ * 	 - If ENV_VALUE is empty, get default value which is ENV_KEY_DEFAULT
+ * 			 - If default value is empty, set value ""
+ *
+ * 4. replace "${ENV_KEY_NAME.*}" with ENV_VALUE
+ *
+ *
+ * e.g.
+ *      (
+ *           'FOO: http://${BAR:foo}/${FOO:bar}',
+ *           {'BAR': 'bar', 'FOO': 'foo'},
+ *           {'FOO': 'http://bar/foo'}
+ *       ),
+ */
+func ParesByEnv(in interface{}) (string, error) {
+	var str_in string
+	switch in.(type) {
+	case string:
+		str_in = in.(string)
+	case []byte:
+		str_in = string(in.([]byte))
+	default:
+		return "", errors.New("invalid input type")
+	}
+
+	env_keys := regexp.MustCompile(`\$\{([^\}]+)\}`).FindAllStringSubmatch(str_in, -1)
+	for _, env_key := range env_keys {
+		env_key_name := env_key[1]
+		env_key_default := ""
+		if strings.Contains(env_key_name, ":") {
+			env_key_name_split := strings.Split(env_key_name, ":")
+			env_key_name = env_key_name_split[0]
+			env_key_default = env_key_name_split[1]
+		}
+		env_value := os.Getenv(env_key_name)
+		if env_value == "" {
+			env_value = env_key_default
+		}
+		var env_key_regex = regexp.MustCompile(`\$\{` + env_key_name + `[^\}]*\}`)
+		str_in = env_key_regex.ReplaceAllString(str_in, env_value)
+	}
+
+	return str_in, nil
 }
 
 // Unmarshal decodes the first document found within the in byte slice
@@ -85,8 +140,10 @@ type Marshaler interface {
 // See the documentation of Marshal for the format of tags and a list of
 // supported tag options.
 //
-func Unmarshal(in []byte, out interface{}) (err error) {
-	return unmarshal(in, out, false)
+func Unmarshal(in interface{}, out interface{}) (err error) {
+	str_in, _ := ParesByEnv(in)
+	byte_in := []byte(str_in)
+	return unmarshal(byte_in, out, false)
 }
 
 // A Decoder reads and decodes YAML values from an input stream.
@@ -363,7 +420,7 @@ const (
 //             Address yaml.Node
 //     }
 //     err := yaml.Unmarshal(data, &person)
-// 
+//
 // Or by itself:
 //
 //     var person Node
@@ -373,7 +430,7 @@ type Node struct {
 	// Kind defines whether the node is a document, a mapping, a sequence,
 	// a scalar value, or an alias to another node. The specific data type of
 	// scalar nodes may be obtained via the ShortTag and LongTag methods.
-	Kind  Kind
+	Kind Kind
 
 	// Style allows customizing the apperance of the node in the tree.
 	Style Style
@@ -420,7 +477,6 @@ func (n *Node) IsZero() bool {
 	return n.Kind == 0 && n.Style == 0 && n.Tag == "" && n.Value == "" && n.Anchor == "" && n.Alias == nil && n.Content == nil &&
 		n.HeadComment == "" && n.LineComment == "" && n.FootComment == "" && n.Line == 0 && n.Column == 0
 }
-
 
 // LongTag returns the long form of the tag that indicates the data type for
 // the node. If the Tag field isn't explicitly defined, one will be computed

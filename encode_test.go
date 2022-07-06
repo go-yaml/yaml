@@ -293,6 +293,21 @@ var marshalTests = []struct {
 		"a: 1\nb: 2\nc: 3\n",
 	},
 
+	{
+		&struct {
+			A        int
+			*InlineC `yaml:",inline"`
+		}{1, &InlineC{3}},
+		"a: 1\nc: 3\n",
+	},
+	{
+		&struct {
+			A        int
+			*InlineC `yaml:",inline"`
+		}{1, nil},
+		"a: 1\n",
+	},
+
 	// Map inlining
 	{
 		&struct {

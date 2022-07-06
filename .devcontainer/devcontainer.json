@@ -1,0 +1,19 @@
+{
+  "customizations": {
+    "vscode": {
+      "extensions": ["kevinkyang.auto-comment-blocks","golang.go", "eamodio.gitlens", "GitHub.copilot"]
+    }
+},
+"settings": {
+  "terminal.integrated.defaultProfile.linux": "zsh", 
+  "terminal.integrated.profiles.linux": {
+      "zsh": {
+          "path": "/bin/zsh"
+      }
+  }
+},
+"workspaceFolder": "/root/app",
+"service": "wish-yaml-dev",
+"dockerComposeFile": "../docker-compose.yaml"
+}
+

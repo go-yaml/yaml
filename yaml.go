@@ -31,25 +31,164 @@ import (
 	"unicode/utf8"
 )
 
-// The Unmarshaler interface may be implemented by types to customize their
-// behavior when being unmarshaled from a YAML document.
-type Unmarshaler interface {
-	UnmarshalYAML(value *Node) error
-}
+type (
+	// The Unmarshaler interface may be implemented by types to customize their
+	// behavior when being unmarshaled from a YAML document.
+	Unmarshaler interface {
+		UnmarshalYAML(value *Node) error
+	}
 
-type obsoleteUnmarshaler interface {
-	UnmarshalYAML(unmarshal func(interface{}) error) error
-}
+	obsoleteUnmarshaler interface {
+		UnmarshalYAML(unmarshal func(interface{}) error) error
+	}
 
-// The Marshaler interface may be implemented by types to customize their
-// behavior when being marshaled into a YAML document. The returned value
-// is marshaled in place of the original value implementing Marshaler.
-//
-// If an error is returned by MarshalYAML, the marshaling procedure stops
-// and returns with the provided error.
-type Marshaler interface {
-	MarshalYAML() (interface{}, error)
-}
+	// The Marshaler interface may be implemented by types to customize their
+	// behavior when being marshaled into a YAML document. The returned value
+	// is marshaled in place of the original value implementing Marshaler.
+	//
+	// If an error is returned by MarshalYAML, the marshaling procedure stops
+	// and returns with the provided error.
+	Marshaler interface {
+		MarshalYAML() (interface{}, error)
+	}
+
+	// A Decoder reads and decodes YAML values from an input stream.
+	Decoder struct {
+		parser      *parser
+		knownFields bool
+	}
+
+	// An Encoder writes YAML values to an output stream.
+	Encoder struct {
+		encoder *encoder
+	}
+
+	yamlError struct {
+		err error
+	}
+
+	// A TypeError is returned by Unmarshal when one or more fields in
+	// the YAML document cannot be properly decoded into the requested
+	// types. When this error is returned, the value is still
+	// unmarshaled partially.
+	TypeError struct {
+		Errors []string
+	}
+
+	Kind uint32
+
+	Style uint32
+
+	// Node represents an element in the YAML document hierarchy. While documents
+	// are typically encoded and decoded into higher level types, such as structs
+	// and maps, Node is an intermediate representation that allows detailed
+	// control over the content being decoded or encoded.
+	//
+	// It's worth noting that although Node offers access into details such as
+	// line numbers, colums, and comments, the content when re-encoded will not
+	// have its original textual representation preserved. An effort is made to
+	// render the data plesantly, and to preserve comments near the data they
+	// describe, though.
+	//
+	// Values that make use of the Node type interact with the yaml package in the
+	// same way any other type would do, by encoding and decoding yaml data
+	// directly or indirectly into them.
+	//
+	// For example:
+	//
+	//     var person struct {
+	//             Name    string
+	//             Address yaml.Node
+	//     }
+	//     err := yaml.Unmarshal(data, &person)
+	//
+	// Or by itself:
+	//
+	//     var person Node
+	//     err := yaml.Unmarshal(data, &person)
+	//
+	Node struct {
+		// Kind defines whether the node is a document, a mapping, a sequence,
+		// a scalar value, or an alias to another node. The specific data type of
+		// scalar nodes may be obtained via the ShortTag and LongTag methods.
+		Kind Kind
+
+		// Style allows customizing the apperance of the node in the tree.
+		Style Style
+
+		// Tag holds the YAML tag defining the data type for the value.
+		// When decoding, this field will always be set to the resolved tag,
+		// even when it wasn't explicitly provided in the YAML content.
+		// When encoding, if this field is unset the value type will be
+		// implied from the node properties, and if it is set, it will only
+		// be serialized into the representation if TaggedStyle is used or
+		// the implicit tag diverges from the provided one.
+		Tag string
+
+		// Value holds the unescaped and unquoted represenation of the value.
+		Value string
+
+		// Anchor holds the anchor name for this node, which allows aliases to point to it.
+		Anchor string
+
+		// Alias holds the node that this alias points to. Only valid when Kind is AliasNode.
+		Alias *Node
+
+		// Content holds contained nodes for documents, mappings, and sequences.
+		Content []*Node
+
+		// HeadComment holds any comments in the lines preceding the node and
+		// not separated by an empty line.
+		HeadComment string
+
+		// LineComment holds any comments at the end of the line where the node is in.
+		LineComment string
+
+		// FootComment holds any comments following the node and before empty lines.
+		FootComment string
+
+		// Line and Column hold the node position in the decoded YAML text.
+		// These fields are not respected when encoding the node.
+		Line   int
+		Column int
+	}
+
+	// structInfo holds details for the serialization of fields of
+	// a given struct.
+	structInfo struct {
+		FieldsMap  map[string]fieldInfo
+		FieldsList []fieldInfo
+
+		// InlineMap is the number of the field in the struct that
+		// contains an ,inline map, or -1 if there's none.
+		InlineMap int
+
+		// InlineUnmarshalers holds indexes to inlined fields that
+		// contain unmarshaler values.
+		InlineUnmarshalers [][]int
+	}
+
+	fieldInfo struct {
+		Key       string
+		Num       int
+		OmitEmpty bool
+		Flow      bool
+		// Id holds the unique field identifier, so we can cheaply
+		// check for field duplicates without maintaining an extra map.
+		Id int
+
+		// Inline holds the field index if the field is part of an inlined struct.
+		Inline []int
+	}
+
+	// IsZeroer is used to check whether an object is zero to
+	// determine whether it should be omitted when marshaling
+	// with the omitempty flag. One notable implementation
+	// is time.Time.
+	IsZeroer interface {
+		IsZero() bool
+	}
+)
 
 // Unmarshal decodes the first document found within the in byte slice
 // and assigns decoded values into the out value.
@@ -87,12 +226,6 @@ type Marshaler interface {
 //
 func Unmarshal(in []byte, out interface{}) (err error) {
 	return unmarshal(in, out, false)
-}
-
-// A Decoder reads and decodes YAML values from an input stream.
-type Decoder struct {
-	parser      *parser
-	knownFields bool
 }
 
 // NewDecoder returns a new decoder that reads from r.
@@ -225,11 +358,6 @@ func Marshal(in interface{}) (out []byte, err error) {
 	return
 }
 
-// An Encoder writes YAML values to an output stream.
-type Encoder struct {
-	encoder *encoder
-}
-
 // NewEncoder returns a new encoder that writes to w.
 // The Encoder should be closed after use to flush all data
 // to w.
@@ -296,10 +424,6 @@ func handleErr(err *error) {
 	}
 }
 
-type yamlError struct {
-	err error
-}
-
 func fail(err error) {
 	panic(yamlError{err})
 }
@@ -308,19 +432,9 @@ func failf(format string, args ...interface{}) {
 	panic(yamlError{fmt.Errorf("yaml: "+format, args...)})
 }
 
-// A TypeError is returned by Unmarshal when one or more fields in
-// the YAML document cannot be properly decoded into the requested
-// types. When this error is returned, the value is still
-// unmarshaled partially.
-type TypeError struct {
-	Errors []string
-}
-
 func (e *TypeError) Error() string {
 	return fmt.Sprintf("yaml: unmarshal errors:\n  %s", strings.Join(e.Errors, "\n  "))
 }
-
-type Kind uint32
 
 const (
 	DocumentNode Kind = 1 << iota
@@ -329,8 +443,6 @@ const (
 	ScalarNode
 	AliasNode
 )
-
-type Style uint32
 
 const (
 	TaggedStyle Style = 1 << iota
@@ -341,86 +453,11 @@ const (
 	FlowStyle
 )
 
-// Node represents an element in the YAML document hierarchy. While documents
-// are typically encoded and decoded into higher level types, such as structs
-// and maps, Node is an intermediate representation that allows detailed
-// control over the content being decoded or encoded.
-//
-// It's worth noting that although Node offers access into details such as
-// line numbers, colums, and comments, the content when re-encoded will not
-// have its original textual representation preserved. An effort is made to
-// render the data plesantly, and to preserve comments near the data they
-// describe, though.
-//
-// Values that make use of the Node type interact with the yaml package in the
-// same way any other type would do, by encoding and decoding yaml data
-// directly or indirectly into them.
-//
-// For example:
-//
-//     var person struct {
-//             Name    string
-//             Address yaml.Node
-//     }
-//     err := yaml.Unmarshal(data, &person)
-// 
-// Or by itself:
-//
-//     var person Node
-//     err := yaml.Unmarshal(data, &person)
-//
-type Node struct {
-	// Kind defines whether the node is a document, a mapping, a sequence,
-	// a scalar value, or an alias to another node. The specific data type of
-	// scalar nodes may be obtained via the ShortTag and LongTag methods.
-	Kind  Kind
-
-	// Style allows customizing the apperance of the node in the tree.
-	Style Style
-
-	// Tag holds the YAML tag defining the data type for the value.
-	// When decoding, this field will always be set to the resolved tag,
-	// even when it wasn't explicitly provided in the YAML content.
-	// When encoding, if this field is unset the value type will be
-	// implied from the node properties, and if it is set, it will only
-	// be serialized into the representation if TaggedStyle is used or
-	// the implicit tag diverges from the provided one.
-	Tag string
-
-	// Value holds the unescaped and unquoted represenation of the value.
-	Value string
-
-	// Anchor holds the anchor name for this node, which allows aliases to point to it.
-	Anchor string
-
-	// Alias holds the node that this alias points to. Only valid when Kind is AliasNode.
-	Alias *Node
-
-	// Content holds contained nodes for documents, mappings, and sequences.
-	Content []*Node
-
-	// HeadComment holds any comments in the lines preceding the node and
-	// not separated by an empty line.
-	HeadComment string
-
-	// LineComment holds any comments at the end of the line where the node is in.
-	LineComment string
-
-	// FootComment holds any comments following the node and before empty lines.
-	FootComment string
-
-	// Line and Column hold the node position in the decoded YAML text.
-	// These fields are not respected when encoding the node.
-	Line   int
-	Column int
-}
-
 // IsZero returns whether the node has all of its fields unset.
 func (n *Node) IsZero() bool {
 	return n.Kind == 0 && n.Style == 0 && n.Tag == "" && n.Value == "" && n.Anchor == "" && n.Alias == nil && n.Content == nil &&
 		n.HeadComment == "" && n.LineComment == "" && n.FootComment == "" && n.Line == 0 && n.Column == 0
 }
-
 
 // LongTag returns the long form of the tag that indicates the data type for
 // the node. If the Tag field isn't explicitly defined, one will be computed
@@ -486,34 +523,6 @@ func (n *Node) SetString(s string) {
 // Maintain a mapping of keys to structure field indexes
 
 // The code in this section was copied from mgo/bson.
-
-// structInfo holds details for the serialization of fields of
-// a given struct.
-type structInfo struct {
-	FieldsMap  map[string]fieldInfo
-	FieldsList []fieldInfo
-
-	// InlineMap is the number of the field in the struct that
-	// contains an ,inline map, or -1 if there's none.
-	InlineMap int
-
-	// InlineUnmarshalers holds indexes to inlined fields that
-	// contain unmarshaler values.
-	InlineUnmarshalers [][]int
-}
-
-type fieldInfo struct {
-	Key       string
-	Num       int
-	OmitEmpty bool
-	Flow      bool
-	// Id holds the unique field identifier, so we can cheaply
-	// check for field duplicates without maintaining an extra map.
-	Id int
-
-	// Inline holds the field index if the field is part of an inlined struct.
-	Inline []int
-}
 
 var structMap = make(map[reflect.Type]*structInfo)
 var fieldMapMutex sync.RWMutex
@@ -647,14 +656,6 @@ func getStructInfo(st reflect.Type) (*structInfo, error) {
 	structMap[st] = sinfo
 	fieldMapMutex.Unlock()
 	return sinfo, nil
-}
-
-// IsZeroer is used to check whether an object is zero to
-// determine whether it should be omitted when marshaling
-// with the omitempty flag. One notable implementation
-// is time.Time.
-type IsZeroer interface {
-	IsZero() bool
 }
 
 func isZero(v reflect.Value) bool {

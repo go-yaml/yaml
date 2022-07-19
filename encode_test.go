@@ -514,6 +514,26 @@ func (s *S) TestMarshal(c *C) {
 	}
 }
 
+func (s *S) TestScalarIndentIndicator(c *C) {
+	// Tests: https://github.com/go-yaml/yaml/issues/643.
+	var buf bytes.Buffer
+
+	for i := 1; i < 9; i++ {
+		c.Logf("test %d", i)
+
+		buf.Reset()
+
+		enc := yaml.NewEncoder(&buf)
+		enc.SetIndent(i)
+
+		err := enc.Encode([]string{" hello\nworld"})
+		c.Assert(err, IsNil)
+
+		err = yaml.Unmarshal(buf.Bytes(), &[]string{})
+		c.Assert(err, IsNil)
+	}
+}
+
 func (s *S) TestEncoderSingleDocument(c *C) {
 	for i, item := range marshalTests {
 		c.Logf("test %d. %q", i, item.data)

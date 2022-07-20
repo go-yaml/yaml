@@ -627,6 +627,9 @@ func (d *decoder) scalar(n *Node, out reflect.Value) bool {
 			if !isDuration && !out.OverflowInt(int64(resolved)) {
 				out.SetInt(int64(resolved))
 				return true
+			} else if isDuration && resolved == 0 {
+				out.SetInt(0)
+				return true
 			}
 		case int64:
 			if !isDuration && !out.OverflowInt(resolved) {

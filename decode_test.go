@@ -6,11 +6,109 @@ import (
 	"math"
 	"reflect"
 	"strings"
+	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
 	. "gopkg.in/check.v1"
 	"gopkg.in/yaml.v2"
 )
+
+func Test_Unmarshal_ordered(t *testing.T) {
+
+	m := yaml.MapSlice{}
+	data1 := `
+foo:
+  <<: &foobar1
+    bar1: val1
+  <<: &foobar2
+    bar2: val2
+  <<: &foobar3
+    bar3: val3
+  foo1:
+    - <<: *foobar2
+      blah1:
+        <<: *foobar1
+  foo2:
+    - <<: *foobar2
+      <<: *foobar3
+      blah2: true
+`
+	err := yaml.Unmarshal([]byte(data1), &m)
+	assert.NoError(t, err)
+
+	// Validate complete structure
+	assert.Equal(t, 1, len(m))
+	foo := m[0].Value.(yaml.MapSlice)
+	assert.Equal(t, 5, len(foo))
+	assert.Equal(t, yaml.MapItem{Key: "bar1", Value: "val1"}, foo[0])
+	assert.Equal(t, yaml.MapItem{Key: "bar2", Value: "val2"}, foo[1])
+	assert.Equal(t, yaml.MapItem{Key: "bar3", Value: "val3"}, foo[2])
+
+	foo1 := foo[3].Value.([]interface{})
+	assert.Equal(t, 1, len(foo1))
+	foo1slice := foo1[0].(yaml.MapSlice)
+	assert.Equal(t, 2, len(foo1slice))
+	assert.Equal(t, yaml.MapItem{Key: "bar2", Value: "val2"}, foo1slice[0])
+	assert.Equal(t, "blah1", foo1slice[1].Key)
+	blah1 := foo1slice[1].Value
+	assert.Equal(t, yaml.MapSlice{yaml.MapItem{Key: "bar1", Value: "val1"}}, blah1)
+
+	foo2 := foo[4].Value.([]interface{})
+	assert.Equal(t, 1, len(foo2))
+	foo2slice := foo2[0].(yaml.MapSlice)
+	assert.Equal(t, 3, len(foo2slice))
+	assert.Equal(t, yaml.MapItem{Key: "bar2", Value: "val2"}, foo2slice[0])
+	assert.Equal(t, yaml.MapItem{Key: "bar3", Value: "val3"}, foo2slice[1])
+	assert.Equal(t, yaml.MapItem{Key: "blah2", Value: true}, foo2slice[2])
+}
+
+func Test_Unmarshal_unordered(t *testing.T) {
+
+	m := map[string]interface{}{}
+	data1 := `
+foo:
+  <<: &foobar1
+    bar1: val1
+  <<: &foobar2
+    bar2: val2
+  <<: &foobar3
+    bar3: val3
+  foo1:
+    - <<: *foobar2
+      blah1:
+        <<: *foobar1
+  foo2:
+    - <<: *foobar2
+      <<: *foobar3
+      blah2: true
+`
+	err := yaml.Unmarshal([]byte(data1), &m)
+	assert.NoError(t, err)
+
+	// Validate complete structure
+	assert.Equal(t, 1, len(m))
+	foo := m["foo"].(map[interface{}]interface{})
+	assert.Equal(t, 5, len(foo))
+	assert.Equal(t, "val1", foo["bar1"])
+	assert.Equal(t, "val2", foo["bar2"])
+	assert.Equal(t, "val3", foo["bar3"])
+
+	foo1slice := foo["foo1"].([]interface{})
+	assert.Equal(t, 1, len(foo1slice))
+	foo1 := foo1slice[0].(map[interface{}]interface{})
+	assert.Equal(t, 2, len(foo1))
+	assert.Equal(t, "val2", foo1["bar2"])
+	assert.Equal(t, "val1", foo1["blah1"].(map[interface{}]interface{})["bar1"])
+
+	foo2slice := foo["foo2"].([]interface{})
+	assert.Equal(t, 1, len(foo2slice))
+	foo2 := foo2slice[0].(map[interface{}]interface{})
+	assert.Equal(t, 3, len(foo2))
+	assert.Equal(t, "val2", foo2["bar2"])
+	assert.Equal(t, "val3", foo2["bar3"])
+	assert.Equal(t, true, foo2["blah2"])
+}
 
 var unmarshalIntTest = 123
 
@@ -697,7 +795,7 @@ var unmarshalTests = []struct {
 		M{"a": 123456e1},
 	}, {
 		"a: 123456E1\n",
-		M{"a": 123456E1},
+		M{"a": 123456e1},
 	},
 	// yaml-test-suite 3GZX: Spec Example 7.1. Alias Nodes
 	{
@@ -870,14 +968,14 @@ var unmarshalErrorTests = []struct {
 	{"a:\n  1:\nb\n  2:", ".*could not find expected ':'"},
 	{
 		"a: &a [00,00,00,00,00,00,00,00,00]\n" +
-		"b: &b [*a,*a,*a,*a,*a,*a,*a,*a,*a]\n" +
-		"c: &c [*b,*b,*b,*b,*b,*b,*b,*b,*b]\n" +
-		"d: &d [*c,*c,*c,*c,*c,*c,*c,*c,*c]\n" +
-		"e: &e [*d,*d,*d,*d,*d,*d,*d,*d,*d]\n" +
-		"f: &f [*e,*e,*e,*e,*e,*e,*e,*e,*e]\n" +
-		"g: &g [*f,*f,*f,*f,*f,*f,*f,*f,*f]\n" +
-		"h: &h [*g,*g,*g,*g,*g,*g,*g,*g,*g]\n" +
-		"i: &i [*h,*h,*h,*h,*h,*h,*h,*h,*h]\n",
+			"b: &b [*a,*a,*a,*a,*a,*a,*a,*a,*a]\n" +
+			"c: &c [*b,*b,*b,*b,*b,*b,*b,*b,*b]\n" +
+			"d: &d [*c,*c,*c,*c,*c,*c,*c,*c,*c]\n" +
+			"e: &e [*d,*d,*d,*d,*d,*d,*d,*d,*d]\n" +
+			"f: &f [*e,*e,*e,*e,*e,*e,*e,*e,*e]\n" +
+			"g: &g [*f,*f,*f,*f,*f,*f,*f,*f,*f]\n" +
+			"h: &h [*g,*g,*g,*g,*g,*g,*g,*g,*g]\n" +
+			"i: &i [*h,*h,*h,*h,*h,*h,*h,*h,*h]\n",
 		"yaml: document contains excessive aliasing",
 	},
 }

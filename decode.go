@@ -716,7 +716,8 @@ func (d *decoder) mappingSlice(n *node, out reflect.Value) (good bool) {
 			}
 		}
 	}
-	out.Set(reflect.ValueOf(slice))
+
+	out.Set(reflect.AppendSlice(out, reflect.ValueOf(slice)))
 	d.mapType = mapType
 	return true
 }

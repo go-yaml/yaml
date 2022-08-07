@@ -535,7 +535,7 @@ func (s *S) TestEncoderMultipleDocuments(c *C) {
 func (s *S) TestEncoderWriteError(c *C) {
 	enc := yaml.NewEncoder(errorWriter{})
 	err := enc.Encode(map[string]string{"a": "b"})
-	c.Assert(err, ErrorMatches, `yaml: write error: some write error`) // Data not flushed yet
+	c.Assert(err, ErrorMatches, `write error: some write error`) // Data not flushed yet
 }
 
 type errorWriter struct{}
@@ -642,7 +642,7 @@ func (ft *failingMarshaler) MarshalYAML() (interface{}, error) {
 
 func (s *S) TestMarshalerError(c *C) {
 	_, err := yaml.Marshal(&failingMarshaler{})
-	c.Assert(err, Equals, failingErr)
+	c.Assert(err, Equals, yaml.YamlError{failingErr, 0, 0})
 }
 
 func (s *S) TestSetIndent(c *C) {

@@ -913,7 +913,7 @@ func (errReader) Read([]byte) (int, error) {
 
 func (s *S) TestDecoderReadError(c *C) {
 	err := yaml.NewDecoder(errReader{}).Decode(&struct{}{})
-	c.Assert(err, ErrorMatches, `yaml: input error: some read error`)
+	c.Assert(err, ErrorMatches, `input error: some read error`)
 }
 
 func (s *S) TestUnmarshalNaN(c *C) {
@@ -931,22 +931,23 @@ func (s *S) TestUnmarshalDurationInt(c *C) {
 }
 
 var unmarshalErrorTests = []struct {
-	data, error string
+	data, error  string
+	line, column int
 }{
-	{"v: !!float 'error'", "yaml: cannot decode !!str `error` as a !!float"},
-	{"v: [A,", "yaml: line 1: did not find expected node content"},
-	{"v:\n- [A,", "yaml: line 2: did not find expected node content"},
-	{"a:\n- b: *,", "yaml: line 2: did not find expected alphabetic or numeric character"},
-	{"a: *b\n", "yaml: unknown anchor 'b' referenced"},
-	{"a: &a\n  b: *a\n", "yaml: anchor 'a' value contains itself"},
-	{"value: -", "yaml: block sequence entries are not allowed in this context"},
-	{"a: !!binary ==", "yaml: !!binary value contains invalid base64 data"},
-	{"{[.]}", `yaml: invalid map key: \[\]interface \{\}\{"\."\}`},
-	{"{{.}}", `yaml: invalid map key: map\[string]interface \{\}\{".":interface \{\}\(nil\)\}`},
-	{"b: *a\na: &a {c: 1}", `yaml: unknown anchor 'a' referenced`},
-	{"%TAG !%79! tag:yaml.org,2002:\n---\nv: !%79!int '1'", "yaml: did not find expected whitespace"},
-	{"a:\n  1:\nb\n  2:", ".*could not find expected ':'"},
-	{"a: 1\nb: 2\nc 2\nd: 3\n", "^yaml: line 3: could not find expected ':'$"},
+	{"v: !!float 'error'", "cannot decode !!str `error` as a !!float", 1, 4},
+	{"v: [A,", "did not find expected node content", 1, 0},
+	{"v:\n- [A,", "did not find expected node content", 2, 0},
+	{"a:\n- b: *,", "did not find expected alphabetic or numeric character", 2, 0},
+	{"a: *b\n", "unknown anchor 'b' referenced", 1, 4},
+	{"a: &a\n  b: *a\n", "anchor 'a' value contains itself", 2, 6},
+	{"value: -", "block sequence entries are not allowed in this context", 0, 0},
+	{"a: !!binary ==", "!!binary value contains invalid base64 data", 1, 4},
+	{"{[.]}", `invalid map key: \[\]interface \{\}\{"\."\}`, 1, 1},
+	{"{{.}}", `invalid map key: map\[string]interface \{\}\{".":interface \{\}\(nil\)\}`, 1, 1},
+	{"b: *a\na: &a {c: 1}", `unknown anchor 'a' referenced`, 1, 4},
+	{"%TAG !%79! tag:yaml.org,2002:\n---\nv: !%79!int '1'", "did not find expected whitespace", 0, 0},
+	{"a:\n  1:\nb\n  2:", ".*could not find expected ':'", 3, 0},
+	{"a: 1\nb: 2\nc 2\nd: 3\n", "^could not find expected ':'$", 3, 0},
 	{
 		"a: &a [00,00,00,00,00,00,00,00,00]\n" +
 			"b: &b [*a,*a,*a,*a,*a,*a,*a,*a,*a]\n" +
@@ -957,7 +958,7 @@ var unmarshalErrorTests = []struct {
 			"g: &g [*f,*f,*f,*f,*f,*f,*f,*f,*f]\n" +
 			"h: &h [*g,*g,*g,*g,*g,*g,*g,*g,*g]\n" +
 			"i: &i [*h,*h,*h,*h,*h,*h,*h,*h,*h]\n",
-		"yaml: document contains excessive aliasing",
+		"document contains excessive aliasing", 0, 0,
 	},
 }
 
@@ -975,6 +976,17 @@ func (s *S) TestDecoderErrors(c *C) {
 		var value interface{}
 		err := yaml.NewDecoder(strings.NewReader(item.data)).Decode(&value)
 		c.Assert(err, ErrorMatches, item.error, Commentf("Partial unmarshal: %#v", value))
+		yamlError, ok := err.(yaml.YamlError)
+		if !ok {
+			c.Log(`Return non YamlError type`)
+			c.Fail()
+		}
+		if yamlError.Line != item.line || (item.line == 0 && (yamlError.Column != item.column)) {
+			c.Log(``)
+			c.Logf(`Error: %s`, yamlError.Error())
+			c.Logf(`Expected at line: %d column: %d, got error at line: %d column: %d`, item.line, item.column, yamlError.Line, yamlError.Column)
+			c.Fail()
+		}
 	}
 }
 
@@ -1257,7 +1269,7 @@ func (ft *failingUnmarshaler) UnmarshalYAML(node *yaml.Node) error {
 
 func (s *S) TestUnmarshalerError(c *C) {
 	err := yaml.Unmarshal([]byte("a: b"), &failingUnmarshaler{})
-	c.Assert(err, Equals, failingErr)
+	c.Assert(err, Equals, yaml.YamlError{failingErr, 1, 1})
 }
 
 type obsoleteFailingUnmarshaler struct{}
@@ -1268,7 +1280,7 @@ func (ft *obsoleteFailingUnmarshaler) UnmarshalYAML(unmarshal func(interface{}) 
 
 func (s *S) TestObsoleteUnmarshalerError(c *C) {
 	err := yaml.Unmarshal([]byte("a: b"), &obsoleteFailingUnmarshaler{})
-	c.Assert(err, Equals, failingErr)
+	c.Assert(err, Equals, yaml.YamlError{failingErr, 1, 1})
 }
 
 type sliceUnmarshaler []int

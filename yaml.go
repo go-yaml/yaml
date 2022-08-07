@@ -308,24 +308,38 @@ func (e *Encoder) Close() (err error) {
 
 func handleErr(err *error) {
 	if v := recover(); v != nil {
-		if e, ok := v.(yamlError); ok {
-			*err = e.err
+		if e, ok := v.(YamlError); ok {
+			*err = e
 		} else {
 			panic(v)
 		}
 	}
 }
 
-type yamlError struct {
-	err error
+type YamlError struct {
+	Err    error
+	Line   int
+	Column int
 }
 
-func fail(err error) {
-	panic(yamlError{err})
+func (e YamlError) Error() string {
+	return e.Err.Error()
 }
 
-func failf(format string, args ...interface{}) {
-	panic(yamlError{fmt.Errorf("yaml: "+format, args...)})
+func fail(line, column int, err error) {
+	panic(YamlError{err, line, column})
+}
+
+func failEncoding(err error) {
+	panic(YamlError{err, 0, 0})
+}
+
+func failf(line, column int, format string, args ...interface{}) {
+	fail(line, column, fmt.Errorf(format, args...))
+}
+
+func failfEncoding(format string, args ...interface{}) {
+	failEncoding(fmt.Errorf(format, args...))
 }
 
 // A TypeError is returned by Unmarshal when one or more fields in
@@ -392,7 +406,7 @@ type Node struct {
 	// Kind defines whether the node is a document, a mapping, a sequence,
 	// a scalar value, or an alias to another node. The specific data type of
 	// scalar nodes may be obtained via the ShortTag and LongTag methods.
-	Kind  Kind
+	Kind Kind
 
 	// Style allows customizing the apperance of the node in the tree.
 	Style Style
@@ -440,7 +454,6 @@ func (n *Node) IsZero() bool {
 		n.HeadComment == "" && n.LineComment == "" && n.FootComment == "" && n.Line == 0 && n.Column == 0
 }
 
-
 // LongTag returns the long form of the tag that indicates the data type for
 // the node. If the Tag field isn't explicitly defined, one will be computed
 // based on the node properties.
@@ -466,7 +479,7 @@ func (n *Node) ShortTag() string {
 				return n.Alias.ShortTag()
 			}
 		case ScalarNode:
-			tag, _ := resolve("", n.Value)
+			tag, _ := resolve(n.Line, n.Column, "", n.Value)
 			return tag
 		case 0:
 			// Special case to make the zero value convenient.

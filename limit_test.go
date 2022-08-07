@@ -16,19 +16,19 @@ var limitTests = []struct {
 	{
 		name:  "1000kb of maps with 100 aliases",
 		data:  []byte(`{a: &a [{a}` + strings.Repeat(`,{a}`, 1000*1024/4-100) + `], b: &b [*a` + strings.Repeat(`,*a`, 99) + `]}`),
-		error: "yaml: document contains excessive aliasing",
+		error: "document contains excessive aliasing",
 	}, {
 		name:  "1000kb of deeply nested slices",
 		data:  []byte(strings.Repeat(`[`, 1000*1024)),
-		error: "yaml: exceeded max depth of 10000",
+		error: "exceeded max depth of 10000",
 	}, {
 		name:  "1000kb of deeply nested maps",
 		data:  []byte("x: " + strings.Repeat(`{`, 1000*1024)),
-		error: "yaml: exceeded max depth of 10000",
+		error: "exceeded max depth of 10000",
 	}, {
 		name:  "1000kb of deeply nested indents",
 		data:  []byte(strings.Repeat(`- `, 1000*1024)),
-		error: "yaml: exceeded max depth of 10000",
+		error: "exceeded max depth of 10000",
 	}, {
 		name: "1000kb of 1000-indent lines",
 		data: []byte(strings.Repeat(strings.Repeat(`- `, 1000)+"\n", 1024/2)),

@@ -87,7 +87,7 @@ func (e *encoder) must(ok bool) {
 		if msg == "" {
 			msg = "unknown problem generating YAML content"
 		}
-		failf("%s", msg)
+		failfEncoding("%s", msg)
 	}
 }
 
@@ -139,7 +139,7 @@ func (e *encoder) marshal(tag string, in reflect.Value) {
 	case Marshaler:
 		v, err := value.MarshalYAML()
 		if err != nil {
-			fail(err)
+			failEncoding(err)
 		}
 		if v == nil {
 			e.nilv()
@@ -150,7 +150,7 @@ func (e *encoder) marshal(tag string, in reflect.Value) {
 	case encoding.TextMarshaler:
 		text, err := value.MarshalText()
 		if err != nil {
-			fail(err)
+			failEncoding(err)
 		}
 		in = reflect.ValueOf(string(text))
 	case nil:
@@ -328,10 +328,10 @@ func (e *encoder) stringv(tag string, in reflect.Value) {
 	switch {
 	case !utf8.ValidString(s):
 		if tag == binaryTag {
-			failf("explicitly tagged !!binary data must be base64-encoded")
+			failfEncoding("explicitly tagged !!binary data must be base64-encoded")
 		}
 		if tag != "" {
-			failf("cannot marshal invalid UTF-8 data as %s", shortTag(tag))
+			failfEncoding("cannot marshal invalid UTF-8 data as %s", shortTag(tag))
 		}
 		// It can't be encoded directly as YAML so use a binary tag
 		// and encode it as base64.
@@ -341,7 +341,7 @@ func (e *encoder) stringv(tag string, in reflect.Value) {
 		// Check to see if it would resolve to a specific
 		// tag when encoded unquoted. If it doesn't,
 		// there's no need to quote it.
-		rtag, _ := resolve("", s)
+		rtag, _ := resolve(0, 0, "", s)
 		canUsePlain = rtag == strTag && !(isBase60Float(s) || isOldBool(s))
 	}
 	// Note: it's possible for user code to emit invalid YAML
@@ -446,7 +446,7 @@ func (e *encoder) node(node *Node, tail string) {
 			if stag == strTag && node.Style&(SingleQuotedStyle|DoubleQuotedStyle|LiteralStyle|FoldedStyle) != 0 {
 				tag = ""
 			} else {
-				rtag, _ := resolve("", node.Value)
+				rtag, _ := resolve(0, 0, "", node.Value)
 				if rtag == stag {
 					tag = ""
 				} else if stag == strTag {
@@ -543,10 +543,10 @@ func (e *encoder) node(node *Node, tail string) {
 		value := node.Value
 		if !utf8.ValidString(value) {
 			if stag == binaryTag {
-				failf("explicitly tagged !!binary data must be base64-encoded")
+				failfEncoding("explicitly tagged !!binary data must be base64-encoded")
 			}
 			if stag != "" {
-				failf("cannot marshal invalid UTF-8 data as %s", stag)
+				failfEncoding("cannot marshal invalid UTF-8 data as %s", stag)
 			}
 			// It can't be encoded directly as YAML so use a binary tag
 			// and encode it as base64.
@@ -572,6 +572,6 @@ func (e *encoder) node(node *Node, tail string) {
 
 		e.emitScalar(value, node.Anchor, tag, style, []byte(node.HeadComment), []byte(node.LineComment), []byte(node.FootComment), []byte(tail))
 	default:
-		failf("cannot encode node with unknown kind %d", node.Kind)
+		failfEncoding("cannot encode node with unknown kind %d", node.Kind)
 	}
 }

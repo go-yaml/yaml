@@ -2829,8 +2829,8 @@ func (s *S) TestNodeZeroEncodeDecode(c *C) {
 	// Kind zero is still unknown, though.
 	n.Line = 1
 	_, err = yaml.Marshal(&n)
-	c.Assert(err, ErrorMatches, "yaml: cannot encode node with unknown kind 0")
-	c.Assert(n.Decode(&v), ErrorMatches, "yaml: cannot decode node with unknown kind 0")
+	c.Assert(err, ErrorMatches, "cannot encode node with unknown kind 0")
+	c.Assert(n.Decode(&v), ErrorMatches, "cannot decode node with unknown kind 0")
 }
 
 func (s *S) TestNodeOmitEmpty(c *C) {
@@ -2845,7 +2845,7 @@ func (s *S) TestNodeOmitEmpty(c *C) {
 
 	v.B.Line = 1
 	_, err = yaml.Marshal(&v)
-	c.Assert(err, ErrorMatches, "yaml: cannot encode node with unknown kind 0")
+	c.Assert(err, ErrorMatches, "cannot encode node with unknown kind 0")
 }
 
 func fprintComments(out io.Writer, node *yaml.Node, indent string) {

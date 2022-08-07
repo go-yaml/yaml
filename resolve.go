@@ -123,7 +123,7 @@ func resolvableTag(tag string) bool {
 
 var yamlStyleFloat = regexp.MustCompile(`^[-+]?(\.[0-9]+|[0-9]+(\.[0-9]*)?)([eE][-+]?[0-9]+)?$`)
 
-func resolve(tag string, in string) (rtag string, out interface{}) {
+func resolve(line, column int, tag string, in string) (rtag string, out interface{}) {
 	tag = shortTag(tag)
 	if !resolvableTag(tag) {
 		return tag, in
@@ -147,7 +147,7 @@ func resolve(tag string, in string) (rtag string, out interface{}) {
 				}
 			}
 		}
-		failf("cannot decode %s `%s` as a %s", shortTag(rtag), in, shortTag(tag))
+		failf(line, column, "cannot decode %s `%s` as a %s", shortTag(rtag), in, shortTag(tag))
 	}()
 
 	// Any data is accepted as a !!str or !!binary.

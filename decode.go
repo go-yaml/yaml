@@ -22,7 +22,6 @@ import (
 	"io"
 	"math"
 	"reflect"
-	"strconv"
 	"time"
 )
 
@@ -84,7 +83,7 @@ func (p *parser) expect(e yaml_event_type_t) {
 		}
 	}
 	if p.event.typ == yaml_STREAM_END_EVENT {
-		failf("attempted to go past the end of stream; corrupted value?")
+		failf(p.event.start_mark.line, p.event.start_mark.column, "attempted to go past the end of stream; corrupted value?")
 	}
 	if p.event.typ != e {
 		p.parser.problem = fmt.Sprintf("expected %s event but got %s", e, p.event.typ)
@@ -107,23 +106,22 @@ func (p *parser) peek() yaml_event_type_t {
 }
 
 func (p *parser) fail() {
-	var where string
 	var line int
+	var column int
 	if p.parser.context_mark.line != 0 {
 		line = p.parser.context_mark.line
+		column = p.parser.context_mark.column
 		// Scanner errors don't iterate line before returning error
 		if p.parser.error == yaml_SCANNER_ERROR {
 			line++
 		}
 	} else if p.parser.problem_mark.line != 0 {
 		line = p.parser.problem_mark.line
+		column = p.parser.problem_mark.column
 		// Scanner errors don't iterate line before returning error
 		if p.parser.error == yaml_SCANNER_ERROR {
 			line++
 		}
-	}
-	if line != 0 {
-		where = "line " + strconv.Itoa(line) + ": "
 	}
 	var msg string
 	if len(p.parser.problem) > 0 {
@@ -131,7 +129,7 @@ func (p *parser) fail() {
 	} else {
 		msg = "unknown problem parsing YAML content"
 	}
-	failf("%s%s", where, msg)
+	failf(line, column, msg)
 }
 
 func (p *parser) anchor(n *Node, anchor []byte) {
@@ -172,7 +170,13 @@ func (p *parser) node(kind Kind, defaultTag, tag, value string) *Node {
 	} else if defaultTag != "" {
 		tag = defaultTag
 	} else if kind == ScalarNode {
-		tag, _ = resolve("", value)
+		line := 0
+		column := 0
+		if !p.textless {
+			line = p.event.start_mark.line + 1
+			column = p.event.start_mark.column + 1
+		}
+		tag, _ = resolve(line, column, "", value)
 	}
 	n := &Node{
 		Kind:  kind,
@@ -212,7 +216,7 @@ func (p *parser) alias() *Node {
 	n := p.node(AliasNode, "", "", string(p.event.anchor))
 	n.Alias = p.anchors[n.Value]
 	if n.Alias == nil {
-		failf("unknown anchor '%s' referenced", n.Value)
+		failf(n.Line, n.Column, "unknown anchor '%s' referenced", n.Value)
 	}
 	p.expect(yaml_ALIAS_EVENT)
 	return n
@@ -388,7 +392,7 @@ func (d *decoder) callUnmarshaler(n *Node, u Unmarshaler) (good bool) {
 		return false
 	}
 	if err != nil {
-		fail(err)
+		fail(n.Line, n.Column, err)
 	}
 	return true
 }
@@ -410,7 +414,7 @@ func (d *decoder) callObsoleteUnmarshaler(n *Node, u obsoleteUnmarshaler) (good 
 		return false
 	}
 	if err != nil {
-		fail(err)
+		fail(n.Line, n.Column, err)
 	}
 	return true
 }
@@ -506,7 +510,7 @@ func (d *decoder) unmarshal(n *Node, out reflect.Value) (good bool) {
 		d.aliasCount++
 	}
 	if d.aliasCount > 100 && d.decodeCount > 1000 && float64(d.aliasCount)/float64(d.decodeCount) > allowedAliasRatio(d.decodeCount) {
-		failf("document contains excessive aliasing")
+		failf(0, 0, "document contains excessive aliasing")
 	}
 	if out.Type() == nodeType {
 		out.Set(reflect.ValueOf(n).Elem())
@@ -535,7 +539,7 @@ func (d *decoder) unmarshal(n *Node, out reflect.Value) (good bool) {
 		}
 		fallthrough
 	default:
-		failf("cannot decode node with unknown kind %d", n.Kind)
+		failf(n.Line, n.Column, "cannot decode node with unknown kind %d", n.Kind)
 	}
 	return good
 }
@@ -552,7 +556,7 @@ func (d *decoder) document(n *Node, out reflect.Value) (good bool) {
 func (d *decoder) alias(n *Node, out reflect.Value) (good bool) {
 	if d.aliases[n] {
 		// TODO this could actually be allowed in some circumstances.
-		failf("anchor '%s' value contains itself", n.Value)
+		failf(n.Line, n.Column, "anchor '%s' value contains itself", n.Value)
 	}
 	d.aliases[n] = true
 	d.aliasDepth++
@@ -588,11 +592,11 @@ func (d *decoder) scalar(n *Node, out reflect.Value) bool {
 		tag = strTag
 		resolved = n.Value
 	} else {
-		tag, resolved = resolve(n.Tag, n.Value)
+		tag, resolved = resolve(n.Line, n.Column, n.Tag, n.Value)
 		if tag == binaryTag {
 			data, err := base64.StdEncoding.DecodeString(resolved.(string))
 			if err != nil {
-				failf("!!binary value contains invalid base64 data")
+				failf(n.Line, n.Column, "!!binary value contains invalid base64 data")
 			}
 			resolved = string(data)
 		}
@@ -621,7 +625,7 @@ func (d *decoder) scalar(n *Node, out reflect.Value) bool {
 			}
 			err := u.UnmarshalText(text)
 			if err != nil {
-				fail(err)
+				fail(n.Line, n.Column, err)
 			}
 			return true
 		}
@@ -754,7 +758,7 @@ func (d *decoder) sequence(n *Node, out reflect.Value) (good bool) {
 		out.Set(reflect.MakeSlice(out.Type(), l, l))
 	case reflect.Array:
 		if l != out.Len() {
-			failf("invalid array: want %d elements but got %d", out.Len(), l)
+			failf(n.Line, n.Column, "invalid array: want %d elements but got %d", out.Len(), l)
 		}
 	case reflect.Interface:
 		// No type hints. Will have to use a generic sequence.
@@ -849,7 +853,7 @@ func (d *decoder) mapping(n *Node, out reflect.Value) (good bool) {
 				kkind = k.Elem().Kind()
 			}
 			if kkind == reflect.Map || kkind == reflect.Slice {
-				failf("invalid map key: %#v", k.Interface())
+				failf(n.Line, n.Column, "invalid map key: %#v", k.Interface())
 			}
 			e := reflect.New(et).Elem()
 			if d.unmarshal(n.Content[i+1], e) || n.Content[i+1].ShortTag() == nullTag && (mapIsNew || !out.MapIndex(k).IsValid()) {
@@ -938,8 +942,8 @@ func (d *decoder) mappingStruct(n *Node, out reflect.Value) (good bool) {
 	return true
 }
 
-func failWantMap() {
-	failf("map merge requires map or sequence of maps as the value")
+func failWantMap(n *Node) {
+	failf(n.Line, n.Column, "map merge requires map or sequence of maps as the value")
 }
 
 func (d *decoder) merge(n *Node, out reflect.Value) {
@@ -948,7 +952,7 @@ func (d *decoder) merge(n *Node, out reflect.Value) {
 		d.unmarshal(n, out)
 	case AliasNode:
 		if n.Alias != nil && n.Alias.Kind != MappingNode {
-			failWantMap()
+			failWantMap(n)
 		}
 		d.unmarshal(n, out)
 	case SequenceNode:
@@ -957,15 +961,15 @@ func (d *decoder) merge(n *Node, out reflect.Value) {
 			ni := n.Content[i]
 			if ni.Kind == AliasNode {
 				if ni.Alias != nil && ni.Alias.Kind != MappingNode {
-					failWantMap()
+					failWantMap(ni)
 				}
 			} else if ni.Kind != MappingNode {
-				failWantMap()
+				failWantMap(ni)
 			}
 			d.unmarshal(ni, out)
 		}
 	default:
-		failWantMap()
+		failWantMap(n)
 	}
 }
 

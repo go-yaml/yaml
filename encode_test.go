@@ -659,7 +659,7 @@ func (s *S) TestSetIndent(c *C) {
 func (s *S) TestSetLineBreak(c *C) {
 	var buf bytes.Buffer
 	enc := yaml.NewEncoder(&buf)
-	enc.SetBreak(yaml.LineBreakStyleCRLF)
+	enc.SetLineBreakStyle(yaml.LineBreakStyleCRLF)
 	err := enc.Encode(map[string]interface{}{"a": nil, "b": nil, "c": nil})
 	c.Assert(err, Equals, nil)
 	err = enc.Close()

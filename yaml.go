@@ -225,13 +225,6 @@ func Marshal(in interface{}) (out []byte, err error) {
 	return
 }
 
-type LineBreakStyle int
-
-const (
-	LineBreakStyleLF LineBreakStyle = iota
-	LineBreakStyleCRLF
-)
-
 // An Encoder writes YAML values to an output stream.
 type Encoder struct {
 	encoder *encoder
@@ -285,7 +278,15 @@ func (e *Encoder) SetIndent(spaces int) {
 	e.encoder.indent = spaces
 }
 
-func (e *Encoder) SetBreak(style LineBreakStyle) {
+type LineBreakStyle int
+
+const (
+	LineBreakStyleLF LineBreakStyle = 1 << iota
+	LineBreakStyleCRLF
+)
+
+// SetLineBreakStyle changes the line endings used when encoding.
+func (e *Encoder) SetLineBreakStyle(style LineBreakStyle) {
 	switch style {
 	case LineBreakStyleLF:
 		yaml_emitter_set_break(&e.encoder.emitter, yaml_LN_BREAK)

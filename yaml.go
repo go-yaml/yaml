@@ -225,6 +225,13 @@ func Marshal(in interface{}) (out []byte, err error) {
 	return
 }
 
+type LineBreakStyle int
+
+const (
+	LineBreakStyleLF LineBreakStyle = iota
+	LineBreakStyleCRLF
+)
+
 // An Encoder writes YAML values to an output stream.
 type Encoder struct {
 	encoder *encoder
@@ -276,6 +283,15 @@ func (e *Encoder) SetIndent(spaces int) {
 		panic("yaml: cannot indent to a negative number of spaces")
 	}
 	e.encoder.indent = spaces
+}
+
+func (e *Encoder) SetBreak(style LineBreakStyle) {
+	switch style {
+	case LineBreakStyleLF:
+		yaml_emitter_set_break(&e.encoder.emitter, yaml_LN_BREAK)
+	case LineBreakStyleCRLF:
+		yaml_emitter_set_break(&e.encoder.emitter, yaml_CRLN_BREAK)
+	}
 }
 
 // Close closes the encoder by writing any remaining data.
@@ -363,7 +379,7 @@ const (
 //             Address yaml.Node
 //     }
 //     err := yaml.Unmarshal(data, &person)
-// 
+//
 // Or by itself:
 //
 //     var person Node
@@ -373,7 +389,7 @@ type Node struct {
 	// Kind defines whether the node is a document, a mapping, a sequence,
 	// a scalar value, or an alias to another node. The specific data type of
 	// scalar nodes may be obtained via the ShortTag and LongTag methods.
-	Kind  Kind
+	Kind Kind
 
 	// Style allows customizing the apperance of the node in the tree.
 	Style Style
@@ -420,7 +436,6 @@ func (n *Node) IsZero() bool {
 	return n.Kind == 0 && n.Style == 0 && n.Tag == "" && n.Value == "" && n.Anchor == "" && n.Alias == nil && n.Content == nil &&
 		n.HeadComment == "" && n.LineComment == "" && n.FootComment == "" && n.Line == 0 && n.Column == 0
 }
-
 
 // LongTag returns the long form of the tag that indicates the data type for
 // the node. If the Tag field isn't explicitly defined, one will be computed

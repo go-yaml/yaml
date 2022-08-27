@@ -656,6 +656,17 @@ func (s *S) TestSetIndent(c *C) {
 	c.Assert(buf.String(), Equals, "a:\n        b:\n                c: d\n")
 }
 
+func (s *S) TestSetLineBreak(c *C) {
+	var buf bytes.Buffer
+	enc := yaml.NewEncoder(&buf)
+	enc.SetBreak(yaml.LineBreakStyleCRLF)
+	err := enc.Encode(map[string]interface{}{"a": nil, "b": nil, "c": nil})
+	c.Assert(err, Equals, nil)
+	err = enc.Close()
+	c.Assert(err, Equals, nil)
+	c.Assert(strings.Count(buf.String(), "\r\n"), Equals, 3)
+}
+
 func (s *S) TestSortedOutput(c *C) {
 	order := []interface{}{
 		false,

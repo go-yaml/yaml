@@ -660,11 +660,12 @@ func (s *S) TestSetLineBreak(c *C) {
 	var buf bytes.Buffer
 	enc := yaml.NewEncoder(&buf)
 	enc.SetLineBreakStyle(yaml.LineBreakStyleCRLF)
-	err := enc.Encode(map[string]interface{}{"a": nil, "b": nil, "c": nil})
+	testMap := map[string]interface{}{"a": nil, "b": nil, "c": nil}
+	err := enc.Encode(testMap)
 	c.Assert(err, Equals, nil)
 	err = enc.Close()
 	c.Assert(err, Equals, nil)
-	c.Assert(strings.Count(buf.String(), "\r\n"), Equals, 3)
+	c.Assert(strings.Count(buf.String(), "\r\n"), Equals, len(testMap))
 }
 
 func (s *S) TestSortedOutput(c *C) {

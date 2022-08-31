@@ -1658,7 +1658,7 @@ var unmarshalStrictTests = []struct {
 	unique: true,
 	data:   "a: 1\nb: 2\na: 3\n",
 	value:  struct{ A, B int }{A: 3, B: 2},
-	error:  `yaml: unmarshal errors:\n  line 3: mapping key "a" already defined at line 1`,
+	error:  `yaml: unmarshal errors:\n  line 3: mapping key already defined at line 1`,
 }, {
 	unique: true,
 	data:   "c: 3\na: 1\nb: 2\nc: 4\n",
@@ -1674,7 +1674,7 @@ var unmarshalStrictTests = []struct {
 			},
 		},
 	},
-	error: `yaml: unmarshal errors:\n  line 4: mapping key "c" already defined at line 1`,
+	error: `yaml: unmarshal errors:\n  line 4: mapping key already defined at line 1`,
 }, {
 	unique: true,
 	data:   "c: 0\na: 1\nb: 2\nc: 1\n",
@@ -1690,7 +1690,7 @@ var unmarshalStrictTests = []struct {
 			},
 		},
 	},
-	error: `yaml: unmarshal errors:\n  line 4: mapping key "c" already defined at line 1`,
+	error: `yaml: unmarshal errors:\n  line 4: mapping key already defined at line 1`,
 }, {
 	unique: true,
 	data:   "c: 1\na: 1\nb: 2\nc: 3\n",
@@ -1704,7 +1704,7 @@ var unmarshalStrictTests = []struct {
 			"c": 3,
 		},
 	},
-	error: `yaml: unmarshal errors:\n  line 4: mapping key "c" already defined at line 1`,
+	error: `yaml: unmarshal errors:\n  line 4: mapping key already defined at line 1`,
 }, {
 	unique: true,
 	data:   "a: 1\n9: 2\nnull: 3\n9: 4",
@@ -1713,7 +1713,7 @@ var unmarshalStrictTests = []struct {
 		nil: 3,
 		9:   4,
 	},
-	error: `yaml: unmarshal errors:\n  line 4: mapping key "9" already defined at line 2`,
+	error: `yaml: unmarshal errors:\n  line 4: mapping key already defined at line 2`,
 }}
 
 func (s *S) TestUnmarshalKnownFields(c *C) {

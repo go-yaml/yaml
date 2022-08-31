@@ -772,8 +772,8 @@ func (d *decoder) mapping(n *Node, out reflect.Value) (good bool) {
 			ni := n.Content[i]
 			for j := i + 2; j < l; j += 2 {
 				nj := n.Content[j]
-				if ni.Kind == nj.Kind && ni.Value == nj.Value {
-					d.terrors = append(d.terrors, fmt.Sprintf("line %d: mapping key %#v already defined at line %d", nj.Line, nj.Value, ni.Line))
+				if ni.Equal(nj) {
+					d.terrors = append(d.terrors, fmt.Sprintf("line %d: mapping key already defined at line %d", nj.Line, ni.Line))
 				}
 			}
 		}

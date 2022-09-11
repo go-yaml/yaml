@@ -105,8 +105,9 @@ func NewDecoder(r io.Reader) *Decoder {
 	}
 }
 
-// KnownFields ensures that the keys in decoded mappings to
-// exist as fields in the struct being decoded into.
+// KnownFields, when enabled, causes the decoder to return an error for keys
+// that do not match fields in the structs they are being decoded into. By
+// default, or when false, keys which don't match known fields are ignored.
 func (dec *Decoder) KnownFields(enable bool) {
 	dec.knownFields = enable
 }

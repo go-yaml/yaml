@@ -374,6 +374,8 @@ func yaml_parser_update_buffer(parser *yaml_parser_t, length int) bool {
 			case value >= 0xA0 && value <= 0xD7FF:
 			case value >= 0xE000 && value <= 0xFFFD:
 			case value >= 0x10000 && value <= 0x10FFFF:
+			// https://github.com/getkin/kin-openapi/issues/594#issuecomment-1246661285
+			case value >= 0x90 && value <= 0x9F:
 			default:
 				return yaml_parser_set_reader_error(parser,
 					"control characters are not allowed",

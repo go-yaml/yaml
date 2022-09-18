@@ -22,7 +22,6 @@ import (
 	"io"
 	"math"
 	"reflect"
-	"strconv"
 	"time"
 )
 
@@ -107,7 +106,6 @@ func (p *parser) peek() yaml_event_type_t {
 }
 
 func (p *parser) fail() {
-	var where string
 	var line int
 	if p.parser.context_mark.line != 0 {
 		line = p.parser.context_mark.line
@@ -122,16 +120,13 @@ func (p *parser) fail() {
 			line++
 		}
 	}
-	if line != 0 {
-		where = "line " + strconv.Itoa(line) + ": "
-	}
 	var msg string
 	if len(p.parser.problem) > 0 {
 		msg = p.parser.problem
 	} else {
 		msg = "unknown problem parsing YAML content"
 	}
-	failf("%s%s", where, msg)
+	fail(&ParserError{msg, line})
 }
 
 func (p *parser) anchor(n *Node, anchor []byte) {

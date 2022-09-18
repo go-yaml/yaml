@@ -26,6 +26,7 @@ import (
 	"fmt"
 	"io"
 	"reflect"
+	"strconv"
 	"strings"
 	"sync"
 	"unicode/utf8"
@@ -288,7 +289,7 @@ func (e *Encoder) Close() (err error) {
 
 func handleErr(err *error) {
 	if v := recover(); v != nil {
-		if e, ok := v.(yamlError); ok {
+		if e, ok := v.(*yamlError); ok {
 			*err = e.err
 		} else {
 			panic(v)
@@ -300,12 +301,33 @@ type yamlError struct {
 	err error
 }
 
+func (e *yamlError) Unwrap() error {
+	return e.err
+}
+
 func fail(err error) {
-	panic(yamlError{err})
+	panic(&yamlError{err})
 }
 
 func failf(format string, args ...interface{}) {
-	panic(yamlError{fmt.Errorf("yaml: "+format, args...)})
+	panic(&yamlError{fmt.Errorf("yaml: "+format, args...)})
+}
+
+// ParserError is each error with a source line position found by the parser.
+// Unlike UnmarshalErrors, it is only used for terminal failures.
+type ParserError struct {
+	Message string
+	Line    int
+}
+
+func (e *ParserError) Error() string {
+	var b strings.Builder
+	b.WriteString("yaml: ")
+	if e.Line != 0 {
+		b.WriteString("line " + strconv.Itoa(e.Line) + ": ")
+	}
+	b.WriteString(e.Message)
+	return b.String()
 }
 
 // UnmarshalError is each error with a source position found by Unmarshal.

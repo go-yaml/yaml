@@ -980,6 +980,18 @@ func (s *S) TestDecoderErrors(c *C) {
 	}
 }
 
+func (s *S) TestParserError(c *C) {
+	var v struct {
+		A, B int
+	}
+	data := "a: 1\n=\nb: 2"
+	err := yaml.Unmarshal([]byte(data), &v)
+	c.Assert(err, DeepEquals, &yaml.ParserError{
+		Message: "could not find expected ':'",
+		Line:    2,
+	})
+}
+
 var unmarshalerTests = []struct {
 	data, tag string
 	value     interface{}
@@ -1112,8 +1124,8 @@ func (s *S) TestUnmarshalerWholeDocument(c *C) {
 }
 
 func (s *S) TestUnmarshalerTypeError(c *C) {
-	unmarshalerResult[2] = &yaml.TypeError{[]string{"foo"}}
-	unmarshalerResult[4] = &yaml.TypeError{[]string{"bar"}}
+	unmarshalerResult[2] = &yaml.TypeError{[]yaml.UnmarshalError{{"foo", 1, 1}}}
+	unmarshalerResult[4] = &yaml.TypeError{[]yaml.UnmarshalError{{"bar", 1, 1}}}
 	defer func() {
 		delete(unmarshalerResult, 2)
 		delete(unmarshalerResult, 4)
@@ -1130,8 +1142,8 @@ func (s *S) TestUnmarshalerTypeError(c *C) {
 	c.Assert(err, ErrorMatches, ""+
 		"yaml: unmarshal errors:\n"+
 		"  line 1: cannot unmarshal !!str `A` into int\n"+
-		"  foo\n"+
-		"  bar\n"+
+		"  line 1: foo\n"+
+		"  line 1: bar\n"+
 		"  line 1: cannot unmarshal !!str `B` into int")
 	c.Assert(v.M["abc"], NotNil)
 	c.Assert(v.M["def"], IsNil)
@@ -1143,8 +1155,8 @@ func (s *S) TestUnmarshalerTypeError(c *C) {
 }
 
 func (s *S) TestObsoleteUnmarshalerTypeError(c *C) {
-	unmarshalerResult[2] = &yaml.TypeError{[]string{"foo"}}
-	unmarshalerResult[4] = &yaml.TypeError{[]string{"bar"}}
+	unmarshalerResult[2] = &yaml.TypeError{[]yaml.UnmarshalError{{"foo", 1, 1}}}
+	unmarshalerResult[4] = &yaml.TypeError{[]yaml.UnmarshalError{{"bar", 1, 1}}}
 	defer func() {
 		delete(unmarshalerResult, 2)
 		delete(unmarshalerResult, 4)
@@ -1161,8 +1173,8 @@ func (s *S) TestObsoleteUnmarshalerTypeError(c *C) {
 	c.Assert(err, ErrorMatches, ""+
 		"yaml: unmarshal errors:\n"+
 		"  line 1: cannot unmarshal !!str `A` into int\n"+
-		"  foo\n"+
-		"  bar\n"+
+		"  line 1: foo\n"+
+		"  line 1: bar\n"+
 		"  line 1: cannot unmarshal !!str `B` into int")
 	c.Assert(v.M["abc"], NotNil)
 	c.Assert(v.M["def"], IsNil)

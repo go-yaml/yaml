@@ -979,6 +979,18 @@ func (s *S) TestDecoderErrors(c *C) {
 	}
 }
 
+func (s *S) TestParserError(c *C) {
+	var v struct {
+		A, B int
+	}
+	data := "a: 1\n=\nb: 2"
+	err := yaml.Unmarshal([]byte(data), &v)
+	c.Assert(err, DeepEquals, &yaml.ParserError{
+		Message: "could not find expected ':'",
+		Line:    2,
+	})
+}
+
 var unmarshalerTests = []struct {
 	data, tag string
 	value     interface{}

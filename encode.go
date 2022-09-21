@@ -28,6 +28,19 @@ import (
 	"unicode/utf8"
 )
 
+// jsonNumber is the interface of the encoding/json.Number datatype.
+// Repeating the interface here avoids a dependency on encoding/json, and also
+// supports other libraries like jsoniter, which use a similar datatype with
+// the same interface. Detecting this interface is useful when dealing with
+// structures containing json.Number, which is a string under the hood. The
+// encoder should prefer the use of Int64(), Float64() and string(), in that
+// order, when encoding this type.
+type jsonNumber interface {
+	Float64() (float64, error)
+	Int64() (int64, error)
+	String() string
+}
+
 type encoder struct {
 	emitter  yaml_emitter_t
 	event    yaml_event_t
@@ -127,6 +140,21 @@ func (e *encoder) marshal(tag string, in reflect.Value) {
 		}
 		e.nodev(in.Addr())
 		return
+	case jsonNumber:
+		integer, err := value.Int64()
+		if err == nil {
+			// In this case the json.Number is a valid int64
+			in = reflect.ValueOf(integer)
+			break
+		}
+		float, err := value.Float64()
+		if err == nil {
+			// In this case the json.Number is a valid float64
+			in = reflect.ValueOf(float)
+			break
+		}
+		// fallback case - no number could be obtained
+		in = reflect.ValueOf(value.String())
 	case time.Time:
 		e.timev(tag, in)
 		return

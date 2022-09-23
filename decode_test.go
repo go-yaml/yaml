@@ -802,6 +802,15 @@ var unmarshalTests = []struct {
 			"c": []interface{}{"d", "e"},
 		},
 	},
+
+	// Question mark in plain scalar flow collection
+	{
+		"seq: [a?b]",
+		map[string]interface{}{"seq": []interface{}{"a?b"}},
+	}, {
+		"map: {a: b?c}",
+		map[string]interface{}{"map": map[string]interface{}{"a": "b?c"}},
+	},
 }
 
 type M map[string]interface{}

@@ -110,7 +110,7 @@ func (e *encoder) marshalDoc(tag string, in reflect.Value) {
 
 func (e *encoder) marshal(tag string, in reflect.Value) {
 	tag = shortTag(tag)
-	if !in.IsValid() || in.Kind() == reflect.Ptr && in.IsNil() {
+	if !in.CanInterface() || !in.IsValid() || in.Kind() == reflect.Ptr && in.IsNil() {
 		e.nilv()
 		return
 	}

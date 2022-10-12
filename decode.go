@@ -417,8 +417,11 @@ func (d *decoder) prepare(n *Node, out reflect.Value) (newout reflect.Value, unm
 			out = out.Elem()
 			again = true
 		}
-		if out.CanAddr() {
-			outi := out.Addr().Interface()
+		if out.CanInterface() || out.CanAddr() {
+			outi := out.Interface()
+			if out.CanAddr() {
+				outi = out.Addr().Interface()
+			}
 			if u, ok := outi.(Unmarshaler); ok {
 				good = d.callUnmarshaler(n, u)
 				return out, true, good

@@ -1708,7 +1708,7 @@ type stringSetUnmarshaler map[string]struct{}
 func (s stringSetUnmarshaler) UnmarshalYAML(value *yaml.Node) error {
 	values := make([]string, 0, len(value.Content))
 
-	if err := value.Decode(values); err != nil {
+	if err := value.Decode(&values); err != nil {
 		return err
 	}
 
@@ -1725,10 +1725,8 @@ func (s stringSetUnmarshaler) UnmarshalYAML(value *yaml.Node) error {
 
 func (s *S) TestStringSetUnmarshaler(c *C) {
 	cases := []string{
-		"a:\nb:\nc:",
 		"- a\n- b\n- c",
 		"[a, b, c]",
-		"{a: null, b: null, c: null}",
 	}
 
 	for _, data := range cases {

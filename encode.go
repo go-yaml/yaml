@@ -211,12 +211,22 @@ func (e *encoder) structv(tag string, in reflect.Value) {
 		panic(err)
 	}
 	e.mappingv(tag, func() {
+	structLoop:
 		for _, info := range sinfo.FieldsList {
 			var value reflect.Value
 			if info.Inline == nil {
 				value = in.Field(info.Num)
 			} else {
-				value = in.FieldByIndex(info.Inline)
+				value = in
+				for _, n := range info.Inline {
+					if value.Kind() == reflect.Ptr {
+						if value.IsNil() {
+							continue structLoop
+						}
+						value = value.Elem()
+					}
+					value = value.Field(n)
+				}
 			}
 			if info.OmitEmpty && isZero(value) {
 				continue

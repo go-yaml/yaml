@@ -762,7 +762,7 @@ func (d *decoder) mappingStruct(n *node, out reflect.Value) (good bool) {
 			if info.Inline == nil {
 				field = out.Field(info.Num)
 			} else {
-				field = out.FieldByIndex(info.Inline)
+				field = fieldByIndex(out, info.Inline)
 			}
 			d.unmarshal(n.children[i+1], field)
 		} else if sinfo.InlineMap != -1 {
@@ -777,6 +777,35 @@ func (d *decoder) mappingStruct(n *node, out reflect.Value) (good bool) {
 		}
 	}
 	return true
+}
+
+// fieldByIndex is based off reflect.Value.FieldByIndex with
+// the difference that it will attempt to create a new item if
+// a struct ptr type is found to be nil and is settable.
+func fieldByIndex(v reflect.Value, index []int) reflect.Value {
+	if len(index) == 1 {
+		return v.Field(index[0])
+	}
+
+	if k := v.Kind(); k != reflect.Struct {
+		panic(&reflect.ValueError{Method: "fieldByIndex", Kind: k})
+	}
+
+	for i, x := range index {
+		if i > 0 {
+			if v.Kind() == reflect.Ptr && v.Type().Elem().Kind() == reflect.Struct {
+				if v.IsNil() {
+					if !v.CanSet() {
+						panic("reflect: indirection through nil pointer to unexported embedded struct")
+					}
+					v.Set(reflect.New(v.Type().Elem()))
+				}
+				v = v.Elem()
+			}
+		}
+		v = v.Field(x)
+	}
+	return v
 }
 
 func failWantMap() {

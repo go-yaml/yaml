@@ -293,6 +293,21 @@ var marshalTests = []struct {
 		"a: 1\nb: 2\nc: 3\n",
 	},
 
+	{
+		&struct {
+			A        int
+			*InlineC `yaml:",inline"`
+		}{1, &InlineC{3}},
+		"a: 1\nc: 3\n",
+	},
+	{
+		&struct {
+			A        int
+			*InlineC `yaml:",inline"`
+		}{1, nil},
+		"a: 1\n",
+	},
+
 	// Map inlining
 	{
 		&struct {
@@ -406,8 +421,8 @@ func (s *S) TestLineWrapping(c *C) {
 	data, err := yaml.Marshal(v)
 	c.Assert(err, IsNil)
 	c.Assert(string(data), Equals,
-		"a: 'abcdefghijklmnopqrstuvwxyz ABCDEFGHIJKLMNOPQRSTUVWXYZ 1234567890 abcdefghijklmnopqrstuvwxyz\n" +
-		"  ABCDEFGHIJKLMNOPQRSTUVWXYZ 1234567890 '\n")
+		"a: 'abcdefghijklmnopqrstuvwxyz ABCDEFGHIJKLMNOPQRSTUVWXYZ 1234567890 abcdefghijklmnopqrstuvwxyz\n"+
+			"  ABCDEFGHIJKLMNOPQRSTUVWXYZ 1234567890 '\n")
 
 	// The API does not allow this process to be reversed as it's intended
 	// for migration only. v3 drops this method and instead offers more
@@ -477,7 +492,7 @@ var marshalErrorTests = []struct {
 		B       int
 		inlineB ",inline"
 	}{1, inlineB{2, inlineC{3}}},
-	panic: `Duplicated key 'b' in struct struct \{ B int; .*`,
+	panic: `Duplicated key "b" in struct "struct \{ B int; .*`,
 }, {
 	value: &struct {
 		A int

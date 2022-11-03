@@ -25,8 +25,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/braydonk/yaml"
 	. "gopkg.in/check.v1"
-	"gopkg.in/yaml.v3"
 )
 
 var unmarshalIntTest = 123
@@ -209,13 +209,13 @@ var unmarshalTests = []struct {
 		map[string]interface{}{"seq": []interface{}{"A", "B"}},
 	}, {
 		"seq: [A,B,C,]",
-		map[string][]string{"seq": []string{"A", "B", "C"}},
+		map[string][]string{"seq": {"A", "B", "C"}},
 	}, {
 		"seq: [A,1,C]",
-		map[string][]string{"seq": []string{"A", "1", "C"}},
+		map[string][]string{"seq": {"A", "1", "C"}},
 	}, {
 		"seq: [A,1,C]",
-		map[string][]int{"seq": []int{1}},
+		map[string][]int{"seq": {1}},
 	}, {
 		"seq: [A,1,C]",
 		map[string]interface{}{"seq": []interface{}{"A", 1, "C"}},
@@ -226,13 +226,13 @@ var unmarshalTests = []struct {
 		map[string]interface{}{"seq": []interface{}{"A", "B"}},
 	}, {
 		"seq:\n - A\n - B\n - C",
-		map[string][]string{"seq": []string{"A", "B", "C"}},
+		map[string][]string{"seq": {"A", "B", "C"}},
 	}, {
 		"seq:\n - A\n - 1\n - C",
-		map[string][]string{"seq": []string{"A", "1", "C"}},
+		map[string][]string{"seq": {"A", "1", "C"}},
 	}, {
 		"seq:\n - A\n - 1\n - C",
-		map[string][]int{"seq": []int{1}},
+		map[string][]int{"seq": {1}},
 	}, {
 		"seq:\n - A\n - 1\n - C",
 		map[string]interface{}{"seq": []interface{}{"A", 1, "C"}},
@@ -453,7 +453,7 @@ var unmarshalTests = []struct {
 		map[interface{}]interface{}{"1": "\"2\""},
 	}, {
 		"v:\n- A\n- 'B\n\n  C'\n",
-		map[string][]string{"v": []string{"A", "B\nC"}},
+		map[string][]string{"v": {"A", "B\nC"}},
 	},
 
 	// Explicit tags.
@@ -657,11 +657,11 @@ var unmarshalTests = []struct {
 	// Support encoding.TextUnmarshaler.
 	{
 		"a: 1.2.3.4\n",
-		map[string]textUnmarshaler{"a": textUnmarshaler{S: "1.2.3.4"}},
+		map[string]textUnmarshaler{"a": {S: "1.2.3.4"}},
 	},
 	{
 		"a: 2015-02-24T18:19:39Z\n",
-		map[string]textUnmarshaler{"a": textUnmarshaler{"2015-02-24T18:19:39Z"}},
+		map[string]textUnmarshaler{"a": {"2015-02-24T18:19:39Z"}},
 	},
 
 	// Timestamps
@@ -947,7 +947,7 @@ var unmarshalErrorTests = []struct {
 	{"%TAG !%79! tag:yaml.org,2002:\n---\nv: !%79!int '1'", "yaml: did not find expected whitespace"},
 	{"a:\n  1:\nb\n  2:", ".*could not find expected ':'"},
 	{"a: 1\nb: 2\nc 2\nd: 3\n", "^yaml: line 3: could not find expected ':'$"},
-	{"#\n-\n{", "yaml: line 3: could not find expected ':'"}, // Issue #665
+	{"#\n-\n{", "yaml: line 3: could not find expected ':'"},   // Issue #665
 	{"0: [:!00 \xef", "yaml: incomplete UTF-8 octet sequence"}, // Issue #666
 	{
 		"a: &a [00,00,00,00,00,00,00,00,00]\n" +
@@ -1482,7 +1482,7 @@ func (s *S) TestMergeNestedStruct(c *C) {
 	// 2) A simple implementation might attempt to handle the key skipping
 	//    directly by iterating over the merging map without recursion, but
 	//    there are more complex cases that require recursion.
-	// 
+	//
 	// Quick summary of the fields:
 	//
 	// - A must come from outer and not overriden
@@ -1498,7 +1498,7 @@ func (s *S) TestMergeNestedStruct(c *C) {
 		A, B, C int
 	}
 	type Outer struct {
-		D, E      int
+		D, E   int
 		Inner  Inner
 		Inline map[string]int `yaml:",inline"`
 	}
@@ -1516,10 +1516,10 @@ func (s *S) TestMergeNestedStruct(c *C) {
 	// Repeat test with a map.
 
 	var testm map[string]interface{}
-	var wantm = map[string]interface {} {
-		"f":     60,
+	var wantm = map[string]interface{}{
+		"f": 60,
 		"inner": map[string]interface{}{
-		    "a": 10,
+			"a": 10,
 		},
 		"d": 40,
 		"e": 50,

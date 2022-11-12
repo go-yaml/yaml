@@ -494,6 +494,38 @@ var unmarshalTests = []struct {
 	}, {
 		"a: &a [1, 2]\nb: *a",
 		&struct{ B []int }{[]int{1, 2}},
+	}, {
+		// >= 0x21
+		"a: &! [1, 2]\nb: *!",
+		&struct{ B []int }{[]int{1, 2}},
+	}, {
+		// <= 0x7E
+		"a: &~ [1, 2]\nb: *~",
+		&struct{ B []int }{[]int{1, 2}},
+	}, {
+		// >= 0xA0 (Start of Basic Multilingual Plane)
+		"a: &\u00A0 [1, 2]\nb: *\u00A0",
+		&struct{ B []int }{[]int{1, 2}},
+	}, {
+		// <= 0xD7FF (End of Basic Multilingual Plane)
+		"a: &\uD7FF [1, 2]\nb: *\uD7FF",
+		&struct{ B []int }{[]int{1, 2}},
+	}, {
+		// >= 0xE000 (Start of Private Use area)
+		"a: &\uE000 [1, 2]\nb: *\uE000",
+		&struct{ B []int }{[]int{1, 2}},
+	}, {
+		// <= 0xFFFD (End of allowed Private Use Area)
+		"a: &\uFFFD [1, 2]\nb: *\uFFFD",
+		&struct{ B []int }{[]int{1, 2}},
+	}, {
+		// >= 0x010000 (Start of Supplementary Planes)
+		"a: &\u010000 [1, 2]\nb: *\u010000",
+		&struct{ B []int }{[]int{1, 2}},
+	}, {
+		// >= 0x10FFFF (End of Supplementary Planes)
+		"a: &\u10FFFF [1, 2]\nb: *\u10FFFF",
+		&struct{ B []int }{[]int{1, 2}},
 	},
 
 	// Bug #1133337
@@ -936,7 +968,14 @@ var unmarshalErrorTests = []struct {
 	{"v: !!float 'error'", "yaml: cannot decode !!str `error` as a !!float"},
 	{"v: [A,", "yaml: line 1: did not find expected node content"},
 	{"v:\n- [A,", "yaml: line 2: did not find expected node content"},
-	{"a:\n- b: *,", "yaml: line 2: did not find expected alphabetic or numeric character"},
+	{"a:\n- b: *,", "yaml: line 2: invalid start of anchor name ','"},
+	{"a:\n- b: *a{", "yaml: line 2: invalid control flow or anchor name character '{'"},
+	{"a:\n- b: *a\u0019", "yaml: control characters are not allowed"},
+	{"a:\n- b: *a\u0020", "yaml: unknown anchor 'a' referenced"},
+	{"a:\n- b: *a\u007F", "yaml: control characters are not allowed"},
+	{"a:\n- b: *a\u0099", "yaml: control characters are not allowed"},
+	{"a:\n- b: *a\uFFFE", "yaml: control characters are not allowed"},
+	{"a:\n- b: *a\uFFFF", "yaml: control characters are not allowed"},
 	{"a: *b\n", "yaml: unknown anchor 'b' referenced"},
 	{"a: &a\n  b: *a\n", "yaml: anchor 'a' value contains itself"},
 	{"value: -", "yaml: block sequence entries are not allowed in this context"},

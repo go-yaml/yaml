@@ -25,6 +25,7 @@ package yaml
 import (
 	"bytes"
 	"fmt"
+	"unicode/utf8"
 )
 
 // Introduction
@@ -1906,35 +1907,54 @@ func yaml_parser_scan_anchor(parser *yaml_parser_t, token *yaml_token_t, typ yam
 	if parser.unread < 1 && !yaml_parser_update_buffer(parser, 1) {
 		return false
 	}
+	char, _ := utf8.DecodeRune(parser.buffer[parser.buffer_pos:])
 
-	for is_alpha(parser.buffer, parser.buffer_pos) {
+	// Match YAML's allowed printable characters
+	for ((char >= 0x20 && char <= 0x7E) ||
+			char == 0x85 ||
+			(char >= 0xA0 && char <= 0xD7FF) ||
+			(char >= 0xE000 && char <= 0xFFFD) ||
+			(char >= 0x010000 && char <= 0x10FFFF)) &&
+		// except for whitespace,
+		!(is_blankz(parser.buffer, parser.buffer_pos) ||
+			// or control flow indicators.
+			char == '[' || char == ']' || char == '{' || char == '}' ||
+			char == ',') {
+
 		s = read(parser, s)
 		if parser.unread < 1 && !yaml_parser_update_buffer(parser, 1) {
 			return false
 		}
+		char, _ = utf8.DecodeRune(parser.buffer[parser.buffer_pos:])
 	}
 
 	end_mark := parser.mark
 
-	/*
-	 * Check if length of the anchor is greater than 0 and it is followed by
-	 * a whitespace character or one of the indicators:
-	 *
-	 *      '?', ':', ',', ']', '}', '%', '@', '`'.
-	 */
+	if len(s) == 0 {
 
-	if len(s) == 0 ||
-		!(is_blankz(parser.buffer, parser.buffer_pos) || parser.buffer[parser.buffer_pos] == '?' ||
-			parser.buffer[parser.buffer_pos] == ':' || parser.buffer[parser.buffer_pos] == ',' ||
-			parser.buffer[parser.buffer_pos] == ']' || parser.buffer[parser.buffer_pos] == '}' ||
-			parser.buffer[parser.buffer_pos] == '%' || parser.buffer[parser.buffer_pos] == '@' ||
-			parser.buffer[parser.buffer_pos] == '`') {
 		context := "while scanning an alias"
 		if typ == yaml_ANCHOR_TOKEN {
 			context = "while scanning an anchor"
 		}
 		yaml_parser_set_scanner_error(parser, context, start_mark,
-			"did not find expected alphabetic or numeric character")
+			fmt.Sprintf("invalid start of anchor name %q", parser.buffer[parser.buffer_pos]))
+		return false
+	}
+
+	/*
+	 * Check if the character after the anchor name is whitespace or a control flow indicator:
+	 *      ',', ']', '}'
+	 */
+
+	if !(is_blankz(parser.buffer, parser.buffer_pos) || parser.buffer[parser.buffer_pos] == ',' ||
+		parser.buffer[parser.buffer_pos] == ']' || parser.buffer[parser.buffer_pos] == '}' ) {
+
+		context := "while scanning an alias"
+		if typ == yaml_ANCHOR_TOKEN {
+			context = "while scanning an anchor"
+		}
+		yaml_parser_set_scanner_error(parser, context, start_mark,
+			fmt.Sprintf("invalid control flow or anchor name character %q", parser.buffer[parser.buffer_pos]))
 		return false
 	}
 

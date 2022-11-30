@@ -107,6 +107,7 @@ type TagHandler interface{
 func NewDecoder(r io.Reader) *Decoder {
 	return &Decoder{
 		parser: newParserFromReader(r),
+		tagHandlers: map[string]TagHandler{},
 	}
 }
 
@@ -117,8 +118,8 @@ func (dec *Decoder) KnownFields(enable bool) {
 }
 
 // SetTagHandler set handlers for custom tags in yaml document.
-func (dec *Decoder) SetTagHandler(handlers map[string]TagHandler) {
-	dec.tagHandlers = handlers
+func (dec *Decoder) SetTagHandler(tag string, handler TagHandler) {
+	dec.tagHandlers[tag] = handler
 }
 
 // Decode reads the next YAML-encoded value from its input

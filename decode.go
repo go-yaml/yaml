@@ -579,8 +579,8 @@ func (d *decoder) scalar(n *Node, out reflect.Value) bool {
 			}
 			resolved = string(data)
 		} else {
-			if f, ok := d.tagHandlers[tag]; ok {
-				tag, resolved = resolve("", f(n.Value))
+			if th, ok := d.tagHandlers[tag]; ok {
+				tag, resolved = resolve("", th.Resolve(n.Value))
 			}
 		}
 	}

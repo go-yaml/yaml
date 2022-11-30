@@ -324,6 +324,8 @@ type decoder struct {
 	aliasCount  int
 	aliasDepth  int
 
+	tagHandlers map[string]TagHandler
+
 	mergedFields map[interface{}]bool
 }
 
@@ -576,6 +578,11 @@ func (d *decoder) scalar(n *Node, out reflect.Value) bool {
 				failf("!!binary value contains invalid base64 data")
 			}
 			resolved = string(data)
+		} else {
+			if f, ok := d.tagHandlers[tag]; ok {
+				resolved = f(n.Value)
+				tag = strTag
+			}
 		}
 	}
 	if resolved == nil {

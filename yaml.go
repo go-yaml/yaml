@@ -96,7 +96,7 @@ type Decoder struct {
 	tagHandlers map[string]TagHandler
 }
 
-type TagHandler func(value string) (resolvedValue string)
+type TagHandler func(value string) (resolvedValue string, err error)
 
 // NewDecoder returns a new decoder that reads from r.
 //

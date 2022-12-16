@@ -313,7 +313,7 @@ var base60float = regexp.MustCompile(`^[-+]?[0-9][0-9_]*(?::[0-5]?[0-9])+(?:\.[0
 // parsing.
 func isOldBool(s string) (result bool) {
 	switch s {
-	case "y", "Y", "yes", "Yes", "YES", "on", "On", "ON",
+	case "y", "Y", "yes", "Yes", "YES",
 		"n", "N", "no", "No", "NO", "off", "Off", "OFF":
 		return true
 	default:

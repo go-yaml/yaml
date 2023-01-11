@@ -456,6 +456,24 @@ var marshalTests = []struct {
 			Style: yaml.SingleQuotedStyle,
 		},
 		"'foo'\n",
+	}, {
+		yaml.Node{
+			Kind:  yaml.ScalarNode,
+			Tag:   "!!str",
+			Style: yaml.FoldedStyle,
+			Value: `first line
+  more`,
+		},
+		">-\n    first line\n      more\n",
+	}, {
+		yaml.Node{
+			Kind:  yaml.ScalarNode,
+			Tag:   "!!str",
+			Style: yaml.FoldedStyle,
+			Value: `first line
+more`,
+		},
+		">-\n    first line\n\n    more\n",
 	},
 
 	// Enforced tagging with shorthand notation (issue #616).

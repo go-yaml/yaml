@@ -1943,11 +1943,11 @@ func yaml_emitter_write_folded_scalar(emitter *yaml_emitter_t, value []byte) boo
 	for i := 0; i < len(value); {
 		if is_break(value, i) {
 			if !breaks && !leading_spaces && value[i] == '\n' {
-				k := 0
-				for is_break(value, k) {
+				k := i
+				for k < len(value) && is_break(value, k) {
 					k += width(value[k])
 				}
-				if !is_blankz(value, k) {
+				if k < len(value) && !is_blankz(value, k) {
 					if !put_break(emitter) {
 						return false
 					}

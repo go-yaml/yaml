@@ -568,8 +568,11 @@ func (d *decoder) null(out reflect.Value) bool {
 func (d *decoder) scalar(n *Node, out reflect.Value) bool {
 	var tag string
 	var resolved interface{}
-	if handler,ok:=d.tagHandlers[n.Tag]; ok {
-		result:=handler(n.Value)
+	if handler, ok := d.tagHandlers[n.Tag]; ok {
+		result, err := handler(n.Value)
+		if err != nil {
+			fail(err)
+		}
 		toSet:=reflect.ValueOf(result)
 		if toSet.CanConvert(out.Type()) {
 			out.Set(toSet)

@@ -97,7 +97,7 @@ type Decoder struct {
 }
 
 // TagHandler resolves value by tag in a field.
-type TagHandler func(value string) (resolvedValue interface{})
+type TagHandler func(value string) (resolvedValue interface{}, err error)
 
 // NewDecoder returns a new decoder that reads from r.
 //

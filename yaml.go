@@ -93,7 +93,11 @@ func Unmarshal(in []byte, out interface{}) (err error) {
 type Decoder struct {
 	parser      *parser
 	knownFields bool
+	tagHandlers map[string]TagHandler
 }
+
+// TagHandler resolves value by tag in a field.
+type TagHandler func(value string) (resolvedValue interface{})
 
 // NewDecoder returns a new decoder that reads from r.
 //
@@ -102,6 +106,7 @@ type Decoder struct {
 func NewDecoder(r io.Reader) *Decoder {
 	return &Decoder{
 		parser: newParserFromReader(r),
+		tagHandlers: map[string]TagHandler{},
 	}
 }
 
@@ -109,6 +114,11 @@ func NewDecoder(r io.Reader) *Decoder {
 // exist as fields in the struct being decoded into.
 func (dec *Decoder) KnownFields(enable bool) {
 	dec.knownFields = enable
+}
+
+// SetTagHandler set handlers for custom tags in yaml document.
+func (dec *Decoder) SetTagHandler(tag string, handler TagHandler) {
+	dec.tagHandlers[tag] = handler
 }
 
 // Decode reads the next YAML-encoded value from its input
@@ -119,6 +129,7 @@ func (dec *Decoder) KnownFields(enable bool) {
 func (dec *Decoder) Decode(v interface{}) (err error) {
 	d := newDecoder()
 	d.knownFields = dec.knownFields
+	d.tagHandlers = dec.tagHandlers
 	defer handleErr(&err)
 	node := dec.parser.parse()
 	if node == nil {

@@ -575,7 +575,7 @@ func (d *decoder) scalar(n *Node, out reflect.Value) bool {
 		}
 		toSet:=reflect.ValueOf(result)
 		if toSet.CanConvert(out.Type()) {
-			out.Set(toSet)
+			out.Set(toSet.Convert(out.Type()))
 			return true
 		} else {
 			fail(fmt.Errorf("error on handle %s tag: can't convert %s to target type %s", n.Tag,

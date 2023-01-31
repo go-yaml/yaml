@@ -330,6 +330,24 @@ const (
 	AliasNode
 )
 
+// String returns the string representation of the node kind
+func (k Kind) String() string {
+	switch k {
+	case DocumentNode:
+		return "document"
+	case SequenceNode:
+		return "sequence"
+	case MappingNode:
+		return "mapping"
+	case ScalarNode:
+		return "scalar"
+	case AliasNode:
+		return "alias"
+	default:
+		return "unknown"
+	}
+}
+
 type Style uint32
 
 const (
@@ -340,6 +358,26 @@ const (
 	FoldedStyle
 	FlowStyle
 )
+
+// String returns the string representation of the node style
+func (s Style) String() string {
+	switch s {
+	case TaggedStyle:
+		return "tagged"
+	case DoubleQuotedStyle:
+		return "double-quoted"
+	case SingleQuotedStyle:
+		return "single-quoted"
+	case LiteralStyle:
+		return "literal"
+	case FoldedStyle:
+		return "folded"
+	case FlowStyle:
+		return "flow"
+	default:
+		return "unknown"
+	}
+}
 
 // Node represents an element in the YAML document hierarchy. While documents
 // are typically encoded and decoded into higher level types, such as structs

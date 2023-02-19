@@ -392,6 +392,106 @@ var marshalTests = []struct {
 		"a: \"2015-02-24T18:19:39Z\"\n",
 	},
 
+	// Ensure correct indentation.
+	// https://github.com/go-yaml/yaml/issues/643
+	{
+		[]string{" hello\nworld"},
+		"- |2-\n   hello\n  world\n",
+	},
+
+	{
+		struct{ Value []string }{[]string{`
+
+line 1
+	line 2
+
+	line 3
+
+`}},
+		"" +
+			"value:\n" +
+			"    - |2+\n\n" +
+			"      line 1\n" +
+			"      \tline 2\n" +
+			"\n" +
+			"      \tline 3\n" +
+			"\n",
+	},
+
+	{
+		struct{ Value []string }{[]string{"\nline1\nline2"}},
+		"" +
+			"value:\n" +
+			"    - |2-\n" +
+			"      line1\n" +
+			"      line2\n",
+	},
+
+	{
+		struct{ Value []string }{[]string{"\n line1\nline2"}},
+		"" +
+			"value:\n" +
+			"    - |2-\n" +
+			"       line1\n" +
+			"      line2\n",
+	},
+
+	{
+		struct{ Value []string }{[]string{"\n  line1\nline2"}},
+		"" +
+			"value:\n" +
+			"    - |2-\n" +
+			"        line1\n" +
+			"      line2\n",
+	},
+
+	{
+		struct{ Value []string }{[]string{"\n\tline1\nline2"}},
+		"" +
+			"value:\n" +
+			"    - |2-\n" +
+			"      \tline1\n" +
+			"      line2\n",
+	},
+
+	{
+		struct{ Value []string }{[]string{"\n line1\nline2\n  line3\n   line4"}},
+		"" +
+			"value:\n" +
+			"    - |2-\n" +
+			"       line1\n" +
+			"      line2\n" +
+			"        line3\n" +
+			"         line4\n",
+	},
+
+	{
+		struct{ Value []string }{[]string{" line1\nline2"}},
+		"" +
+			"value:\n" +
+			"    - |2-\n" +
+			"       line1\n" +
+			"      line2\n",
+	},
+
+	{
+		struct{ Value []string }{[]string{"  line1\nline2"}},
+		"" +
+			"value:\n" +
+			"    - |2-\n" +
+			"        line1\n" +
+			"      line2\n",
+	},
+
+	{
+		struct{ Value []string }{[]string{"\tline1\nline2"}},
+		"" +
+			"value:\n" +
+			"    - |-\n" +
+			"      \tline1\n" +
+			"      line2\n",
+	},
+
 	// Ensure strings containing ": " are quoted (reported as PR #43, but not reproducible).
 	{
 		map[string]string{"a": "b: c"},
@@ -504,6 +604,23 @@ func (s *S) TestMarshal(c *C) {
 		data, err := yaml.Marshal(item.value)
 		c.Assert(err, IsNil)
 		c.Assert(string(data), Equals, item.data)
+	}
+}
+
+func (s *S) TestScalarIndentIndicator(c *C) {
+	// Tests: https://github.com/go-yaml/yaml/issues/643.
+	var buf bytes.Buffer
+
+	for i := 1; i < 9; i++ {
+		c.Logf("test %d", i)
+
+		buf.Reset()
+
+		enc := yaml.NewEncoder(&buf)
+		enc.SetIndent(i)
+
+		err := enc.Encode([]string{" hello\nworld"})
+		c.Assert(err, IsNil)
 	}
 }
 

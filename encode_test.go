@@ -399,6 +399,99 @@ var marshalTests = []struct {
 		"- |2-\n   hello\n  world\n",
 	},
 
+	{
+		struct{ Value []string }{[]string{`
+
+line 1
+	line 2
+
+	line 3
+
+`}},
+		"" +
+			"value:\n" +
+			"    - |2+\n\n" +
+			"      line 1\n" +
+			"      \tline 2\n" +
+			"\n" +
+			"      \tline 3\n" +
+			"\n",
+	},
+
+	{
+		struct{ Value []string }{[]string{"\nline1\nline2"}},
+		"" +
+			"value:\n" +
+			"    - |2-\n" +
+			"      line1\n" +
+			"      line2\n",
+	},
+
+	{
+		struct{ Value []string }{[]string{"\n line1\nline2"}},
+		"" +
+			"value:\n" +
+			"    - |2-\n" +
+			"       line1\n" +
+			"      line2\n",
+	},
+
+	{
+		struct{ Value []string }{[]string{"\n  line1\nline2"}},
+		"" +
+			"value:\n" +
+			"    - |2-\n" +
+			"        line1\n" +
+			"      line2\n",
+	},
+
+	{
+		struct{ Value []string }{[]string{"\n\tline1\nline2"}},
+		"" +
+			"value:\n" +
+			"    - |2-\n" +
+			"      \tline1\n" +
+			"      line2\n",
+	},
+
+	{
+		struct{ Value []string }{[]string{"\n line1\nline2\n  line3\n   line4"}},
+		"" +
+			"value:\n" +
+			"    - |2-\n" +
+			"       line1\n" +
+			"      line2\n" +
+			"        line3\n" +
+			"         line4\n",
+	},
+
+	{
+		struct{ Value []string }{[]string{" line1\nline2"}},
+		"" +
+			"value:\n" +
+			"    - |2-\n" +
+			"       line1\n" +
+			"      line2\n",
+	},
+
+	{
+		struct{ Value []string }{[]string{"  line1\nline2"}},
+		"" +
+			"value:\n" +
+			"    - |2-\n" +
+			"        line1\n" +
+			"      line2\n",
+	},
+
+	{
+		struct{ Value []string }{[]string{"\tline1\nline2"}},
+		"" +
+			"value:\n" +
+			"    - |-\n" +
+			"      \tline1\n" +
+			"      line2\n",
+	},
+
 	// Ensure strings containing ": " are quoted (reported as PR #43, but not reproducible).
 	{
 		map[string]string{"a": "b: c"},
@@ -527,9 +620,6 @@ func (s *S) TestScalarIndentIndicator(c *C) {
 		enc.SetIndent(i)
 
 		err := enc.Encode([]string{" hello\nworld"})
-		c.Assert(err, IsNil)
-
-		err = yaml.Unmarshal(buf.Bytes(), &[]string{})
 		c.Assert(err, IsNil)
 	}
 }

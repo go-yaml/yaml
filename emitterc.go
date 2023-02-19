@@ -162,10 +162,9 @@ func yaml_emitter_emit(emitter *yaml_emitter_t, event *yaml_event_t) bool {
 // Check if we need to accumulate more events before emitting.
 //
 // We accumulate extra
-//  - 1 event for DOCUMENT-START
-//  - 2 events for SEQUENCE-START
-//  - 3 events for MAPPING-START
-//
+//   - 1 event for DOCUMENT-START
+//   - 2 events for SEQUENCE-START
+//   - 3 events for MAPPING-START
 func yaml_emitter_need_more_events(emitter *yaml_emitter_t) bool {
 	if emitter.events_head == len(emitter.events) {
 		return true
@@ -235,15 +234,9 @@ func yaml_emitter_increase_indent(emitter *yaml_emitter_t, flow, indentless bool
 			emitter.indent = 0
 		}
 	} else if !indentless {
-		// [Go] This was changed so that indentations are more regular.
-		if emitter.states[len(emitter.states)-1] == yaml_EMIT_BLOCK_SEQUENCE_ITEM_STATE {
-			// The first indent inside a sequence will just skip the "- " indicator.
-			emitter.indent += 2
-		} else {
-			// Everything else aligns to the chosen indentation.
-			emitter.indent = emitter.best_indent * ((emitter.indent + emitter.best_indent) / emitter.best_indent)
-		}
+		emitter.indent += emitter.best_indent
 	}
+
 	return true
 }
 
@@ -730,6 +723,10 @@ func yaml_emitter_emit_block_sequence_item(emitter *yaml_emitter_t, event *yaml_
 	if first {
 		if !yaml_emitter_increase_indent(emitter, false, false) {
 			return false
+		}
+		// [Go] Inside a block sequence item, we discount the space taken by the "- " indicator.
+		if emitter.best_indent > 2 {
+			emitter.best_indent -= 2
 		}
 	}
 	if event.typ == yaml_SEQUENCE_END_EVENT {
@@ -1847,7 +1844,7 @@ func yaml_emitter_write_double_quoted_scalar(emitter *yaml_emitter_t, value []by
 
 func yaml_emitter_write_block_scalar_hints(emitter *yaml_emitter_t, value []byte) bool {
 	if is_space(value, 0) || is_break(value, 0) {
-		indent_hint := []byte{'0' + byte(emitter.indent)}
+		indent_hint := []byte{'0' + byte(emitter.best_indent)}
 		if !yaml_emitter_write_indicator(emitter, indent_hint, false, false, false) {
 			return false
 		}

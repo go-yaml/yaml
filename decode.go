@@ -968,28 +968,21 @@ func (d *decoder) merge(parent *Node, merge *Node, out reflect.Value) {
 		}
 	}
 
-	switch merge.Kind {
-	case MappingNode:
+	if isMappingNode(merge) {
 		d.unmarshal(merge, out)
-	case AliasNode:
-		if merge.Alias != nil && merge.Alias.Kind != MappingNode {
+	} else {
+		sequence := getSequence(merge)
+		if sequence == nil {
 			failWantMap()
+			return
 		}
-		d.unmarshal(merge, out)
-	case SequenceNode:
-		for i := 0; i < len(merge.Content); i++ {
-			ni := merge.Content[i]
-			if ni.Kind == AliasNode {
-				if ni.Alias != nil && ni.Alias.Kind != MappingNode {
-					failWantMap()
-				}
-			} else if ni.Kind != MappingNode {
+		for _, seqNode := range sequence {
+			if !isMappingNode(seqNode) {
 				failWantMap()
+				return
 			}
-			d.unmarshal(ni, out)
+			d.unmarshal(seqNode, out)
 		}
-	default:
-		failWantMap()
 	}
 
 	d.mergedFields = mergedFields
@@ -997,4 +990,18 @@ func (d *decoder) merge(parent *Node, merge *Node, out reflect.Value) {
 
 func isMerge(n *Node) bool {
 	return n.Kind == ScalarNode && n.Value == "<<" && (n.Tag == "" || n.Tag == "!" || shortTag(n.Tag) == mergeTag)
+}
+
+func isMappingNode(n *Node) bool {
+	return n.Kind == MappingNode || (n.Alias != nil && n.Alias.Kind == MappingNode)
+}
+
+func getSequence(n *Node) []*Node {
+	if n.Kind == SequenceNode {
+		return n.Content
+	}
+	if n.Alias != nil && n.Alias.Kind == SequenceNode {
+		return n.Alias.Content
+	}
+	return nil
 }

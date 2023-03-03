@@ -1530,6 +1530,39 @@ func (s *S) TestMergeNestedStruct(c *C) {
 	c.Assert(testm["outer"], DeepEquals, wantm)
 }
 
+var mergeMapSequenceAnchor string = `
+anchor: &anchor
+  baz: bat
+
+seq: &seq
+  - foo: bar
+  - *anchor
+
+merge:
+  <<: *seq
+`
+
+func (s *S) TestMergeMapSequenceAlias(c *C) {
+	type Structure struct {
+		Foo string
+		Baz string
+	}
+
+	var result struct {
+		Merge Structure
+	}
+
+	err := yaml.Unmarshal([]byte(mergeMapSequenceAnchor), &result)
+	c.Assert(err, IsNil)
+
+	want := Structure{
+		Foo: "bar",
+		Baz: "bat",
+	}
+
+	c.Assert(result.Merge, DeepEquals, want)
+}
+
 var unmarshalNullTests = []struct {
 	input              string
 	pristine, expected func() interface{}

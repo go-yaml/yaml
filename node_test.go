@@ -2811,6 +2811,39 @@ func (s *S) TestNodeEncodeDecode(c *C) {
 	}
 }
 
+func (s *S) TestNodeDecodeKnownFIelds(c *C) {
+	type nodeDecodeKnownFieldsTest struct {
+		a string
+	}
+	var v nodeDecodeKnownFieldsTest
+
+	node := yaml.Node{
+		Kind: yaml.MappingNode,
+		Tag:  "!!map",
+		Content: []*yaml.Node{{
+			Kind:  yaml.ScalarNode,
+			Value: "a",
+			Tag:   "!!str",
+		}, {
+			Kind:  yaml.ScalarNode,
+			Value: "b",
+			Tag:   "!!str",
+		}, {
+			Kind:  yaml.ScalarNode,
+			Value: "c",
+			Tag:   "!!str",
+		}, {
+			Kind:  yaml.ScalarNode,
+			Value: "d",
+			Tag:   "!!str",
+		}},
+	}
+
+	node.KnownFields(true)
+	err := node.Decode(&v)
+	c.Assert(err, ErrorMatches, "TBD")
+}
+
 func (s *S) TestNodeZeroEncodeDecode(c *C) {
 	// Zero node value behaves as nil when encoding...
 	var n yaml.Node

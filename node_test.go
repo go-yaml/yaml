@@ -19,6 +19,7 @@ import (
 	"bytes"
 	"fmt"
 	"os"
+	"reflect"
 
 	. "gopkg.in/check.v1"
 	"gopkg.in/yaml.v3"
@@ -2811,13 +2812,14 @@ func (s *S) TestNodeEncodeDecode(c *C) {
 	}
 }
 
-func (s *S) TestNodeDecodeKnownFIelds(c *C) {
-	type nodeDecodeKnownFieldsTest struct {
-		a string
-	}
-	var v nodeDecodeKnownFieldsTest
-
-	node := yaml.Node{
+var nodeDecodeKnownFieldsTests = []struct {
+	knownFields bool
+	node  yaml.Node
+	value interface{}
+	error string
+}{{
+	false,
+	yaml.Node{
 		Kind: yaml.MappingNode,
 		Tag:  "!!map",
 		Content: []*yaml.Node{{
@@ -2837,11 +2839,53 @@ func (s *S) TestNodeDecodeKnownFIelds(c *C) {
 			Value: "d",
 			Tag:   "!!str",
 		}},
-	}
+	},
+	struct{A string}{},
+	"",
+}, {
+	true,
+	yaml.Node{
+		Kind: yaml.MappingNode,
+		Tag:  "!!map",
+		Content: []*yaml.Node{{
+			Kind:  yaml.ScalarNode,
+			Value: "a",
+			Tag:   "!!str",
+		}, {
+			Kind:  yaml.ScalarNode,
+			Value: "b",
+			Tag:   "!!str",
+		}, {
+			Kind:  yaml.ScalarNode,
+			Value: "c",
+			Tag:   "!!str",
+		}, {
+			Kind:  yaml.ScalarNode,
+			Value: "d",
+			Tag:   "!!str",
+		}},
+	},
+	struct{A string}{},
+	"yaml: unmarshal errors:\n  line 0: field c not found in type struct { A string }",
+}}
 
-	node.KnownFields(true)
-	err := node.Decode(&v)
-	c.Assert(err, ErrorMatches, "TBD")
+func (s *S) TestNodeDecodeKnownFIelds(c *C) {
+	for i, item := range nodeDecodeKnownFieldsTests {
+		c.Logf("Decode KnownFields test value #%d: %#v", i, item.knownFields)
+
+		if item.knownFields {
+			item.node.KnownFields(true)
+		}
+
+		t := reflect.ValueOf(item.value).Type()
+		value := reflect.New(t)
+		err := item.node.Decode(value.Interface())
+		if item.error != "" {
+			c.Assert(err, ErrorMatches, item.error)
+		} else {
+			c.Assert(err, IsNil)
+		}
+	}
 }
 
 func (s *S) TestNodeZeroEncodeDecode(c *C) {

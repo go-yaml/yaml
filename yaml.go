@@ -278,6 +278,11 @@ func (e *Encoder) SetIndent(spaces int) {
 	e.encoder.indent = spaces
 }
 
+// SetTimeFormat changes the timestamp format used when encoding.
+func (e *Encoder) SetTimeFormat(timeFormat string) {
+	e.encoder.timeFormat = timeFormat
+}
+
 // Close closes the encoder by writing any remaining data.
 // It does not write a stream terminating string "...".
 func (e *Encoder) Close() (err error) {

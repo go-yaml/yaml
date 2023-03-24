@@ -29,16 +29,17 @@ import (
 )
 
 type encoder struct {
-	emitter  yaml_emitter_t
-	event    yaml_event_t
-	out      []byte
-	flow     bool
-	indent   int
-	doneInit bool
+	emitter    yaml_emitter_t
+	event      yaml_event_t
+	out        []byte
+	flow       bool
+	indent     int
+	doneInit   bool
+	timeFormat string
 }
 
 func newEncoder() *encoder {
-	e := &encoder{}
+	e := &encoder{timeFormat: time.RFC3339Nano}
 	yaml_emitter_initialize(&e.emitter)
 	yaml_emitter_set_output_string(&e.emitter, &e.out)
 	yaml_emitter_set_unicode(&e.emitter, true)
@@ -46,7 +47,7 @@ func newEncoder() *encoder {
 }
 
 func newEncoderWithWriter(w io.Writer) *encoder {
-	e := &encoder{}
+	e := &encoder{timeFormat: time.RFC3339Nano}
 	yaml_emitter_initialize(&e.emitter)
 	yaml_emitter_set_output_writer(&e.emitter, w)
 	yaml_emitter_set_unicode(&e.emitter, true)
@@ -384,7 +385,7 @@ func (e *encoder) uintv(tag string, in reflect.Value) {
 
 func (e *encoder) timev(tag string, in reflect.Value) {
 	t := in.Interface().(time.Time)
-	s := t.Format(time.RFC3339Nano)
+	s := t.Format(e.timeFormat)
 	e.emitScalar(s, "", tag, yaml_PLAIN_SCALAR_STYLE, nil, nil, nil, nil)
 }
 

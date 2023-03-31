@@ -831,11 +831,13 @@ func (d *decoder) mapping(n *Node, out reflect.Value) (good bool) {
 		k := reflect.New(kt).Elem()
 		if d.unmarshal(n.Content[i], k) {
 			if mergedFields != nil {
-				ki := k.Interface()
-				if mergedFields[ki] {
-					continue
+				if k.CanInterface() && k.Comparable() {
+					ki := k.Interface()
+					if mergedFields[ki] {
+						continue
+					}
+					mergedFields[ki] = true
 				}
-				mergedFields[ki] = true
 			}
 			kkind := k.Kind()
 			if kkind == reflect.Interface {

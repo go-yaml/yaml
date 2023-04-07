@@ -142,9 +142,9 @@ map[a:Easy! b:map[c:2 d:[3 4]]]
 --- m dump:
 a: Easy!
 b:
-  c: 2
-  d:
-  - 3
-  - 4
+    c: 2
+    d:
+        - 3
+        - 4
 ```
 

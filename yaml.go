@@ -273,7 +273,7 @@ func (n *Node) Encode(v interface{}) (err error) {
 // SetIndent changes the used indentation used when encoding.
 func (e *Encoder) SetIndent(spaces int) {
 	if spaces < 0 {
-		panic("yaml: cannot indent to a negative number of spaces")
+		panic(yamlInternalError{fmt.Errorf("yaml: cannot indent to a negative number of spaces")})
 	}
 	e.encoder.indent = spaces
 }
@@ -290,6 +290,8 @@ func handleErr(err *error) {
 	if v := recover(); v != nil {
 		if e, ok := v.(yamlError); ok {
 			*err = e.err
+		} else if e, ok := v.(yamlInternalError); ok {
+			*err = e.err
 		} else {
 			panic(v)
 		}
@@ -297,6 +299,10 @@ func handleErr(err *error) {
 }
 
 type yamlError struct {
+	err error
+}
+
+type yamlInternalError struct {
 	err error
 }
 

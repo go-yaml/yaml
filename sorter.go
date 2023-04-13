@@ -16,6 +16,7 @@
 package yaml
 
 import (
+	"fmt"
 	"reflect"
 	"unicode"
 )
@@ -130,5 +131,5 @@ func numLess(a, b reflect.Value) bool {
 	case reflect.Bool:
 		return !a.Bool() && b.Bool()
 	}
-	panic("not a number")
+	panic(yamlInternalError{fmt.Errorf("not a number")})
 }

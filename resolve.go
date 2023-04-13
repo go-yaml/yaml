@@ -17,6 +17,7 @@ package yaml
 
 import (
 	"encoding/base64"
+	"fmt"
 	"math"
 	"regexp"
 	"strconv"
@@ -258,7 +259,7 @@ func resolve(tag string, in string) (rtag string, out interface{}) {
 				}
 			}
 		default:
-			panic("internal error: missing handler for resolver table: " + string(rune(hint)) + " (with " + in + ")")
+			panic(yamlInternalError{fmt.Errorf("internal error: missing handler for resolver table: %s (with %s)", string(rune(hint)), in)})
 		}
 	}
 	return strTag, in

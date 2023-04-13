@@ -23,6 +23,7 @@
 package yaml
 
 import (
+	"fmt"
 	"io"
 )
 
@@ -77,7 +78,7 @@ func yaml_reader_read_handler(parser *yaml_parser_t, buffer []byte) (n int, err 
 // Set a string input.
 func yaml_parser_set_input_string(parser *yaml_parser_t, input []byte) {
 	if parser.read_handler != nil {
-		panic("must set the input source only once")
+		panic(yamlInternalError{fmt.Errorf("must set the input source only once")})
 	}
 	parser.read_handler = yaml_string_read_handler
 	parser.input = input
@@ -87,7 +88,7 @@ func yaml_parser_set_input_string(parser *yaml_parser_t, input []byte) {
 // Set a file input.
 func yaml_parser_set_input_reader(parser *yaml_parser_t, r io.Reader) {
 	if parser.read_handler != nil {
-		panic("must set the input source only once")
+		panic(yamlInternalError{fmt.Errorf("must set the input source only once")})
 	}
 	parser.read_handler = yaml_reader_read_handler
 	parser.input_reader = r
@@ -96,7 +97,7 @@ func yaml_parser_set_input_reader(parser *yaml_parser_t, r io.Reader) {
 // Set the source encoding.
 func yaml_parser_set_encoding(parser *yaml_parser_t, encoding yaml_encoding_t) {
 	if parser.encoding != yaml_ANY_ENCODING {
-		panic("must set the encoding only once")
+		panic(yamlInternalError{fmt.Errorf("must set the encoding only once")})
 	}
 	parser.encoding = encoding
 }
@@ -133,7 +134,7 @@ func yaml_writer_write_handler(emitter *yaml_emitter_t, buffer []byte) error {
 // Set a string output.
 func yaml_emitter_set_output_string(emitter *yaml_emitter_t, output_buffer *[]byte) {
 	if emitter.write_handler != nil {
-		panic("must set the output target only once")
+		panic(yamlInternalError{fmt.Errorf("must set the output target only once")})
 	}
 	emitter.write_handler = yaml_string_write_handler
 	emitter.output_buffer = output_buffer
@@ -142,7 +143,7 @@ func yaml_emitter_set_output_string(emitter *yaml_emitter_t, output_buffer *[]by
 // Set a file output.
 func yaml_emitter_set_output_writer(emitter *yaml_emitter_t, w io.Writer) {
 	if emitter.write_handler != nil {
-		panic("must set the output target only once")
+		panic(yamlInternalError{fmt.Errorf("must set the output target only once")})
 	}
 	emitter.write_handler = yaml_writer_write_handler
 	emitter.output_writer = w
@@ -151,7 +152,7 @@ func yaml_emitter_set_output_writer(emitter *yaml_emitter_t, w io.Writer) {
 // Set the output encoding.
 func yaml_emitter_set_encoding(emitter *yaml_emitter_t, encoding yaml_encoding_t) {
 	if emitter.encoding != yaml_ANY_ENCODING {
-		panic("must set the output encoding only once")
+		panic(yamlInternalError{fmt.Errorf("must set the output encoding only once")})
 	}
 	emitter.encoding = encoding
 }

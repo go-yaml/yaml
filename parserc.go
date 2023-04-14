@@ -24,6 +24,7 @@ package yaml
 
 import (
 	"bytes"
+	"fmt"
 )
 
 // The parser implements the following grammar:
@@ -221,7 +222,7 @@ func yaml_parser_state_machine(parser *yaml_parser_t, event *yaml_event_t) bool 
 		return yaml_parser_parse_flow_mapping_value(parser, event, true)
 
 	default:
-		panic("invalid parser state")
+		panic(yamlInternalError{fmt.Errorf("invalid parser state")})
 	}
 }
 

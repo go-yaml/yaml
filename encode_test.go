@@ -545,31 +545,26 @@ func (errorWriter) Write([]byte) (int, error) {
 }
 
 var marshalErrorTests = []struct {
-	value interface{}
-	error string
-	panic string
+	value    interface{}
+	errorMsg string
 }{{
 	value: &struct {
 		B       int
 		inlineB ",inline"
 	}{1, inlineB{2, inlineC{3}}},
-	panic: `duplicated key 'b' in struct struct \{ B int; .*`,
+	errorMsg: `duplicated key 'b' in struct struct \{ B int; .*`,
 }, {
 	value: &struct {
 		A int
 		B map[string]int ",inline"
 	}{1, map[string]int{"a": 2}},
-	panic: `cannot have key "a" in inlined map: conflicts with struct field`,
+	errorMsg: `cannot have key "a" in inlined map: conflicts with struct field`,
 }}
 
 func (s *S) TestMarshalErrors(c *C) {
 	for _, item := range marshalErrorTests {
-		if item.panic != "" {
-			c.Assert(func() { yaml.Marshal(item.value) }, PanicMatches, item.panic)
-		} else {
-			_, err := yaml.Marshal(item.value)
-			c.Assert(err, ErrorMatches, item.error)
-		}
+		_, err := yaml.Marshal(item.value)
+		c.Assert(err, ErrorMatches, item.errorMsg)
 	}
 }
 

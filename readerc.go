@@ -23,6 +23,7 @@
 package yaml
 
 import (
+	"fmt"
 	"io"
 )
 
@@ -112,7 +113,7 @@ func yaml_parser_update_raw_buffer(parser *yaml_parser_t) bool {
 // The length is supposed to be significantly less that the buffer size.
 func yaml_parser_update_buffer(parser *yaml_parser_t, length int) bool {
 	if parser.read_handler == nil {
-		panic("read handler must be set")
+		panic(yamlInternalError{fmt.Errorf("read handler must be set")})
 	}
 
 	// [Go] This function was changed to guarantee the requested length size at EOF.
@@ -358,7 +359,7 @@ func yaml_parser_update_buffer(parser *yaml_parser_t, length int) bool {
 				}
 
 			default:
-				panic("impossible")
+				panic(yamlInternalError{fmt.Errorf("impossible")})
 			}
 
 			// Check if the character is in the allowed range:

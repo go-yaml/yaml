@@ -545,7 +545,7 @@ func read(parser *yaml_parser_t, s []byte) []byte {
 	}
 	w := width(parser.buffer[parser.buffer_pos])
 	if w == 0 {
-		panic("invalid character sequence")
+		panic(yamlInternalError{fmt.Errorf("invalid character sequence")})
 	}
 	if len(s) == 0 {
 		s = make([]byte, 0, 32)

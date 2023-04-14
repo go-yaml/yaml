@@ -63,7 +63,7 @@ func put_break(emitter *yaml_emitter_t) bool {
 		emitter.buffer[emitter.buffer_pos+1] = '\n'
 		emitter.buffer_pos += 2
 	default:
-		panic("unknown line break setting")
+		panic(yamlInternalError{fmt.Errorf("unknown line break setting")})
 	}
 	if emitter.column == 0 {
 		emitter.space_above = true
@@ -95,7 +95,7 @@ func write(emitter *yaml_emitter_t, s []byte, i *int) bool {
 	case 1:
 		emitter.buffer[p+0] = s[*i+0]
 	default:
-		panic("unknown character width")
+		panic(yamlInternalError{fmt.Errorf("unknown character width")})
 	}
 	emitter.column++
 	emitter.buffer_pos += w
@@ -311,7 +311,7 @@ func yaml_emitter_state_machine(emitter *yaml_emitter_t, event *yaml_event_t) bo
 	case yaml_EMIT_END_STATE:
 		return yaml_emitter_set_emitter_error(emitter, "expected nothing after STREAM-END")
 	}
-	panic("invalid emitter state")
+	panic(yamlInternalError{fmt.Errorf("invalid emitter state")})
 }
 
 // Expect STREAM-START.
@@ -1111,7 +1111,7 @@ func yaml_emitter_process_scalar(emitter *yaml_emitter_t) bool {
 	case yaml_FOLDED_SCALAR_STYLE:
 		return yaml_emitter_write_folded_scalar(emitter, emitter.scalar_data.value)
 	}
-	panic("unknown scalar style")
+	panic(yamlInternalError{fmt.Errorf("unknown scalar style")})
 }
 
 // Write a head comment.

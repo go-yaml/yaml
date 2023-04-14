@@ -41,7 +41,7 @@ type parser struct {
 func newParser(b []byte) *parser {
 	p := parser{}
 	if !yaml_parser_initialize(&p.parser) {
-		panic("failed to initialize YAML emitter")
+		panic(yamlInternalError{fmt.Errorf("failed to initialize YAML emitter")})
 	}
 	if len(b) == 0 {
 		b = []byte{'\n'}
@@ -53,7 +53,7 @@ func newParser(b []byte) *parser {
 func newParserFromReader(r io.Reader) *parser {
 	p := parser{}
 	if !yaml_parser_initialize(&p.parser) {
-		panic("failed to initialize YAML emitter")
+		panic(yamlInternalError{fmt.Errorf("failed to initialize YAML emitter")})
 	}
 	yaml_parser_set_input_reader(&p.parser, r)
 	return &p
@@ -161,9 +161,9 @@ func (p *parser) parse() *Node {
 		// Happens when attempting to decode an empty buffer.
 		return nil
 	case yaml_TAIL_COMMENT_EVENT:
-		panic("internal error: unexpected tail comment event (please report)")
+		panic(yamlInternalError{fmt.Errorf("internal error: unexpected tail comment event (please report)")})
 	default:
-		panic("internal error: attempted to parse unknown event (please report): " + p.event.typ.String())
+		panic(yamlInternalError{fmt.Errorf("internal error: attempted to parse unknown event (please report): " + p.event.typ.String())})
 	}
 }
 
@@ -713,7 +713,7 @@ func (d *decoder) scalar(n *Node, out reflect.Value) bool {
 			return true
 		}
 	case reflect.Ptr:
-		panic("yaml internal error: please report the issue")
+		panic(yamlInternalError{fmt.Errorf("yaml internal error: please report the issue")})
 	}
 	d.terror(n, tag, out)
 	return false
@@ -878,7 +878,7 @@ func isStringMap(n *Node) bool {
 func (d *decoder) mappingStruct(n *Node, out reflect.Value) (good bool) {
 	sinfo, err := getStructInfo(out.Type())
 	if err != nil {
-		panic(err)
+		panic(yamlInternalError{err})
 	}
 
 	var inlineMap reflect.Value

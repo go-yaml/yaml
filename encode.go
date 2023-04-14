@@ -179,7 +179,7 @@ func (e *encoder) marshal(tag string, in reflect.Value) {
 	case reflect.Bool:
 		e.boolv(tag, in)
 	default:
-		panic("cannot marshal type: " + in.Type().String())
+		panic(yamlInternalError{fmt.Errorf("cannot marshal type: %s", in.Type().String())})
 	}
 }
 
@@ -214,7 +214,7 @@ func (e *encoder) fieldByIndex(v reflect.Value, index []int) (field reflect.Valu
 func (e *encoder) structv(tag string, in reflect.Value) {
 	sinfo, err := getStructInfo(in.Type())
 	if err != nil {
-		panic(err)
+		panic(yamlInternalError{err})
 	}
 	e.mappingv(tag, func() {
 		for _, info := range sinfo.FieldsList {
@@ -242,7 +242,7 @@ func (e *encoder) structv(tag string, in reflect.Value) {
 				sort.Sort(keys)
 				for _, k := range keys {
 					if _, found := sinfo.FieldsMap[k.String()]; found {
-						panic(fmt.Sprintf("cannot have key %q in inlined map: conflicts with struct field", k.String()))
+						panic(yamlInternalError{fmt.Errorf("cannot have key %q in inlined map: conflicts with struct field", k.String())})
 					}
 					e.marshal("", k)
 					e.flow = false

@@ -167,7 +167,11 @@ func (e *encoder) marshal(tag string, in reflect.Value) {
 	case reflect.Struct:
 		e.structv(tag, in)
 	case reflect.Slice, reflect.Array:
-		e.slicev(tag, in)
+		if in.Type().Elem().Kind() == reflect.Uint8 && (tag == "" || tag == binaryTag) {
+			e.stringv(binaryTag, reflect.ValueOf(encodeBase64(string(in.Bytes()))))
+		} else {
+			e.slicev(tag, in)
+		}
 	case reflect.String:
 		e.stringv(tag, in)
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:

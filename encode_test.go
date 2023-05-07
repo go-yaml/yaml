@@ -359,6 +359,15 @@ var marshalTests = []struct {
 	}, {
 		map[string]string{"a": strings.Repeat("\x90", 54)},
 		"a: !!binary |\n    " + strings.Repeat("kJCQ", 17) + "kJ\n    CQ\n",
+	}, {
+		map[string][]byte{"a": {0x00}},
+		"a: !!binary AA==\n",
+	}, {
+		map[string][]byte{"a": {0x80, 0x81, 0x82}},
+		"a: !!binary gIGC\n",
+	}, {
+		map[string][]byte{"a": bytes.Repeat([]byte{0x90}, 54)},
+		"a: !!binary |\n    " + strings.Repeat("kJCQ", 17) + "kJ\n    CQ\n",
 	},
 
 	// Encode unicode as utf-8 rather than in escaped form.

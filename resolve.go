@@ -294,7 +294,9 @@ func encodeBase64(s string) string {
 var allowedTimestampFormats = []string{
 	"2006-1-2T15:4:5.999999999Z07:00", // RCF3339Nano with short date fields.
 	"2006-1-2t15:4:5.999999999Z07:00", // RFC3339Nano with short date fields and lower-case "t".
-	"2006-1-2 15:4:5.999999999",       // space separated with no time zone
+	"2006-1-2 15:4:5.99",              // space separated with no time zone
+	"2006-1-2T15:4:5.99",              // format with short date fields and no time zone.
+	"2006-1-2t15:4:5.99",              // format with short date fields and lower-case "t" and no time zone.
 	"2006-1-2",                        // date only
 	// Notable exception: time.Parse cannot handle: "2001-12-14 21:59:43.10 -5"
 	// from the set of examples.

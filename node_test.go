@@ -2551,6 +2551,36 @@ var nodeTests = []struct {
 			}},
 		},
 	},
+	{
+		"a: |2-\n\n\n\n  string\n",
+		yaml.Node{
+			Kind:   yaml.DocumentNode,
+			Line:   1,
+			Column: 1,
+			Content: []*yaml.Node{{
+				Kind:   yaml.MappingNode,
+				Tag:    "!!map",
+				Line:   1,
+				Column: 1,
+				Content: []*yaml.Node{{
+					Kind:   yaml.ScalarNode,
+					Tag:    "!!str",
+					Value:  "a",
+					Line:   1,
+					Column: 1,
+				},
+					{
+						Kind:   yaml.ScalarNode,
+						Style:  yaml.LiteralStyle,
+						Tag:    "!!str",
+						Value:  "\n\n\nstring",
+						Line:   1,
+						Column: 4,
+					},
+				}},
+			},
+		},
+	},
 }
 
 func (s *S) TestNodeRoundtrip(c *C) {

@@ -325,6 +325,8 @@ type decoder struct {
 	aliasDepth  int
 
 	mergedFields map[interface{}]bool
+
+	tagHandlers map[string]TagHandler
 }
 
 var (
@@ -342,6 +344,7 @@ func newDecoder() *decoder {
 		stringMapType:  stringMapType,
 		generalMapType: generalMapType,
 		uniqueKeys:     true,
+		tagHandlers: map[string]TagHandler{},
 	}
 	d.aliases = make(map[*Node]bool)
 	return d
@@ -565,6 +568,20 @@ func (d *decoder) null(out reflect.Value) bool {
 func (d *decoder) scalar(n *Node, out reflect.Value) bool {
 	var tag string
 	var resolved interface{}
+	if handler, ok := d.tagHandlers[n.Tag]; ok {
+		result, err := handler(n.Value)
+		if err != nil {
+			fail(err)
+		}
+		toSet:=reflect.ValueOf(result)
+		if toSet.CanConvert(out.Type()) {
+			out.Set(toSet.Convert(out.Type()))
+			return true
+		} else {
+			fail(fmt.Errorf("error on handle %s tag: can't convert %s to target type %s", n.Tag,
+				toSet.Type().Name(), out.Type().Name()))
+		}
+	}
 	if n.indicatedString() {
 		tag = strTag
 		resolved = n.Value

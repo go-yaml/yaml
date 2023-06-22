@@ -91,8 +91,9 @@ func Unmarshal(in []byte, out interface{}) (err error) {
 
 // A Decoder reads and decodes YAML values from an input stream.
 type Decoder struct {
-	parser      *parser
-	knownFields bool
+	parser          *parser
+	knownFields     bool
+	allowReferences bool
 }
 
 // NewDecoder returns a new decoder that reads from r.
@@ -109,6 +110,12 @@ func NewDecoder(r io.Reader) *Decoder {
 // exist as fields in the struct being decoded into.
 func (dec *Decoder) KnownFields(enable bool) {
 	dec.knownFields = enable
+}
+
+// AllowReferences allows the use of ${<field_name>} to refer to
+// other fields in the same struct being decoded into.
+func (dec *Decoder) AllowReferences(enable bool) {
+	dec.allowReferences = enable
 }
 
 // Decode reads the next YAML-encoded value from its input

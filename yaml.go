@@ -126,6 +126,7 @@ func (dec *Decoder) AllowReferences(enable bool) {
 func (dec *Decoder) Decode(v interface{}) (err error) {
 	d := newDecoder()
 	d.knownFields = dec.knownFields
+	d.allowReferences = dec.allowReferences
 	defer handleErr(&err)
 	node := dec.parser.parse()
 	if node == nil {
@@ -335,6 +336,7 @@ const (
 	MappingNode
 	ScalarNode
 	AliasNode
+	ScalarReferenceNode
 )
 
 type Style uint32
@@ -402,6 +404,9 @@ type Node struct {
 
 	// Alias holds the node that this alias points to. Only valid when Kind is AliasNode.
 	Alias *Node
+
+	// References holds the references for this node
+	References map[string]*References
 
 	// Content holds contained nodes for documents, mappings, and sequences.
 	Content []*Node

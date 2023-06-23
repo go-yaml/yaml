@@ -22,7 +22,9 @@ import (
 	"io"
 	"math"
 	"reflect"
+	"sort"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -30,12 +32,13 @@ import (
 // Parser, produces a node tree out of a libyaml event stream.
 
 type parser struct {
-	parser   yaml_parser_t
-	event    yaml_event_t
-	doc      *Node
-	anchors  map[string]*Node
-	doneInit bool
-	textless bool
+	parser     yaml_parser_t
+	event      yaml_event_t
+	doc        *Node
+	anchors    map[string]*Node
+	references map[string][]*Node
+	doneInit   bool
+	textless   bool
 }
 
 func newParser(b []byte) *parser {
@@ -64,6 +67,7 @@ func (p *parser) init() {
 		return
 	}
 	p.anchors = make(map[string]*Node)
+	p.references = make(map[string][]*Node)
 	p.expect(yaml_STREAM_START_EVENT)
 	p.doneInit = true
 }
@@ -142,6 +146,28 @@ func (p *parser) anchor(n *Node, anchor []byte) {
 		n.Anchor = string(anchor)
 		p.anchors[n.Anchor] = n
 	}
+}
+
+func (p *parser) reference(n *Node, ref *Reference) {
+	if n.References == nil {
+		n.References = make(map[string]*References)
+	}
+	if n.References[ref.Name] == nil {
+		n.References[ref.Name] = &References{
+			Name: ref.Name,
+		}
+		f := false
+		for _, m := range p.references[ref.Name] {
+			if m == n {
+				f = true
+				break
+			}
+		}
+		if !f {
+			p.references[ref.Name] = append(p.references[ref.Name], n)
+		}
+	}
+	n.References[ref.Name].References = append(n.References[ref.Name].References, ref)
 }
 
 func (p *parser) parse() *Node {
@@ -244,9 +270,17 @@ func (p *parser) scalar() *Node {
 	} else {
 		defaultTag = strTag
 	}
-	n := p.node(ScalarNode, defaultTag, nodeTag, nodeValue)
+	kind := ScalarNode
+	refs := parseReferences(nodeValue)
+	if len(refs) > 0 {
+		kind = ScalarReferenceNode
+	}
+	n := p.node(kind, defaultTag, nodeTag, nodeValue)
 	n.Style |= nodeStyle
 	p.anchor(n, p.event.anchor)
+	for _, ref := range refs {
+		p.reference(n, ref)
+	}
 	p.expect(yaml_SCALAR_EVENT)
 	return n
 }
@@ -318,11 +352,13 @@ type decoder struct {
 	stringMapType  reflect.Type
 	generalMapType reflect.Type
 
-	knownFields bool
-	uniqueKeys  bool
-	decodeCount int
-	aliasCount  int
-	aliasDepth  int
+	knownFields     bool
+	allowReferences bool
+	uniqueKeys      bool
+	decodeCount     int
+	aliasCount      int
+	aliasDepth      int
+	referenceDepth  int
 
 	mergedFields map[interface{}]bool
 }
@@ -504,6 +540,8 @@ func (d *decoder) unmarshal(n *Node, out reflect.Value) (good bool) {
 		return good
 	}
 	switch n.Kind {
+	case ScalarReferenceNode:
+		good = d.scalarReference(n, out)
 	case ScalarNode:
 		good = d.scalar(n, out)
 	case MappingNode:
@@ -560,6 +598,61 @@ func (d *decoder) null(out reflect.Value) bool {
 		}
 	}
 	return false
+}
+
+func (d *decoder) scalarReference(n *Node, out reflect.Value) bool {
+	if d.allowReferences {
+		if d.referenceDepth > 100 {
+			failf("document contains excessive references")
+		}
+		var ranges []*ReferenceReverse
+		for name, refs := range n.References {
+			for _, ref := range refs.References {
+				r := &ReferenceReverse{
+					Range:      &ref.Range,
+					References: refs,
+				}
+				ranges = append(ranges, r)
+			}
+			if refs.Target == nil {
+				p := d.doc
+				for _, k := range strings.Split(name, ".") {
+					var t map[string]Node
+					if err := p.Decode(&t); err != nil {
+						failf(err.Error())
+					}
+					q := t[k]
+					if q.Kind == 0 {
+						failf("parsing %s reference failed", name)
+					}
+					p = &q
+				}
+				refs.Target = p
+			}
+		}
+		sort.SliceStable(ranges, func(i, j int) bool {
+			return ranges[i].Range.End <= ranges[j].Range.Begin
+		})
+		var result string
+		i := 0
+		for _, r := range ranges {
+			var t string
+			d.referenceDepth++
+			if good := d.unmarshal(r.References.Target, reflect.ValueOf(&t).Elem()); !good {
+				failf("unmarshal failed for %s", r.References.Name)
+			}
+			d.referenceDepth--
+			result += n.Value[i:r.Range.Begin]
+			result += t
+			i = r.Range.End
+		}
+		result += n.Value[i:]
+		m := Node(*n)
+		m.Kind = ScalarNode
+		m.Value = result
+		return d.scalar(&m, out)
+	}
+	return d.scalar(n, out)
 }
 
 func (d *decoder) scalar(n *Node, out reflect.Value) bool {

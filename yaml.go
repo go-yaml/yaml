@@ -91,8 +91,9 @@ func Unmarshal(in []byte, out interface{}) (err error) {
 
 // A Decoder reads and decodes YAML values from an input stream.
 type Decoder struct {
-	parser      *parser
-	knownFields bool
+	parser          *parser
+	knownFields     bool
+	allowReferences bool
 }
 
 // NewDecoder returns a new decoder that reads from r.
@@ -111,6 +112,12 @@ func (dec *Decoder) KnownFields(enable bool) {
 	dec.knownFields = enable
 }
 
+// AllowReferences allows the use of ${<field_name>} to refer to
+// other fields in the same struct being decoded into.
+func (dec *Decoder) AllowReferences(enable bool) {
+	dec.allowReferences = enable
+}
+
 // Decode reads the next YAML-encoded value from its input
 // and stores it in the value pointed to by v.
 //
@@ -119,6 +126,7 @@ func (dec *Decoder) KnownFields(enable bool) {
 func (dec *Decoder) Decode(v interface{}) (err error) {
 	d := newDecoder()
 	d.knownFields = dec.knownFields
+	d.allowReferences = dec.allowReferences
 	defer handleErr(&err)
 	node := dec.parser.parse()
 	if node == nil {
@@ -328,6 +336,7 @@ const (
 	MappingNode
 	ScalarNode
 	AliasNode
+	ScalarReferenceNode
 )
 
 type Style uint32
@@ -395,6 +404,9 @@ type Node struct {
 
 	// Alias holds the node that this alias points to. Only valid when Kind is AliasNode.
 	Alias *Node
+
+	// References holds the references for this node
+	References map[string]*References
 
 	// Content holds contained nodes for documents, mappings, and sequences.
 	Content []*Node

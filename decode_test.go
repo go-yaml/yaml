@@ -1703,6 +1703,91 @@ func (s *S) TestUnmarshalKnownFields(c *C) {
 	}
 }
 
+var unmarshalReferencesTests = []struct {
+	refer bool
+	data  string
+	value interface{}
+	error string
+}{{
+	refer: false,
+	data:  "a: x\nb: ${a}\n",
+	value: struct{ A, B string }{A: "x", B: "${a}"},
+}, {
+	refer: true,
+	data:  "a: x\nb: ${a}\n",
+	value: struct{ A, B string }{A: "x", B: "x"},
+}, {
+	refer: true,
+	data:  "a: x\nb: ${c}\n",
+	value: struct{ A, B string }{A: "x"},
+	error: "yaml: parsing c reference failed",
+}, {
+	refer: true,
+	data:  "a: x\nb: ${b}\n",
+	value: struct{ A, B string }{A: "x"},
+	error: "yaml: document contains excessive references",
+}, {
+	refer: true,
+	data:  "a: x\nb: ${d}\nc: ${b}\nd: ${c}\n",
+	value: struct{ A, B, C, D string }{A: "x"},
+	error: "yaml: document contains excessive references",
+}, {
+	refer: true,
+	data:  "a: x\nb: y\nc: ${a}${b}\n",
+	value: struct{ A, B, C string }{A: "x", B: "y", C: "xy"},
+}, {
+	refer: true,
+	data:  "a: x\nb: y\nc: ${a} ${b}\n",
+	value: struct{ A, B, C string }{A: "x", B: "y", C: "x y"},
+}, {
+	refer: true,
+	data:  "a: x\nb: y\nc: ${a} ${b}\nd: ${c} z\n",
+	value: struct{ A, B, C, D string }{A: "x", B: "y", C: "x y", D: "x y z"},
+}, {
+	refer: true,
+	data:  "a: x\nb: y\nc: ${a} ${b}\nd: ${c} z\n",
+	value: struct{ A, B, D string }{A: "x", B: "y", D: "x y z"},
+}, {
+	refer: true,
+	data:  "x:\n  a: x\nc: ${x.a}\n",
+	value: struct {
+		X struct{ A string }
+		C string
+	}{X: struct{ A string }{A: "x"}, C: "x"},
+}, {
+	refer: true,
+	data:  "x:\n  a: x\nc: ${x.b}\n",
+	value: struct {
+		X struct{ A string }
+		C string
+	}{X: struct{ A string }{A: "x"}},
+	error: "yaml: parsing x.b reference failed",
+}, {
+	refer: true,
+	data:  "x:\n  a: x\n  b: y\nc: ${x.a} ${x.b}\n",
+	value: struct {
+		X struct{ A, B string }
+		C string
+	}{X: struct{ A, B string }{A: "x", B: "y"}, C: "x y"},
+}}
+
+func (s *S) TestUnmarshalAllowReferences(c *C) {
+	for i, item := range unmarshalReferencesTests {
+		c.Logf("test %d: %q", i, item.data)
+		t := reflect.ValueOf(item.value).Type()
+		value := reflect.New(t)
+		dec := yaml.NewDecoder(bytes.NewBuffer([]byte(item.data)))
+		dec.AllowReferences(item.refer)
+		err := dec.Decode(value.Interface())
+		c.Assert(value.Elem().Interface(), DeepEquals, item.value)
+		if item.error == "" {
+			c.Assert(err, IsNil)
+		} else {
+			c.Assert(err, ErrorMatches, item.error)
+		}
+	}
+}
+
 type textUnmarshaler struct {
 	S string
 }

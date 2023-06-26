@@ -1,4 +1,4 @@
-module gopkg.in/yaml.v3
+module github.com/putao520/yaml
 
 go 1.20
 

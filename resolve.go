@@ -128,7 +128,6 @@ func resolve(tag string, in string) (rtag string, out interface{}) {
 	if !resolvableTag(tag) {
 		return tag, in
 	}
-
 	defer func() {
 		switch tag {
 		case "", rtag, strTag, binaryTag:

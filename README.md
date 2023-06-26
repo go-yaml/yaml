@@ -36,18 +36,18 @@ supported since they're a poor design and are gone in YAML 1.2.
 Installation and usage
 ----------------------
 
-The import path for the package is *gopkg.in/yaml.v3*.
+The import path for the package is *github.com/putao520/yaml*.
 
 To install it, run:
 
-    go get gopkg.in/yaml.v3
+    go get github.com/putao520/yaml
 
 API documentation
 -----------------
 
 If opened in a browser, the import path itself leads to the API documentation:
 
-  - [https://gopkg.in/yaml.v3](https://gopkg.in/yaml.v3)
+  - [https://github.com/putao520/yaml](https://github.com/putao520/yaml)
 
 API stability
 -------------
@@ -72,7 +72,7 @@ import (
         "fmt"
         "log"
 
-        "gopkg.in/yaml.v3"
+        "github.com/putao520/yaml"
 )
 
 var data = `

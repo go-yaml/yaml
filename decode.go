@@ -875,10 +875,63 @@ func isStringMap(n *Node) bool {
 	return true
 }
 
+func safeDefaultType(t reflect.Type) bool {
+	switch t.Kind() {
+	case reflect.Int:
+		return true
+	case reflect.Bool:
+		return true
+	case reflect.Float32:
+		return true
+	case reflect.Float64:
+		return true
+	case reflect.Int8:
+		return true
+	case reflect.Int16:
+		return true
+	case reflect.Int32:
+		return true
+	case reflect.Int64:
+		return true
+	case reflect.Uint:
+		return true
+	case reflect.Uint8:
+		return true
+	case reflect.Uint16:
+		return true
+	case reflect.Uint32:
+		return true
+	case reflect.Uint64:
+		return true
+	case reflect.String:
+		return true
+	default:
+		return false
+	}
+}
+
 func (d *decoder) mappingStruct(n *Node, out reflect.Value) (good bool) {
 	sinfo, err := getStructInfo(out.Type())
 	if err != nil {
 		panic(err)
+	}
+
+	// 构造 n 的key映射
+	nodeMap := make(map[string]*Node)
+	l_ := len(n.Content)
+	for i := 0; i < l_; i += 2 {
+		nodeMap[n.Content[i].Value] = n.Content[i+1]
+	}
+	// 遍历 sinfo.FieldsList，将所有的字段都设置为未处理
+	for _, info := range sinfo.FieldsList {
+		if nodeMap[info.Key] == nil {
+			if safeDefaultType(info.Type) {
+				// 新增 key
+				n.Content = append(n.Content, &Node{Kind: ScalarNode, Value: info.Key})
+				// 新增 value
+				n.Content = append(n.Content, &Node{Kind: ScalarNode, Value: info.Default, Type: info.Type})
+			}
+		}
 	}
 
 	var inlineMap reflect.Value
@@ -949,6 +1002,7 @@ func (d *decoder) mappingStruct(n *Node, out reflect.Value) (good bool) {
 	if mergeNode != nil {
 		d.merge(n, mergeNode, out)
 	}
+
 	return true
 }
 

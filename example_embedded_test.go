@@ -26,7 +26,11 @@ import (
 // structs from YAML.
 
 type StructA struct {
-	A string `yaml:"a"`
+	A string  `yaml:"a"`
+	C string  `yaml:"c" default:"true"`
+	D bool    `yaml:"d" default:"true"`
+	E int64   `yaml:"e" default:"123"`
+	F float64 `yaml:"f" default:"123.123"`
 }
 
 type StructB struct {

@@ -26,7 +26,7 @@ import (
 	"time"
 
 	. "gopkg.in/check.v1"
-	"gopkg.in/yaml.v3"
+	"github.com/polkeli/yaml/v3"
 )
 
 var unmarshalIntTest = 123
@@ -219,7 +219,10 @@ var unmarshalTests = []struct {
 	}, {
 		"seq: [A,1,C]",
 		map[string]interface{}{"seq": []interface{}{"A", 1, "C"}},
-	},
+	}, /*{
+		"seq: [A]",
+		map[string]string{"seq": "A"},
+	},*/
 	// Block sequence
 	{
 		"seq:\n - A\n - B",
@@ -947,7 +950,7 @@ var unmarshalErrorTests = []struct {
 	{"%TAG !%79! tag:yaml.org,2002:\n---\nv: !%79!int '1'", "yaml: did not find expected whitespace"},
 	{"a:\n  1:\nb\n  2:", ".*could not find expected ':'"},
 	{"a: 1\nb: 2\nc 2\nd: 3\n", "^yaml: line 3: could not find expected ':'$"},
-	{"#\n-\n{", "yaml: line 3: could not find expected ':'"}, // Issue #665
+	{"#\n-\n{", "yaml: line 3: could not find expected ':'"},   // Issue #665
 	{"0: [:!00 \xef", "yaml: incomplete UTF-8 octet sequence"}, // Issue #666
 	{
 		"a: &a [00,00,00,00,00,00,00,00,00]\n" +
@@ -1482,7 +1485,7 @@ func (s *S) TestMergeNestedStruct(c *C) {
 	// 2) A simple implementation might attempt to handle the key skipping
 	//    directly by iterating over the merging map without recursion, but
 	//    there are more complex cases that require recursion.
-	// 
+	//
 	// Quick summary of the fields:
 	//
 	// - A must come from outer and not overriden
@@ -1498,7 +1501,7 @@ func (s *S) TestMergeNestedStruct(c *C) {
 		A, B, C int
 	}
 	type Outer struct {
-		D, E      int
+		D, E   int
 		Inner  Inner
 		Inline map[string]int `yaml:",inline"`
 	}
@@ -1516,10 +1519,10 @@ func (s *S) TestMergeNestedStruct(c *C) {
 	// Repeat test with a map.
 
 	var testm map[string]interface{}
-	var wantm = map[string]interface {} {
-		"f":     60,
+	var wantm = map[string]interface{}{
+		"f": 60,
 		"inner": map[string]interface{}{
-		    "a": 10,
+			"a": 10,
 		},
 		"d": 40,
 		"e": 50,

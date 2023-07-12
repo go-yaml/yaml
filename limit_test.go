@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	. "gopkg.in/check.v1"
-	"gopkg.in/yaml.v3"
+	"github.com/polkeli/yaml/v3"
 )
 
 var limitTests = []struct {

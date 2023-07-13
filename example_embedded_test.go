@@ -19,7 +19,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/polkeli/yaml/v3"
+	"gopkg.in/yaml.v3"
 )
 
 // An example showing how to unmarshal embedded

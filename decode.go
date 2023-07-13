@@ -717,7 +717,7 @@ func (d *decoder) scalar(n *Node, out reflect.Value) bool {
 		// but does not match the expected "clues" to fully identify it as a sequence. Attempt to "re-class" the node as a sequence
 		// and process it as such.
 		n.Kind = SequenceNode
-		n.Content = []*Node{&Node{Kind: ScalarNode, Value: n.Value}}
+		n.Content = []*Node{{Kind: ScalarNode, Value: n.Value}}
 		return d.sequence(n, out)
 	case reflect.Ptr:
 		panic("yaml internal error: please report the issue")

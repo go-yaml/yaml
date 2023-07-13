@@ -712,6 +712,13 @@ func (d *decoder) scalar(n *Node, out reflect.Value) bool {
 			out.Set(resolvedv)
 			return true
 		}
+	case reflect.Slice, reflect.Array:
+		// This (likely) indicates the source value is a sequence with only a singular value (e.g. want `field: [a, b, c]`, got `field: a`),
+		// but does not match the expected "clues" to fully identify it as a sequence. Attempt to "re-class" the node as a sequence
+		// and process it as such.
+		n.Kind = SequenceNode
+		n.Content = []*Node{{Kind: ScalarNode, Value: n.Value}}
+		return d.sequence(n, out)
 	case reflect.Ptr:
 		panic("yaml internal error: please report the issue")
 	}

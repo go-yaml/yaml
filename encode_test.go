@@ -494,6 +494,31 @@ var marshalTests = []struct {
 		},
 		"value: !!seq []\n",
 	},
+	{map[struct {
+		A int
+		B string
+	}]int{{A: 10, B: "a"}: 1,
+		{A: 11, B: "b"}: 3,
+		{A: 11, B: "a"}: 2,
+		{A: 11, B: "c"}: 4,
+		{A: 20, B: "a"}: 5},
+		"" +
+			"?   a: 10\n" +
+			"    b: a\n" +
+			": 1\n" +
+			"?   a: 11\n" +
+			"    b: a\n" +
+			": 2\n" +
+			"?   a: 11\n" +
+			"    b: b\n" +
+			": 3\n" +
+			"?   a: 11\n" +
+			"    b: c\n" +
+			": 4\n" +
+			"?   a: 20\n" +
+			"    b: a\n" +
+			": 5\n",
+	},
 }
 
 func (s *S) TestMarshal(c *C) {

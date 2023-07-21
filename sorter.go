@@ -17,16 +17,23 @@ package yaml
 
 import (
 	"reflect"
+	"sort"
 	"unicode"
 )
 
-type keyList []reflect.Value
+type reflectSorter []reflect.Value
 
-func (l keyList) Len() int      { return len(l) }
-func (l keyList) Swap(i, j int) { l[i], l[j] = l[j], l[i] }
-func (l keyList) Less(i, j int) bool {
-	a := l[i]
-	b := l[j]
+func NewSortedKeys(mv reflect.Value) []reflect.Value {
+	keys := mv.MapKeys()
+	sort.Slice(keys, reflectSorter(keys).Less)
+	return keys
+}
+
+func (l reflectSorter) Less(i, j int) bool {
+	return lessByValues(l[i], l[j])
+}
+
+func lessByValues(a, b reflect.Value) bool {
 	ak := a.Kind()
 	bk := b.Kind()
 	for (ak == reflect.Interface || ak == reflect.Ptr) && !a.IsNil() {
@@ -47,6 +54,25 @@ func (l keyList) Less(i, j int) bool {
 			return ak < bk
 		}
 		return numLess(a, b)
+	}
+	if ak == reflect.Struct && bk == ak {
+		tp := a.Type()
+		isEqual := false
+		for fi, fc := 0, tp.NumField(); fi < fc; fi++ { //compare struct fields in declaration order
+			if !tp.Field(fi).IsExported() {
+				continue
+			}
+			if lessByValues(a.Field(fi), b.Field(fi)) {
+				return true
+			}
+			if lessByValues(b.Field(fi), a.Field(fi)) {
+				return false
+			}
+			isEqual = true
+		}
+		if isEqual {
+			return false
+		}
 	}
 	if ak != reflect.String || bk != reflect.String {
 		return ak < bk

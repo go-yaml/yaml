@@ -770,6 +770,11 @@ func (d *decoder) mapping(n *Node, out reflect.Value) (good bool) {
 		nerrs := len(d.terrors)
 		for i := 0; i < l; i += 2 {
 			ni := n.Content[i]
+			if isMerge(ni) {
+				// Merge keys ("<<") are discarded during processing, so don't need to be unique.
+				continue
+			}
+
 			for j := i + 2; j < l; j += 2 {
 				nj := n.Content[j]
 				if ni.Kind == nj.Kind && ni.Value == nj.Value {
@@ -816,7 +821,7 @@ func (d *decoder) mapping(n *Node, out reflect.Value) (good bool) {
 	mergedFields := d.mergedFields
 	d.mergedFields = nil
 
-	var mergeNode *Node
+	mergeNodes := []*Node{}
 
 	mapIsNew := false
 	if out.IsNil() {
@@ -825,7 +830,7 @@ func (d *decoder) mapping(n *Node, out reflect.Value) (good bool) {
 	}
 	for i := 0; i < l; i += 2 {
 		if isMerge(n.Content[i]) {
-			mergeNode = n.Content[i+1]
+			mergeNodes = append(mergeNodes, n.Content[i+1])
 			continue
 		}
 		k := reflect.New(kt).Elem()
@@ -852,8 +857,8 @@ func (d *decoder) mapping(n *Node, out reflect.Value) (good bool) {
 	}
 
 	d.mergedFields = mergedFields
-	if mergeNode != nil {
-		d.merge(n, mergeNode, out)
+	for _, node := range mergeNodes {
+		d.merge(n, node, out)
 	}
 
 	d.stringMapType = stringMapType

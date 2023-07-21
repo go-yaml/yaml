@@ -1530,6 +1530,37 @@ func (s *S) TestMergeNestedStruct(c *C) {
 	c.Assert(testm["outer"], DeepEquals, wantm)
 }
 
+const doubleMerge = `
+one: &one
+  a: 1
+  b: 2
+  d: 5
+
+two: &two
+  b: 3
+  c: 4
+  e: 6
+
+merged:
+  a: 0
+  <<: *one
+  <<: *two
+  e: 7
+`
+
+func (s *S) TestDoubleMerge(c *C) {
+	var m map[string]interface{}
+	err := yaml.Unmarshal([]byte(doubleMerge), &m)
+	c.Assert(err, IsNil)
+	c.Assert(m["merged"], DeepEquals, map[string]interface{}{
+		"a": 0, // The value of the parent is preserved over what's brought in by the merge
+		"b": 3,
+		"c": 4,
+		"d": 5,
+		"e": 7,
+	})
+}
+
 var unmarshalNullTests = []struct {
 	input              string
 	pristine, expected func() interface{}

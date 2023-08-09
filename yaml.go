@@ -679,7 +679,7 @@ type IsZeroer interface {
 	IsZero() bool
 }
 
-func isZero(v reflect.Value) bool {
+func isZero(tag string, v reflect.Value) bool {
 	kind := v.Kind()
 
 	var iface any
@@ -725,7 +725,7 @@ func isZero(v reflect.Value) bool {
 			if vt.Field(i).PkgPath != "" {
 				continue // Private field
 			}
-			if !isZero(v.Field(i)) {
+			if !isZero(tag+"."+vt.Field(i).Name, v.Field(i)) {
 				return false
 			}
 		}

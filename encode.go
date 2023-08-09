@@ -24,7 +24,6 @@ import (
 	"sort"
 	"strconv"
 	"strings"
-	"time"
 	"unicode/utf8"
 )
 
@@ -123,31 +122,34 @@ func (e *encoder) marshalDoc(tag string, in reflect.Value) {
 
 func (e *encoder) marshal(tag string, in reflect.Value) {
 	tag = shortTag(tag)
-	if !in.IsValid() || in.Kind() == reflect.Ptr && in.IsNil() {
+	if !in.IsValid() { //|| in.Kind() == reflect.Ptr && in.IsNil() {
 		e.nilv()
 		return
 	}
+
 	iface := in.Interface()
+	if iface == nil {
+		e.nilv()
+		return
+	}
+
+	if in.Kind() != reflect.Ptr && in.Kind() != reflect.Interface {
+		if in.CanAddr() {
+			iface = in.Addr().Interface()
+		} else {
+			// uh, not sure about this but look at this project's original Node: case...
+			n := reflect.New(in.Type()).Elem()
+			n.Set(in)
+			iface = n.Addr().Interface()
+		}
+	}
+
 	switch value := iface.(type) {
+	//case *time.Duration:
+	//	e.stringv(tag, reflect.ValueOf(value.String()))
+	//	return
 	case *Node:
 		e.nodev(in)
-		return
-	case Node:
-		if !in.CanAddr() {
-			var n = reflect.New(in.Type()).Elem()
-			n.Set(in)
-			in = n
-		}
-		e.nodev(in.Addr())
-		return
-	case time.Time:
-		e.timev(tag, in)
-		return
-	case *time.Time:
-		e.timev(tag, in.Elem())
-		return
-	case time.Duration:
-		e.stringv(tag, reflect.ValueOf(value.String()))
 		return
 	case Marshaler:
 		v, err := value.MarshalYAML(e.arg)
@@ -156,20 +158,25 @@ func (e *encoder) marshal(tag string, in reflect.Value) {
 		}
 		if v == nil {
 			e.nilv()
-			return
+		} else {
+			e.marshal(tag, reflect.ValueOf(v))
 		}
-		e.marshal(tag, reflect.ValueOf(v))
 		return
 	case encoding.TextMarshaler:
 		text, err := value.MarshalText()
 		if err != nil {
 			fail(err)
 		}
-		in = reflect.ValueOf(string(text))
+		e.rawstringv(tag, string(text))
+		return
+	case fmt.Stringer:
+		e.rawstringv(tag, value.String())
+		return
 	case nil:
 		e.nilv()
 		return
 	}
+
 	switch in.Kind() {
 	case reflect.Interface:
 		e.marshal(tag, in.Elem())
@@ -335,8 +342,12 @@ func isOldBool(s string) (result bool) {
 }
 
 func (e *encoder) stringv(tag string, in reflect.Value) {
-	var style yaml_scalar_style_t
 	s := in.String()
+	e.rawstringv(tag, s)
+}
+
+func (e *encoder) rawstringv(tag string, s string) {
+	var style yaml_scalar_style_t
 	canUsePlain := true
 	switch {
 	case !utf8.ValidString(s):
@@ -395,11 +406,13 @@ func (e *encoder) uintv(tag string, in reflect.Value) {
 	e.emitScalar(s, "", tag, yaml_PLAIN_SCALAR_STYLE, nil, nil, nil, nil)
 }
 
+/* Handled by TextMarshaler in time.Time
 func (e *encoder) timev(tag string, in reflect.Value) {
 	t := in.Interface().(time.Time)
 	s := t.Format(time.RFC3339Nano)
 	e.emitScalar(s, "", tag, yaml_PLAIN_SCALAR_STYLE, nil, nil, nil, nil)
 }
+*/
 
 func (e *encoder) floatv(tag string, in reflect.Value) {
 	// Issue #352: When formatting, use the precision of the underlying value

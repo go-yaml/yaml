@@ -29,24 +29,37 @@ import (
 )
 
 type encoder struct {
-	emitter  yaml_emitter_t
-	event    yaml_event_t
-	out      []byte
-	flow     bool
-	indent   int
-	doneInit bool
+	emitter      yaml_emitter_t
+	event        yaml_event_t
+	out          []byte
+	flow         bool
+	indent       int
+	doneInit     bool
+	originalCase bool
+	arg          any
 }
 
-func newEncoder() *encoder {
-	e := &encoder{}
+func newEncoder_(arg any, opts ...MarshalOpt) (e *encoder) {
+	e = &encoder{}
+	e.arg = arg
+	for _, o := range opts {
+		if o == OriginalCase {
+			e.originalCase = true
+		}
+	}
+	return
+}
+
+func newEncoder(arg any, opts ...MarshalOpt) *encoder {
+	e := newEncoder_(arg, opts...)
 	yaml_emitter_initialize(&e.emitter)
 	yaml_emitter_set_output_string(&e.emitter, &e.out)
 	yaml_emitter_set_unicode(&e.emitter, true)
 	return e
 }
 
-func newEncoderWithWriter(w io.Writer) *encoder {
-	e := &encoder{}
+func newEncoderWithWriter(w io.Writer, arg any, opts ...MarshalOpt) *encoder {
+	e := newEncoder_(arg, opts...)
 	yaml_emitter_initialize(&e.emitter)
 	yaml_emitter_set_output_writer(&e.emitter, w)
 	yaml_emitter_set_unicode(&e.emitter, true)
@@ -137,7 +150,7 @@ func (e *encoder) marshal(tag string, in reflect.Value) {
 		e.stringv(tag, reflect.ValueOf(value.String()))
 		return
 	case Marshaler:
-		v, err := value.MarshalYAML()
+		v, err := value.MarshalYAML(e.arg)
 		if err != nil {
 			fail(err)
 		}
@@ -212,7 +225,7 @@ func (e *encoder) fieldByIndex(v reflect.Value, index []int) (field reflect.Valu
 }
 
 func (e *encoder) structv(tag string, in reflect.Value) {
-	sinfo, err := getStructInfo(in.Type())
+	sinfo, err := getStructInfo(in.Type(), e.originalCase)
 	if err != nil {
 		panic(err)
 	}

@@ -876,7 +876,7 @@ func isStringMap(n *Node) bool {
 }
 
 func (d *decoder) mappingStruct(n *Node, out reflect.Value) (good bool) {
-	sinfo, err := getStructInfo(out.Type())
+	sinfo, err := getStructInfo(out.Type(), false)
 	if err != nil {
 		panic(err)
 	}

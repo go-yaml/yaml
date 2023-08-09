@@ -676,7 +676,22 @@ type IsZeroer interface {
 
 func isZero(v reflect.Value) bool {
 	kind := v.Kind()
-	if z, ok := v.Interface().(IsZeroer); ok {
+
+	var iface any
+	if kind != reflect.Ptr && kind != reflect.Interface {
+		if v.CanAddr() {
+			iface = v.Addr().Interface()
+		} else {
+			// uh, not sure about this but look at this project's original Node: case...
+			n := reflect.New(v.Type()).Elem()
+			n.Set(v)
+			iface = n.Addr().Interface()
+		}
+	} else {
+		iface = v.Interface()
+	}
+
+	if z, ok := iface.(IsZeroer); ok {
 		if (kind == reflect.Ptr || kind == reflect.Interface) && v.IsNil() {
 			return true
 		}

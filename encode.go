@@ -177,6 +177,11 @@ func (e *encoder) marshal(tag string, in reflect.Value) {
 		return
 	}
 
+	omitAllEmptyFields := false
+	if opter, ok := iface.(StructEncoderOpter); ok {
+		omitAllEmptyFields = opter.OmitAllEmptyFieldsOpt()
+	}
+
 	switch in.Kind() {
 	case reflect.Interface:
 		e.marshal(tag, in.Elem())
@@ -185,7 +190,7 @@ func (e *encoder) marshal(tag string, in reflect.Value) {
 	case reflect.Ptr:
 		e.marshal(tag, in.Elem())
 	case reflect.Struct:
-		e.structv(tag, in)
+		e.structv(tag, in, omitAllEmptyFields)
 	case reflect.Slice, reflect.Array:
 		e.slicev(tag, in)
 	case reflect.String:
@@ -231,8 +236,9 @@ func (e *encoder) fieldByIndex(v reflect.Value, index []int) (field reflect.Valu
 	return v
 }
 
-func (e *encoder) structv(tag string, in reflect.Value) {
+func (e *encoder) structv(tag string, in reflect.Value, omitAllEmptyFields bool) {
 	sinfo, err := getStructInfo(in.Type(), e.originalCase)
+
 	if err != nil {
 		panic(err)
 	}
@@ -247,7 +253,7 @@ func (e *encoder) structv(tag string, in reflect.Value) {
 					continue
 				}
 			}
-			if info.OmitEmpty && isZero(value) {
+			if (omitAllEmptyFields || info.OmitEmpty) && isZero(value) {
 				continue
 			}
 			e.marshal("", reflect.ValueOf(info.Key))

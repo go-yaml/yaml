@@ -666,6 +666,11 @@ func getStructInfo(st reflect.Type, originalCase bool) (*structInfo, error) {
 	return sinfo, nil
 }
 
+// StructOpter
+type StructEncoderOpter interface {
+	OmitAllEmptyFieldsOpt() bool
+}
+
 // IsZeroer is used to check whether an object is zero to
 // determine whether it should be omitted when marshaling
 // with the omitempty flag. One notable implementation

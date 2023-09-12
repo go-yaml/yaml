@@ -633,13 +633,13 @@ var unmarshalTests = []struct {
 	// Binary data.
 	{
 		"a: !!binary gIGC\n",
-		map[string]string{"a": "\x80\x81\x82"},
+		map[string][]byte{"a": {0x80, 0x81, 0x82}},
 	}, {
 		"a: !!binary |\n  " + strings.Repeat("kJCQ", 17) + "kJ\n  CQ\n",
-		map[string]string{"a": strings.Repeat("\x90", 54)},
+		map[string][]byte{"a": arrayOf(0x90, 54)},
 	}, {
 		"a: !!binary |\n  " + strings.Repeat("A", 70) + "\n  ==\n",
-		map[string]string{"a": strings.Repeat("\x00", 52)},
+		map[string][]byte{"a": arrayOf(0x00, 52)},
 	},
 
 	// Issue #39.
@@ -804,6 +804,14 @@ var unmarshalTests = []struct {
 	},
 }
 
+func arrayOf(value byte, length int) []byte {
+	var array []byte
+	for i := 0; i < length; i++ {
+		array = append(array, value)
+	}
+	return array
+}
+
 type M map[string]interface{}
 
 type inlineB struct {
@@ -947,7 +955,7 @@ var unmarshalErrorTests = []struct {
 	{"%TAG !%79! tag:yaml.org,2002:\n---\nv: !%79!int '1'", "yaml: did not find expected whitespace"},
 	{"a:\n  1:\nb\n  2:", ".*could not find expected ':'"},
 	{"a: 1\nb: 2\nc 2\nd: 3\n", "^yaml: line 3: could not find expected ':'$"},
-	{"#\n-\n{", "yaml: line 3: could not find expected ':'"}, // Issue #665
+	{"#\n-\n{", "yaml: line 3: could not find expected ':'"},   // Issue #665
 	{"0: [:!00 \xef", "yaml: incomplete UTF-8 octet sequence"}, // Issue #666
 	{
 		"a: &a [00,00,00,00,00,00,00,00,00]\n" +
@@ -1482,7 +1490,7 @@ func (s *S) TestMergeNestedStruct(c *C) {
 	// 2) A simple implementation might attempt to handle the key skipping
 	//    directly by iterating over the merging map without recursion, but
 	//    there are more complex cases that require recursion.
-	// 
+	//
 	// Quick summary of the fields:
 	//
 	// - A must come from outer and not overriden
@@ -1498,7 +1506,7 @@ func (s *S) TestMergeNestedStruct(c *C) {
 		A, B, C int
 	}
 	type Outer struct {
-		D, E      int
+		D, E   int
 		Inner  Inner
 		Inline map[string]int `yaml:",inline"`
 	}
@@ -1516,10 +1524,10 @@ func (s *S) TestMergeNestedStruct(c *C) {
 	// Repeat test with a map.
 
 	var testm map[string]interface{}
-	var wantm = map[string]interface {} {
-		"f":     60,
+	var wantm = map[string]interface{}{
+		"f": 60,
 		"inner": map[string]interface{}{
-		    "a": 10,
+			"a": 10,
 		},
 		"d": 40,
 		"e": 50,

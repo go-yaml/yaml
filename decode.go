@@ -575,7 +575,11 @@ func (d *decoder) scalar(n *Node, out reflect.Value) bool {
 			if err != nil {
 				failf("!!binary value contains invalid base64 data")
 			}
-			resolved = string(data)
+			if out.Kind() == reflect.String {
+				resolved = string(data)
+			} else {
+				resolved = data
+			}
 		}
 	}
 	if resolved == nil {

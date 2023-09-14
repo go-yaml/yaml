@@ -557,13 +557,13 @@ var unmarshalTests = []struct {
 	// Binary data.
 	{
 		"a: !!binary gIGC\n",
-		map[string]string{"a": "\x80\x81\x82"},
+		map[string][]byte{"a": {0x80, 0x81, 0x82}},
 	}, {
 		"a: !!binary |\n  " + strings.Repeat("kJCQ", 17) + "kJ\n  CQ\n",
-		map[string]string{"a": strings.Repeat("\x90", 54)},
+		map[string][]byte{"a": arrayOf(0x90, 54)},
 	}, {
 		"a: !!binary |\n  " + strings.Repeat("A", 70) + "\n  ==\n",
-		map[string]string{"a": strings.Repeat("\x00", 52)},
+		map[string][]byte{"a": arrayOf(0x00, 52)},
 	},
 
 	// Ordered maps.
@@ -697,7 +697,7 @@ var unmarshalTests = []struct {
 		M{"a": 123456e1},
 	}, {
 		"a: 123456E1\n",
-		M{"a": 123456E1},
+		M{"a": 123456e1},
 	},
 	// yaml-test-suite 3GZX: Spec Example 7.1. Alias Nodes
 	{
@@ -734,6 +734,14 @@ b:
 				"a": "a",
 			}},
 	},
+}
+
+func arrayOf(value byte, length int) []byte {
+	var array []byte
+	for i := 0; i < length; i++ {
+		array = append(array, value)
+	}
+	return array
 }
 
 type M map[interface{}]interface{}
@@ -870,14 +878,14 @@ var unmarshalErrorTests = []struct {
 	{"a:\n  1:\nb\n  2:", ".*could not find expected ':'"},
 	{
 		"a: &a [00,00,00,00,00,00,00,00,00]\n" +
-		"b: &b [*a,*a,*a,*a,*a,*a,*a,*a,*a]\n" +
-		"c: &c [*b,*b,*b,*b,*b,*b,*b,*b,*b]\n" +
-		"d: &d [*c,*c,*c,*c,*c,*c,*c,*c,*c]\n" +
-		"e: &e [*d,*d,*d,*d,*d,*d,*d,*d,*d]\n" +
-		"f: &f [*e,*e,*e,*e,*e,*e,*e,*e,*e]\n" +
-		"g: &g [*f,*f,*f,*f,*f,*f,*f,*f,*f]\n" +
-		"h: &h [*g,*g,*g,*g,*g,*g,*g,*g,*g]\n" +
-		"i: &i [*h,*h,*h,*h,*h,*h,*h,*h,*h]\n",
+			"b: &b [*a,*a,*a,*a,*a,*a,*a,*a,*a]\n" +
+			"c: &c [*b,*b,*b,*b,*b,*b,*b,*b,*b]\n" +
+			"d: &d [*c,*c,*c,*c,*c,*c,*c,*c,*c]\n" +
+			"e: &e [*d,*d,*d,*d,*d,*d,*d,*d,*d]\n" +
+			"f: &f [*e,*e,*e,*e,*e,*e,*e,*e,*e]\n" +
+			"g: &g [*f,*f,*f,*f,*f,*f,*f,*f,*f]\n" +
+			"h: &h [*g,*g,*g,*g,*g,*g,*g,*g,*g]\n" +
+			"i: &i [*h,*h,*h,*h,*h,*h,*h,*h,*h]\n",
 		"yaml: document contains excessive aliasing",
 	},
 }

@@ -89,9 +89,14 @@ func Unmarshal(in []byte, out interface{}) (err error) {
 	return unmarshal(in, out, false)
 }
 
+type Parser interface {
+	// Parse produces the document Node to be decoded into target struct
+	Parse() *Node
+}
+
 // A Decoder reads and decodes YAML values from an input stream.
 type Decoder struct {
-	parser      *parser
+	parser      Parser
 	knownFields bool
 }
 
@@ -102,6 +107,13 @@ type Decoder struct {
 func NewDecoder(r io.Reader) *Decoder {
 	return &Decoder{
 		parser: newParserFromReader(r),
+	}
+}
+
+// NewDecoderWithParser returns a new decoder that uses provided parser
+func NewDecoderWithParser(p Parser) *Decoder {
+	return &Decoder{
+		parser: p,
 	}
 }
 
@@ -120,7 +132,7 @@ func (dec *Decoder) Decode(v interface{}) (err error) {
 	d := newDecoder()
 	d.knownFields = dec.knownFields
 	defer handleErr(&err)
-	node := dec.parser.parse()
+	node := dec.parser.Parse()
 	if node == nil {
 		return io.EOF
 	}
@@ -158,7 +170,7 @@ func unmarshal(in []byte, out interface{}, strict bool) (err error) {
 	d := newDecoder()
 	p := newParser(in)
 	defer p.destroy()
-	node := p.parse()
+	node := p.Parse()
 	if node != nil {
 		v := reflect.ValueOf(out)
 		if v.Kind() == reflect.Ptr && !v.IsNil() {
@@ -265,7 +277,7 @@ func (n *Node) Encode(v interface{}) (err error) {
 	p := newParser(e.out)
 	p.textless = true
 	defer p.destroy()
-	doc := p.parse()
+	doc := p.Parse()
 	*n = *doc.Content[0]
 	return nil
 }

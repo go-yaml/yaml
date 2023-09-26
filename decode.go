@@ -144,7 +144,7 @@ func (p *parser) anchor(n *Node, anchor []byte) {
 	}
 }
 
-func (p *parser) parse() *Node {
+func (p *parser) Parse() *Node {
 	p.init()
 	switch p.peek() {
 	case yaml_SCALAR_EVENT:
@@ -194,7 +194,7 @@ func (p *parser) node(kind Kind, defaultTag, tag, value string) *Node {
 }
 
 func (p *parser) parseChild(parent *Node) *Node {
-	child := p.parse()
+	child := p.Parse()
 	parent.Content = append(parent.Content, child)
 	return child
 }

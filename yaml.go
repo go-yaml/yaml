@@ -135,10 +135,11 @@ func (dec *Decoder) Decode(v interface{}) (err error) {
 
 // ErrorPos provides the last error position for a decoder.
 // The return values are the index of the error in the file, the line
-// and the column.
+// and the column.  If there are no errors or no decoding has happened,
+// it will return 0, 0, 0.
 func (dec *Decoder) ErrorPos() (int, int, int) {
 	if dec.parser == nil {
-		return -1, -1, -1
+		return 0, 0, 0
 	}
 	return dec.parser.parser.problem_mark.index,
 		dec.parser.parser.problem_mark.line,

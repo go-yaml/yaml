@@ -112,7 +112,10 @@ func (dec *Decoder) KnownFields(enable bool) {
 }
 
 // Decode reads the next YAML-encoded value from its input
-// and stores it in the value pointed to by v.
+// and stores it in the value pointed to by v. If there are
+// no more yaml documents to decode (or there never was, for
+// example if the Decoder's io.Reader never had any bytes),
+// it will return an io.EOF
 //
 // See the documentation for Unmarshal for details about the
 // conversion of YAML into a Go value.

@@ -863,6 +863,33 @@ func (s *S) TestDecoderSingleDocument(c *C) {
 	}
 }
 
+func (s *S) TestDecoderUnmarshalJSONTags(c *C) {
+	type T struct {
+		Z int `json:"a"`
+		Y int `json:"b"`
+	}
+	var v T
+	decoder := yaml.NewDecoder(strings.NewReader("a: 1\nb: 2"))
+	decoder.SetStructTagKeys([]string{"json"})
+	err := decoder.Decode(&v)
+	c.Assert(err, IsNil)
+	c.Assert(v, DeepEquals, T{1, 2})
+}
+
+func (s *S) TestDecoderUnmarshalYAMLAndJSONTags(c *C) {
+	type T struct {
+		Z int `yaml:"a" json:"b"`
+		Y int `yaml:"b" json:"a"`
+		X int `json:"c"`
+	}
+	var v T
+	decoder := yaml.NewDecoder(strings.NewReader("a: 1\nb: 2\nc: 3"))
+	decoder.SetStructTagKeys([]string{"yaml", "json"})
+	err := decoder.Decode(&v)
+	c.Assert(err, IsNil)
+	c.Assert(v, DeepEquals, T{1, 2, 3})
+}
+
 var decoderTests = []struct {
 	data   string
 	values []interface{}

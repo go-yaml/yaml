@@ -135,12 +135,29 @@ func (dec *Decoder) Decode(v interface{}) (err error) {
 	return nil
 }
 
+// NodeDecoderOption allows configuring decoder with custom options.
+//
+// It is especially useful when implementing UnmarshalYAML for custom data types.
+type NodeDecoderOption func(d *decoder)
+
+// NodeDecoderOptions stores all currently available decoder configuration options.
+var NodeDecoderOptions = struct {
+	KnownFields NodeDecoderOption
+}{
+	KnownFields: func(d *decoder) {
+		d.knownFields = true
+	},
+}
+
 // Decode decodes the node and stores its data into the value pointed to by v.
 //
 // See the documentation for Unmarshal for details about the
 // conversion of YAML into a Go value.
-func (n *Node) Decode(v interface{}) (err error) {
+func (n *Node) Decode(v interface{}, nodeDecoderOptions ...NodeDecoderOption) (err error) {
 	d := newDecoder()
+	for _, opt := range nodeDecoderOptions {
+		opt(d)
+	}
 	defer handleErr(&err)
 	out := reflect.ValueOf(v)
 	if out.Kind() == reflect.Ptr && !out.IsNil() {

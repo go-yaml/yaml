@@ -1703,6 +1703,35 @@ func (s *S) TestUnmarshalKnownFields(c *C) {
 	}
 }
 
+type decoderOptionsTest struct {
+	Foo int
+	Bar string
+}
+
+// contrived example only for the sake of showcasing the
+// custom unmarshalling logic
+func (i *decoderOptionsTest) UnmarshalYAML(data *yaml.Node) error {
+	repr := struct {
+		Foo int
+		Bar string
+	}{}
+	if err := data.Decode(&repr, yaml.NodeDecoderOptions.KnownFields); err != nil {
+		return err
+	}
+	i.Foo = repr.Foo
+	i.Bar = repr.Bar
+	return nil
+}
+
+func (s *S) TestDecoderOptions(c *C) {
+	testData := "foo: 42\nbar: \"bar\"\nsome_random_field: 666"
+	out := decoderOptionsTest{}
+	dec := yaml.NewDecoder(bytes.NewBuffer([]byte(testData)))
+	dec.KnownFields(true)
+	err := dec.Decode(&out)
+	c.Assert(err, ErrorMatches, "yaml: unmarshal errors:\n  line 3: field some_random_field not found in type struct { Foo int; Bar string }")
+}
+
 type textUnmarshaler struct {
 	S string
 }

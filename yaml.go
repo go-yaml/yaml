@@ -91,8 +91,9 @@ func Unmarshal(in []byte, out interface{}) (err error) {
 
 // A Decoder reads and decodes YAML values from an input stream.
 type Decoder struct {
-	parser      *parser
-	knownFields bool
+	parser        *parser
+	knownFields   bool
+	structTagKeys []string
 }
 
 // NewDecoder returns a new decoder that reads from r.
@@ -111,6 +112,24 @@ func (dec *Decoder) KnownFields(enable bool) {
 	dec.knownFields = enable
 }
 
+// SetStructTagKeys changes the tag keys used when decoding. By default
+// the "yaml" tag key is used.
+//
+// The keys are tried in order and the first one that is found in the struct
+// tag will be used.
+//
+// For example:
+//
+//	dec := yaml.NewDecoder(r)
+//	dec.SetStructTagKeys([]string{"yaml", "json"})
+//	dec.Decode(v)
+//
+// This will use the "yaml" tag key first, and if it's not found it will
+// use the "json" tag key.
+func (dec *Decoder) SetStructTagKeys(keys []string) {
+	dec.structTagKeys = keys
+}
+
 // Decode reads the next YAML-encoded value from its input
 // and stores it in the value pointed to by v.
 //
@@ -119,6 +138,7 @@ func (dec *Decoder) KnownFields(enable bool) {
 func (dec *Decoder) Decode(v interface{}) (err error) {
 	d := newDecoder()
 	d.knownFields = dec.knownFields
+	d.structTagKeys = dec.structTagKeys
 	defer handleErr(&err)
 	node := dec.parser.parse()
 	if node == nil {
@@ -276,6 +296,24 @@ func (e *Encoder) SetIndent(spaces int) {
 		panic("yaml: cannot indent to a negative number of spaces")
 	}
 	e.encoder.indent = spaces
+}
+
+// SetStructTagKeys changes the tag keys used when encoding. By default
+// the "yaml" tag key is used, but this can be changed to other values.
+//
+// The keys are tried in order and the first one that is found in the struct
+// tag will be used.
+//
+// For example:
+//
+//	enc := yaml.NewEncoder(w)
+//	enc.SetStructTagKeys([]string{"yaml", "json"})
+//	enc.Encode(v)
+//
+// This will use the "yaml" tag key first, and if it's not found it will
+// use the "json" tag key.
+func (e *Encoder) SetStructTagKeys(keys []string) {
+	e.encoder.structTagKeys = keys
 }
 
 // Close closes the encoder by writing any remaining data.
@@ -518,13 +556,14 @@ type fieldInfo struct {
 var structMap = make(map[reflect.Type]*structInfo)
 var fieldMapMutex sync.RWMutex
 var unmarshalerType reflect.Type
+var defaultStructTagKeys = []string{"yaml"}
 
 func init() {
 	var v Unmarshaler
 	unmarshalerType = reflect.ValueOf(&v).Elem().Type()
 }
 
-func getStructInfo(st reflect.Type) (*structInfo, error) {
+func getStructInfo(st reflect.Type, structTagKeys []string) (*structInfo, error) {
 	fieldMapMutex.RLock()
 	sinfo, found := structMap[st]
 	fieldMapMutex.RUnlock()
@@ -545,7 +584,16 @@ func getStructInfo(st reflect.Type) (*structInfo, error) {
 
 		info := fieldInfo{Num: i}
 
-		tag := field.Tag.Get("yaml")
+		tag := ""
+		if structTagKeys == nil {
+			structTagKeys = defaultStructTagKeys
+		}
+		for _, structTagKey := range structTagKeys {
+			tag = field.Tag.Get(structTagKey)
+			if tag != "" {
+				break
+			}
+		}
 		if tag == "" && strings.Index(string(field.Tag), ":") < 0 {
 			tag = string(field.Tag)
 		}
@@ -592,7 +640,7 @@ func getStructInfo(st reflect.Type) (*structInfo, error) {
 				if reflect.PtrTo(ftype).Implements(unmarshalerType) {
 					inlineUnmarshalers = append(inlineUnmarshalers, []int{i})
 				} else {
-					sinfo, err := getStructInfo(ftype)
+					sinfo, err := getStructInfo(ftype, structTagKeys)
 					if err != nil {
 						return nil, err
 					}

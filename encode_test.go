@@ -538,6 +538,39 @@ func (s *S) TestEncoderWriteError(c *C) {
 	c.Assert(err, ErrorMatches, `yaml: write error: some write error`) // Data not flushed yet
 }
 
+func (s *S) TestEncoderJSONTags(c *C) {
+	type T struct {
+		Z int `json:"a"`
+		Y int `json:"b,omitempty"`
+		X int `json:",omitempty"`
+		W int `json:"-"`
+	}
+	var buf bytes.Buffer
+	enc := yaml.NewEncoder(&buf)
+	enc.SetStructTagKeys([]string{"json"})
+	err := enc.Encode(T{1, 0, 0, 0})
+	c.Assert(err, Equals, nil)
+	err = enc.Close()
+	c.Assert(err, Equals, nil)
+	c.Assert(buf.String(), Equals, "a: 1\n")
+}
+
+func (s *S) TestEncoderYAMLAndJSONTags(c *C) {
+	type T struct {
+		Z int `yaml:"a" json:"b"`
+		Y int `yaml:"b" json:"a"`
+		X int `json:"c"`
+	}
+	var buf bytes.Buffer
+	enc := yaml.NewEncoder(&buf)
+	enc.SetStructTagKeys([]string{"yaml", "json"})
+	err := enc.Encode(T{1, 2, 3})
+	c.Assert(err, Equals, nil)
+	err = enc.Close()
+	c.Assert(err, Equals, nil)
+	c.Assert(buf.String(), Equals, "a: 1\nb: 2\nc: 3\n")
+}
+
 type errorWriter struct{}
 
 func (errorWriter) Write([]byte) (int, error) {

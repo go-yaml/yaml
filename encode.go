@@ -29,12 +29,13 @@ import (
 )
 
 type encoder struct {
-	emitter  yaml_emitter_t
-	event    yaml_event_t
-	out      []byte
-	flow     bool
-	indent   int
-	doneInit bool
+	emitter       yaml_emitter_t
+	event         yaml_event_t
+	out           []byte
+	flow          bool
+	indent        int
+	doneInit      bool
+	structTagKeys []string
 }
 
 func newEncoder() *encoder {
@@ -212,7 +213,7 @@ func (e *encoder) fieldByIndex(v reflect.Value, index []int) (field reflect.Valu
 }
 
 func (e *encoder) structv(tag string, in reflect.Value) {
-	sinfo, err := getStructInfo(in.Type())
+	sinfo, err := getStructInfo(in.Type(), e.structTagKeys)
 	if err != nil {
 		panic(err)
 	}

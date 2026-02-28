@@ -2469,7 +2469,7 @@ func yaml_parser_scan_flow_scalar(parser *yaml_parser_t, token *yaml_token_t, si
 		leading_blanks := false
 		for !is_blankz(parser.buffer, parser.buffer_pos) {
 			if single && parser.buffer[parser.buffer_pos] == '\'' && parser.buffer[parser.buffer_pos+1] == '\'' {
-				// Is is an escaped single quote.
+				// It is an escaped single quote.
 				s = append(s, '\'')
 				skip(parser)
 				skip(parser)
